@@ -1,0 +1,723 @@
+# Anki-Connect API Interface
+
+Anki-Connect is a plugin for Anki that exposes an HTTP API, allowing external applications to interact with Anki's data. This document provides a summary of the API and examples for Python developers.
+
+## Overview
+
+-   **Functionality:** Query Anki decks, create/modify cards, control the Anki UI, manage media, and more.
+-   **Communication:** JSON over HTTP POST requests.
+-   **Port:** 8765 (default)
+-   **Address:** 127.0.0.1 (default, configurable)
+-   **Authentication:** Optional API key support.
+-   **Versioning:** Supports API versions for backward compatibility.
+
+## Python Interface Example
+
+```python
+import json
+import urllib.request
+
+def request(action, **params):
+    return {'action': action, 'params': params, 'version': 6}
+
+def invoke(action, **params):
+    requestJson = json.dumps(request(action, **params)).encode('utf-8')
+    response = json.load(urllib.request.urlopen(urllib.request.Request('http://127.0.0.1:8765', requestJson)))
+    if len(response) != 2:
+        raise Exception('response has an unexpected number of fields')
+    if 'error' not in response:
+        raise Exception('response is missing required error field')
+    if 'result' not in response:
+        raise Exception('response is missing required result field')
+    if response['error'] is not None:
+        raise Exception(response['error'])
+    return response['result']
+
+# Example usage:
+try:
+    # Create a new deck
+    invoke('createDeck', deck='My New Deck')
+
+    # Get a list of all decks
+    decks = invoke('deckNames')
+    print(f"Decks: {decks}")
+
+    # Add a new note
+    note_id = invoke('addNote', note={
+        'deckName': 'My New Deck',
+        'modelName': 'Basic',
+        'fields': {
+            'Front': 'What is the capital of France?',
+            'Back': 'Paris'
+        },
+        'tags': ['geography']
+    })
+    print(f"Added note with ID: {note_id}")
+
+except Exception as e:
+    print(f"Error: {e}")
+Use code with caution.
+Llms.txt
+Key Actions and Examples
+Here's a categorized breakdown of some essential actions with Python examples:
+
+Deck Actions
+deckNames: Get all deck names.
+
+deck_names = invoke('deckNames')
+print(deck_names)  # Output: ['Default', 'My New Deck', ...]
+Use code with caution.
+Python
+createDeck: Create a new deck.
+
+invoke('createDeck', deck='Japanese Vocabulary')
+Use code with caution.
+Python
+deleteDecks: Delete specific decks.
+
+invoke('deleteDecks', decks=['Old Deck'], cardsToo=True)
+Use code with caution.
+Python
+Card Actions
+findCards: Find cards matching a query.
+
+card_ids = invoke('findCards', query='deck:My New Deck is:due')
+print(card_ids)  # Output: [1678886400, 1678886401, ...]
+Use code with caution.
+Python
+cardsInfo: Get information about specific cards.
+
+cards_info = invoke('cardsInfo', cards=[1678886400, 1678886401])
+print(cards_info)
+Use code with caution.
+Python
+suspend: Suspend cards.
+
+invoke('suspend', cards=[1678886400, 1678886402])
+Use code with caution.
+Python
+Note Actions
+addNote: Add a new note.
+
+note_id = invoke('addNote', note={
+    'deckName': 'My New Deck',
+    'modelName': 'Basic',
+    'fields': {
+        'Front': 'Apple',
+        'Back': 'りんご'
+    },
+    'tags': ['japanese', 'fruit']
+})
+print(f'New note ID: {note_id}')
+Use code with caution.
+Python
+updateNoteFields: Update fields of an existing note.
+
+invoke('updateNoteFields', note={
+    'id': 1678886405,
+    'fields': {
+        'Front': 'Updated Question'
+    }
+})
+Use code with caution.
+Python
+findNotes: Find notes matching a query.
+
+note_ids = invoke('findNotes', query='tag:japanese')
+print(note_ids)  # Output: [1678886405, 1678886407]
+Use code with caution.
+Python
+Model Actions
+modelNames: Get all model names.
+
+model_names = invoke('modelNames')
+print(model_names) #Output: ['Basic', 'Basic (and reversed card)', 'Basic (optional reversed card)', 'Basic (type in the answer)', 'Cloze']
+Use code with caution.
+Python
+modelFieldNames: Get field names for a specific model.
+
+field_names = invoke('modelFieldNames', modelName='Basic')
+print(field_names)  # Output: ['Front', 'Back']
+Use code with caution.
+Python
+createModel: Create a new model.
+
+invoke('createModel',
+       modelName='My Model',
+       inOrderFields=['Question', 'Answer', 'Notes'],
+       cardTemplates=[
+           {
+               'Name': 'Card 1',
+               'Front': '{{Question}}',
+               'Back': '{{Answer}}<br>{{Notes}}'
+           }
+       ],
+       css='.card { font-family: arial; font-size: 20px; }'
+       )
+Use code with caution.
+Python
+Media Actions
+storeMediaFile: Store a media file in Anki's media folder.
+
+# Store from local file
+invoke('storeMediaFile', filename='audio.mp3', path='/path/to/audio.mp3')
+
+# Store from base64 data
+invoke('storeMediaFile', filename='image.jpg', data='SGVsbG8gV29ybGQ=') # "Hello World" in base64
+Use code with caution.
+Python
+retrieveMediaFile: Retrieve a media file's base64 data.
+
+base64_data = invoke('retrieveMediaFile', filename='image.jpg')
+print(base64_data)
+Use code with caution.
+Python
+Miscellaneous Actions
+sync: Synchronize the local Anki collection with AnkiWeb.
+
+invoke('sync')
+Use code with caution.
+Python
+getProfiles: Get a list of Anki user profiles.
+
+profiles = invoke('getProfiles')
+print(profiles)
+Use code with caution.
+Python
+version: Get the AnkiConnect API version.
+
+version = invoke('version')
+print(version) # Output: 6
+Use code with caution.
+Python
+Graphical Actions
+guiStartCardTimer: Starts or resets the timerStarted value for the current card.
+
+invoke('guiStartCardTimer')
+Use code with caution.
+Python
+guiAnswerCard: Answers the current card.
+
+invoke('guiAnswerCard', ease=3) # Marks the card as 'Good'
+Use code with caution.
+Python
+Error Handling
+The invoke function in the Python example includes basic error handling. Anki-Connect returns errors in the error field of the response. If the error field is not null, an exception is raised.
+
+Authentication
+If API key authentication is enabled in Anki-Connect's configuration, include the key parameter in each request:
+
+def invoke_with_auth(action, key, **params):
+    params['key'] = key
+    return invoke(action, **params)
+
+# Example:
+invoke_with_auth('deckNames', 'your_api_key')
+Use code with caution.
+Python
+Anki Query Language
+Several Anki-Connect actions, such as findCards and findNotes, accept an Anki query string to specify the cards or notes you want to retrieve. This query language is powerful and allows you to filter based on various criteria.
+
+Here's a breakdown of common query components:
+
+Deck Selection
+deck:deckname: Selects cards from a specific deck.
+
+Example: deck:French
+
+deck:deckname (note the trailing space): Selects cards from a deck and all its subdecks. This is a useful wildcard to specify all related decks in a hierarchy.
+
+Example: deck:Japanese
+
+Note and Card Status
+is:due: Selects cards that are due for review.
+
+is:new: Selects new cards that have not been reviewed yet.
+
+is:learn: Select cards that are currently in the learning stage.
+
+is:review: Selects cards in the review stage.
+
+is:suspended: Selects suspended cards.
+
+is:buried: Selects buried cards (temporarily hidden until the next day).
+
+flag:1 Selects cards with a red flag. Similarly, flag:2 for orange, flag:3 for green, and flag:4 for blue.
+
+Tags
+tag:mytag: Selects notes with the tag "mytag".
+
+Example: tag:vocabulary
+
+tag:none: Selects notes that have no tags.
+
+-tag:mytag: Excludes notes with the tag "mytag".
+
+Example: -tag:difficult
+
+Fields
+"field:content": Selects notes where the specified field contains "content".
+
+Example: "Front:apple"
+
+-field:content: Excludes notes where the specified field contains "content".
+
+Example: -Back:car
+
+If the field content you're searching for contains spaces, enclose it in double quotes within the query's outer quotes:
+
+Example: "Front:\"hello world\""
+
+To search for literal quotes, escape them with a backslash: "Front:he said \"hello\""
+
+Note Types (Models)
+note:modelname: Selects notes of a specific note type.
+
+Example: note:Basic
+
+Card Templates
+card:cardname: Selects cards based on the card template name.
+
+Example: card:Forward
+
+Creation and Modification Time
+added:n: Selects cards added in the last n days.
+
+Example: added:7 (cards added in the last week)
+
+edited:n: Selects cards modified in the last n days.
+
+rated:n: Selects cards reviewed in the last n days.
+
+rated:n:m: Selects cards reviewed in the last n days and given a rating of m. Ratings: 1 (again), 2 (hard), 3 (good), 4 (easy).
+
+Example: rated:30:4 (cards reviewed in the last 30 days and marked as "easy")
+
+Combining Queries
+You can combine these components using logical operators:
+
+ (space): Implicit AND operator.
+
+Example: deck:French tag:food (cards in the "French" deck AND tagged with "food")
+
+OR: OR operator.
+
+Example: deck:French OR deck:German
+
+-: Negation operator (NOT).
+
+Example: deck:French -tag:difficult (cards in the "French" deck but NOT tagged with "difficult")
+
+(): Parentheses for grouping.
+
+Example: (deck:French OR deck:German) tag:food
+
+Examples
+Find all due cards in the "Japanese" deck or its subdecks:
+
+due_cards = invoke('findCards', query='deck:Japanese is:due')
+Use code with caution.
+Python
+Find all new cards in the "French" deck that are tagged with "vocabulary":
+
+new_vocab_cards = invoke('findCards', query='deck:French is:new tag:vocabulary')
+Use code with caution.
+Python
+Find all notes of type "Basic" that do not have the tag "hard":
+
+notes = invoke('findNotes', query='note:Basic -tag:hard')
+Use code with caution.
+Python
+Find all cards in the "MyDeck" deck which have "foo" on the front:
+
+cards = invoke('findCards', query='deck:MyDeck "Front:foo"')
+Use code with caution.
+Python
+Find all cards in the "MyDeck" deck which have "foo bar" on the front:
+
+cards = invoke('findCards', query='deck:MyDeck "Front:\"foo bar\""')
+Use code with caution.
+Python
+Find all cards added in the last 5 days and rated as "easy" in the last 10 days:
+
+cards = invoke('findCards', query='added:5 rated:10:4')
+Use code with caution.
+Python
+This section provides a good starting point for understanding Anki's query language. For more details, refer to the official Anki manual: https://docs.ankiweb.net/searching.html
+
+Simple searches
+When you type some text into the search box, Anki finds matching notes and displays their cards. Anki searches in all fields of the notes, but does not search for tags (see later in this section to search for tags). Some examples:
+
+dog
+searches for "dog" - will match words like "doggy" and "underdog" too.
+
+dog cat
+finds notes that have both "dog" and "cat" on them, such as "raining cats and dogs".
+
+dog or cat
+finds notes with either "dog" or "cat".
+
+dog (cat or mouse)
+finds notes with "dog" and "cat", or "dog" and "mouse".
+
+-cat
+finds notes without "cat".
+
+-cat -mouse
+finds notes with neither "cat" nor "mouse".
+
+-(cat or mouse)
+same as the above.
+
+"a dog"
+finds notes with the exact sequence of characters "a dog" in them, such as "atta dog", but not "dog a" or "adog".
+
+-"a dog"
+finds notes without the exact sequence of characters "a dog" in them.
+
+d_g
+finds notes with d, <one character>, g, like dog, dig, dug, and so on.
+
+d*g
+finds notes with d, <zero or more characters>, g, like dg, dog, dung, etc.
+
+w:dog
+searches for the word "dog" as opposed to a sequence of characters - will match "dog", but not "doggy" or "underdog". Requires Anki 2.1.24+, AnkiMobile 2.1.61+, or AnkiDroid 2.17+. Note that formatting changes may be interpreted as word boundaries, e.g. searching for w:exam will match example, as the "exam" part of example is in bold format.
+
+w:dog*
+will match "dog" and "doggy", but not "underdog".
+
+w:*dog
+will match "dog" and "underdog", but not "doggy".
+
+Things to note from the above:
+
+Search terms are separated by spaces.
+
+When multiple search terms are provided, Anki looks for notes that match all of the terms - an implicit and is inserted between each term. On Anki 2.1.24+, AnkiMobile 2.0.60+, and AnkiDroid 2.17+ you can be explicit if you like (dog and cat is the same as dog cat), but older Anki versions will treat and as just another word to search for.
+
+You can use or if you only need one of the terms to match.
+
+You can prepend a minus sign (-) to a term to find notes that don’t match the term.
+
+You can group search terms by placing them in parentheses, as in the dog (cat or mouse) example. This becomes important when combining OR and AND searches — in the example, with the parentheses, it matches either "dog cat" or "dog mouse", whereas without them it would match either "dog and cat" or "mouse".
+
+Anki is only able to search within formatting in the sort field you’ve configured. For example, if you add "example" to one of your fields, with the "exa" part in bold, this will not be matched when searching for example unless that field is the sort field. If a word is not formatted, or the formatting does not change in the middle of the word, then Anki will be able to find it in any field.
+
+Standard searches are case insensitive for Latin characters - a-z will match A-Z, and vice versa. Other characters such as Cyrillic are case sensitive in a standard search, but can be made case insensitive by searching on a word boundary or regular expression (w:, re:).
+
+Limiting to a field
+You can also ask Anki to match only if a particular field contains some text. Unlike the previous search examples, searching in fields requires an exact match by default.
+
+front:dog
+finds notes with a Front field of exactly "dog". A field that says "a dog" will not match.
+
+"animal front:a dog"
+finds notes where the "Animal Front" field is exactly "a dog". The double quotes are mandatory: see later in this section.
+
+front:*dog*
+finds notes where the Front field contains dog somewhere.
+
+front:
+finds notes that have an empty Front field.
+
+front:_*
+findd notes that have a non-empty Front field.
+
+front:*
+finds notes that have a Front field, empty or not.
+
+fr*:text
+finds notes in a field starting with "fr". Requires Anki 2.1.24+, AnkiMobile 2.1.60+, or AnkiDroid 2.17+.
+
+Tags, decks, cards and notes
+tag:animal
+finds notes with the tag "animal", or subtags like "animal::mammal".
+
+tag:none
+finds notes with no tags.
+
+tag:ani*
+finds notes with tags starting with "ani".
+
+deck:french
+find cards in a top-level deck called "French", or its subdecks like "French::Words". It will not match subdecks with that name, such as "Languages::French".
+
+deck:french::words
+find cards in the "French::Words" subdeck.
+
+deck:french -deck:french::*
+finds cards in "French", but not its subdecks.
+
+deck:"french words"
+searching when the deck name has a space.
+
+"deck:french words"
+same as earlier.
+
+deck:filtered
+filtered decks only.
+
+-deck:filtered
+normal decks only.
+
+preset:"Default"
+cards in all decks that use the "Default" deck options preset. Requires Anki 23.10+, AnkiMobile 23.10+ or AnkiDroid 2.17+.
+
+card:forward
+finds cards created by a card type named "Forward".
+
+card:1
+searches for cards by card type number, e.g. to find the second cloze deletion for a note, you’d use card:2
+
+note:basic
+searches for cards created with a note type named "Basic".
+
+Ignoring accents/combining characters
+Requires Anki 2.1.24+, AnkiMobile 2.0.60+ or AnkiDroid 2.17+.
+
+You can use nc: (nc stands for "no combining") to make Anki ignore combining characters. For example:
+
+nc:uber
+matches notes with "uber", "über", "Über" and so on.
+
+nc:は
+matches "は", "ば", and "ぱ".
+
+Searches that ignore combining characters are slower than regular searches.
+
+Regular expressions
+Anki 2.1.24+, AnkiMobile 2.0.60+ and AnkiDroid 2.17+ support searching in notes with "regular expressions", a standard and powerful way of searching in text.
+
+Start a search with re: to search using regular expressions. To make things easier, Anki will treat the following as raw input, so bear in mind the rules listed there.
+
+Some examples:
+
+"re:(some|another).*thing"
+finds notes that have "some" or "another" on them, followed by 0 or more characters, and then "thing".
+
+re:\d{3}
+finds notes that have 3 digits in a row.
+
+Regular expressions can also be limited to a specific field. Please note that unlike the normal searches in a specific field, regular expressions in fields don't require an exact match:
+
+front:re:[a-c]1
+matches uppercase or lowercase a1, B1 or c1 that occurs anywhere in the "Front" field.
+
+front:re:^[a-c]1$
+same as the previous example, but will not match if any other text falls before or after a1/b1/c1.
+
+Anki 2.1.50+ supports regular expressions for tags:
+
+tag:re:^parent$
+finds notes with the exact tag "parent", disregarding any child tags like "parent::child".
+
+"tag:re:lesson-(1[7-9]|2[0-5])"
+finds notes with tags "lesson-17" through "lesson-25".
+
+For more information on regular expressions, see this website.
+
+Some things to be aware of:
+
+The search is case-insensitive by default; use (?-i) at the start to turn on case sensitivity.
+Some text like spaces and newlines may be represented differently in HTML - you can use the HTML editor in the editing screen to see the underlying HTML contents.
+For the specifics of Anki's regex support, see the regex crate documentation.
+Card state
+is:due
+review cards and learning cards waiting to be studied.
+
+is:new
+new cards.
+
+is:learn
+cards in learning.
+
+is:review
+reviews (both due and not due) and lapsed cards.
+
+is:suspended
+cards that have been automatically or manually suspended.
+
+is:buried
+cards that have been either automatically or manually buried.
+
+is:buried-sibling
+cards that have been buried automatically.
+
+is:buried-manually
+cards that have been manually buried.
+
+Cards that have lapsed fall into several of the previous categories, so it may be useful to combine different search terms to get more precise results:
+
+is:learn is:review
+cards that have lapsed and are awaiting relearning.
+
+-is:learn is:review
+review cards, not including lapsed cards.
+
+is:learn -is:review
+cards that are in learning for the first time.
+
+Flags
+flag:1
+cards with a red flag.
+
+flag:2
+cards with an orange flag.
+
+flag:3
+cards with a green flag.
+
+flag:4
+cards with a blue flag.
+
+flag:5
+cards with a pink flag.
+
+flag:6
+cards with a turquoise flag.
+
+flag:7
+cards with a purple flag.
+
+Card properties
+prop:ivl>=10
+cards with interval of 10 days or more.
+
+prop:due=1
+cards due tomorrow.
+
+prop:due=-1
+cards due yesterday that haven’t been answered yet.
+
+prop:due>=1
+all cards due in the future, including tomorrow.
+
+prop:due<=-1
+all overdue cards.
+
+prop:due>-1 prop:due<1
+cards due yesterday, today and tomorrow.
+
+prop:reps<10
+cards that have been answered less than 10 times.
+
+prop:lapses>3
+cards that been lapsed more than 3 times.
+
+prop:ease!=2.5
+cards easier or harder than default ease.
+
+prop:cdn:d>5
+cards with the value of d in custom data (usually refers to difficulty in FSRS) greater than 5 (requires Anki 2.1.64+).
+
+prop:cds:v=reschedule
+cards with the string v in custom data equal to reschedule (requires Anki 23.10+).
+
+The following searches require Anki 23.10+ and FSRS enabled:
+
+prop:s>21
+cards with stability greater than 21 days.
+
+prop:d>0.3
+cards with difficulty greater than 0.3.
+
+prop:r<0.9
+cards with retrievability less than 0.9.
+
+Recent Events
+Added
+added:1
+cards added today.
+
+added:7
+cards added in the last 7 days.
+
+The check is made against card creation time rather than note creation time, so cards that were generated within the time frame will be included even if their notes were added a long time ago.
+
+Edited
+edited:n
+cards where the note text was added/edited in the last n days.
+
+This requires Anki 2.1.28+ or AnkiMobile 2.0.64+.
+
+Answered
+rated:1
+cards answered today.
+
+rated:1:2
+cards answered Hard (2) today.
+
+rated:7:1
+cards answered Again (1) in the last 7 days.
+
+rated:31:4
+cards answered Easy (4) in the last 31 days.
+
+Anki 2.1.39+ supports rating searches over 31 days.
+
+First Answered
+Requires Anki 2.1.45+.
+
+introduced:1
+cards answered for the first time today.
+
+introduced:365
+cards answered for the first time within the last 365 days.
+
+Matching special characters
+If you're using a version earlier than Anki 2.1.36 the following searches may not work.
+
+As shown in the previous section, some characters like *, _ and " have a special meaning in search. If you need to locate those characters in a search, you need to tell Anki not to treat them specially. This is called "escaping a character" and is primarily done by using double quotes and backslashes.
+
+Space
+To match something that includes spaces, enclose the "entire term" in double quotes. If it is a colon search, you also have the option to only quote the part:"after the colon".
+
+And/Or
+To search for these words, wrap them with double quotes. For example, dog "and" cat searches for "dog", "cat" and the word "and". If you wrap the entire search term with quotes like in the previous example, you do not need to escape and or or.
+
+", * and _
+Add a backslash before these characters to treat them literally. For example, _ will match any single character, but \_ matches only an actual underscore.
+
+\
+Because a backlash is used to remove the special meaning from other characters, it too is treated specially. If you need to search for an actual backslash, use \\ instead of \.
+
+( and )
+You can search for parentheses by enclosing the entire term in quotes, by using a backslash, or both at the same time. For example, "(text)", \(text\) and "\(text\)" are all equivalent searches, and search for (text).
+
+-
+Starting a search term with - usually inverts it: -dog matches everything except dog for example. If you instead wish to include an actual hyphen, you can either use a backslash, or include the text in quotes. For example, \-free or "-free" will match "guilt-free" and "cruelty-free".
+
+:
+Colons have to be escaped using backslashes unless they are preceded by another, unescaped colon. For example, w:3:30 searches for "3:30" on word boundary and doesn't require you to use a backslash. However, if you don't use a colon search, the colons need to be escaped like this: 3\:30.
+
+&, <, and >
+&, <, and > are treated as HTML when searching in Anki, and as such, searches containing them don't work as expected. However, you can search for them by using their corresponding HTML entity names (&amp; for &, &lt; for <, and &gt; for >). For example, searching &amp;text searches for a note with &text in a field.
+
+Raw input
+Text preceded by certain keywords (like re:) will be treated as raw input. That is, the characters listed above largely lose their special meaning. In such a context, only a minimum of escaping is required to prevent ambiguity:
+
+Double quotes (") must be escaped.
+
+Spaces and unescaped parentheses require the search term to be quoted.
+
+The search term must not end in an odd number of backslashes.
+
+Object IDs
+nid:123
+the note with note id 123.
+
+cid:123,456,789
+all cards with card ids 123, 456, or 789.
+
+Note and card IDs can be found in the card info dialog in the browser. These searches may also be helpful when doing add-on development or otherwise working closely with the database.
+
+Other Searches
+prop:due=1 is:learn
+interday learning cards due for tommorow.
+
+prop:due=0 is:learn -introduced:1
+interday learning cards due today.
+
+prop:resched=0
+cards rescheduled today, either using Set due date or Reschedule cards on change.
