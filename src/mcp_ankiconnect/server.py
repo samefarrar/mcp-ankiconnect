@@ -144,7 +144,7 @@ class AnkiServer:
                 case AnkiConnectTools.NUM_CARDS_DUE_TODAY:
                     return await self.num_cards_due_today(arguments)
                 case AnkiConnectTools.GET_DUE_CARDS:
-                    return await self.review_cards(arguments)
+                    return await self.get_due_cards(arguments)
                 case AnkiConnectTools.SUBMIT_REVIEWS:
                     return await self.submit_reviews(arguments)
                 case _:
