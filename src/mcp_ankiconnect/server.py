@@ -9,6 +9,12 @@ from mcp.server import NotificationOptions, Server
 from mcp.server.models import InitializationOptions
 from pydantic import BaseModel, Field
 
+class Rating(str, Enum):
+    WRONG = "wrong"  # Again - 1
+    HARD = "hard"   # Hard - 2
+    GOOD = "good"   # Good - 3
+    EASY = "easy"   # Easy - 4
+
 class AnkiAction(str, Enum):
     DECK_NAMES = "deckNames"
     FIND_CARDS = "findCards"
@@ -26,13 +32,13 @@ class AnkiConnectResponse(BaseModel):
 
 class AnkiConnectTools(str, Enum):
     NUM_CARDS_DUE_TODAY = "num_cards_due_today"
-    REVIEW_CARDS = "review_cards"
-    INTERACTIVE_REVIEW = "interactive_review"
+    GET_DUE_CARDS = "get_due_cards"
+    SUBMIT_REVIEWS = "submit_reviews"
 
 class NumCardsDueToday(BaseModel):
     deck: Optional[str] = None
 
-class ReviewCards(BaseModel):
+class GetDueCards(BaseModel):
     # Number of cards to review
     limit: int = 5
     # Optional deck filter
@@ -40,9 +46,12 @@ class ReviewCards(BaseModel):
     # Whether to only show cards due today
     today_only: bool = True
 
-class InteractiveReview(BaseModel):
+class CardReview(BaseModel):
     card_id: int
-    answer: str
+    rating: Rating
+
+class SubmitReviews(BaseModel):
+    reviews: List[CardReview]
 
 class AnkiConnectClient:
     def __init__(self, base_url: str = "http://localhost:8765"):
@@ -116,14 +125,14 @@ class AnkiServer:
                     inputSchema=NumCardsDueToday.schema(),
                 ),
                 Tool(
-                    name="review_cards",
-                    description="Review cards due today with an optional limit and deck filter",
-                    inputSchema=ReviewCards.schema(),
+                    name="get_due_cards",
+                    description="Get cards due for review with an optional limit and deck filter",
+                    inputSchema=GetDueCards.schema(),
                 ),
                 Tool(
-                    name="interactive_review",
-                    description="Submit an answer for a flashcard review",
-                    inputSchema=InteractiveReview.schema(),
+                    name="submit_reviews",
+                    description="Submit answers for multiple flashcard reviews",
+                    inputSchema=SubmitReviews.schema(),
                 ),
             ]
 
@@ -134,42 +143,36 @@ class AnkiServer:
             match name:
                 case AnkiConnectTools.NUM_CARDS_DUE_TODAY:
                     return await self.num_cards_due_today(arguments)
-                case AnkiConnectTools.REVIEW_CARDS:
+                case AnkiConnectTools.GET_DUE_CARDS:
                     return await self.review_cards(arguments)
-                case AnkiConnectTools.INTERACTIVE_REVIEW:
-                    return await self.interactive_review(arguments)
+                case AnkiConnectTools.SUBMIT_REVIEWS:
+                    return await self.submit_reviews(arguments)
                 case _:
                     raise ValueError(f"Unknown tool: {name}")
 
-    async def interactive_review(self, arguments: Optional[dict]) -> List[TextContent]:
+    async def submit_reviews(self, arguments: Optional[dict]) -> List[TextContent]:
         if not arguments:
-            raise ValueError("Arguments required for interactive review")
+            raise ValueError("Arguments required for submitting reviews")
 
-        input_model = InteractiveReview(**arguments)
+        input_model = SubmitReviews(**arguments)
         
-        # Map text answers to Anki ease values
-        answer_map = {
-            "wrong": 1,  # Again
-            "hard": 2,   # Hard
-            "good": 3,   # Good
-            "easy": 4    # Easy
+        # Map ratings to Anki ease values
+        rating_map = {
+            Rating.WRONG: 1,  # Again
+            Rating.HARD: 2,   # Hard
+            Rating.GOOD: 3,   # Good
+            Rating.EASY: 4    # Easy
         }
         
-        # Normalize and validate the answer
-        answer = input_model.answer.lower().strip()
-        if answer not in answer_map:
-            return [TextContent(
-                type="text",
-                text=f"Invalid answer '{answer}'. Please use: wrong, hard, good, or easy"
-            )]
-
-        # Submit the answer to Anki
-        ease = answer_map[answer]
-        await self.anki.answer_card(input_model.card_id, ease)
+        results = []
+        for review in input_model.reviews:
+            ease = rating_map[review.rating]
+            await self.anki.answer_card(review.card_id, ease)
+            results.append(f"Card {review.card_id} marked as {review.rating.value}")
 
         return [TextContent(
             type="text",
-            text=f"Card {input_model.card_id} marked as {answer}"
+            text="\n".join(results)
         )]
 
     async def get_cards_due(
@@ -192,7 +195,7 @@ class AnkiServer:
         # Get and return the due cards
         return await self.anki.find_cards(query=query)
 
-    async def review_cards(
+    async def get_due_cards(
         self,
         arguments: Optional[dict],
     ) -> List[TextContent]:
