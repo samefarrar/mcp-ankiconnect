@@ -90,6 +90,7 @@ async def test_review_cards_no_args(anki_server, mocked_anki_client):
     mocked_anki_client.find_cards.return_value = [1, 2]
     mocked_anki_client.cards_info.return_value = [
         {
+            "cardId": 1234,
             "fields": {
                 "Front": {"value": "Question 1", "order": 0},
                 "Back": {"value": "Answer 1", "order": 1}
@@ -111,6 +112,7 @@ async def test_review_cards_no_args(anki_server, mocked_anki_client):
     # Verify the correct format of returned content
     assert len(result) == 1
     assert result[0].type == "text"
+    assert '<card id="1234">' in result[0].text
     assert "<question><front>Question 1</front></question>" in result[0].text
     assert "<answer><back>Answer 1</back></answer>" in result[0].text
     assert "<question><front>Question 2</front></question>" in result[0].text

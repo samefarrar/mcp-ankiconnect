@@ -230,8 +230,10 @@ class AnkiServer:
             ]
 
             cards_info.append(
-                f"<question>{'; '.join(question_fields)}</question>\n"
-                f"<answer>{'; '.join(answer_fields)}</answer>\n")
+                f"<card id=\"{card['cardId']}\">\n"
+                f"  <question>{'; '.join(question_fields)}</question>\n"
+                f"  <answer>{'; '.join(answer_fields)}</answer>\n"
+                f"</card>")
 
         cards_text = "\n\n".join(cards_info)
         if not cards_text:
