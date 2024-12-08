@@ -189,11 +189,28 @@ class AnkiServer:
 
             input_model = SubmitReviews(**arguments)
 
-        # Convert reviews to AnkiConnect format
-        answers = [
-            {"cardId": review.card_id, "ease": rating_map[review.rating]}
-            for review in input_model.reviews
-        ]
+            # Convert reviews to AnkiConnect format
+            answers = [
+                {"cardId": review.card_id, "ease": RATING_TO_EASE[review.rating]}
+                for review in input_model.reviews
+            ]
+
+            # Submit all reviews at once
+            results = await self.anki.answer_cards(answers)
+
+            # Generate response messages
+            messages = [
+                f"Card {review.card_id} {'successfully' if success else 'failed to be'} marked as {review.rating.value}"
+                for review, success in zip(input_model.reviews, results)
+            ]
+
+            return [TextContent(
+                type="text",
+                text="\n".join(messages)
+            )]
+        except Exception as e:
+            logger.error(f"Error submitting reviews: {str(e)}")
+            raise RuntimeError(f"Failed to submit reviews: {str(e)}") from e
 
         # Submit all reviews at once
         results = await self.anki.answer_cards(answers)
