@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, patch, MagicMock
 import httpx
 import asyncio
 from mcp_ankiconnect.server import AnkiConnectClient
