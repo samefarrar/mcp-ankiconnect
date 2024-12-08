@@ -223,6 +223,58 @@ async def test_cleanup(anki_server, mocked_anki_client):
 
 # Integration-style tests
 @pytest.mark.integration
+async def test_interactive_review_success(anki_server, mocked_anki_client):
+    # Test each valid answer type
+    for answer in ["wrong", "hard", "good", "easy"]:
+        # Setup test
+        card_id = 123
+        args = {"card_id": card_id, "answer": answer}
+        
+        # Get expected ease value
+        ease_map = {"wrong": 1, "hard": 2, "good": 3, "easy": 4}
+        expected_ease = ease_map[answer]
+        
+        # Execute review
+        result = await anki_server.interactive_review(args)
+        
+        # Verify answer_card was called with correct parameters
+        mocked_anki_client.answer_card.assert_called_with(card_id, expected_ease)
+        
+        # Verify response format
+        assert len(result) == 1
+        assert result[0].type == "text"
+        assert result[0].text == f"Card {card_id} marked as {answer}"
+
+async def test_interactive_review_invalid_answer(anki_server, mocked_anki_client):
+    # Test with invalid answer
+    args = {"card_id": 123, "answer": "invalid"}
+    
+    # Execute review
+    result = await anki_server.interactive_review(args)
+    
+    # Verify error response
+    assert len(result) == 1
+    assert result[0].type == "text"
+    assert "Invalid answer 'invalid'" in result[0].text
+    assert "Please use: wrong, hard, good, or easy" in result[0].text
+    
+    # Verify answer_card was not called
+    mocked_anki_client.answer_card.assert_not_called()
+
+async def test_interactive_review_missing_arguments(anki_server, mocked_anki_client):
+    # Test with no arguments
+    with pytest.raises(ValueError, match="Arguments required for interactive review"):
+        await anki_server.interactive_review(None)
+
+async def test_interactive_review_error_handling(anki_server, mocked_anki_client):
+    # Setup test with error condition
+    args = {"card_id": 123, "answer": "good"}
+    mocked_anki_client.answer_card.side_effect = RuntimeError("Failed to answer card")
+    
+    # Execute review and verify error propagation
+    with pytest.raises(RuntimeError, match="Failed to answer card"):
+        await anki_server.interactive_review(args)
+
 async def test_full_review_workflow(anki_server, mocked_anki_client):
     # Setup mock responses for a full workflow
     mocked_anki_client.deck_names.return_value = ["Test Deck"]
