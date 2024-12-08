@@ -53,8 +53,7 @@ class AnkiConnectTools(str, Enum):
     NUM_CARDS_DUE_TODAY = "num_cards_due_today"
     GET_DUE_CARDS = "get_due_cards"
     SUBMIT_REVIEWS = "submit_reviews"
-    LIST_NOTE_TYPES = "list_note_types"
-    LIST_DECKS = "list_decks"
+    LIST_DECKS_AND_NOTES = "list_decks_and_notes"
     ADD_NOTE = "add_note"
     GET_EXAMPLES = "get_examples"
 
@@ -194,13 +193,8 @@ class AnkiServer:
                     inputSchema=SubmitReviews.schema(),
                 ),
                 Tool(
-                    name="list_note_types",
-                    description="Get available note types and their field names",
-                    inputSchema={"type": "object", "properties": {}},
-                ),
-                Tool(
-                    name="list_decks",
-                    description="Get available deck names",
+                    name="list_decks_and_notes",
+                    description="Get available decks and note types with their fields",
                     inputSchema={"type": "object", "properties": {}},
                 ),
                 Tool(
@@ -226,10 +220,8 @@ class AnkiServer:
                     return await self.get_due_cards(arguments)
                 case AnkiConnectTools.SUBMIT_REVIEWS:
                     return await self.submit_reviews(arguments)
-                case AnkiConnectTools.LIST_NOTE_TYPES:
-                    return await self.list_note_types()
-                case AnkiConnectTools.LIST_DECKS:
-                    return await self.list_decks()
+                case AnkiConnectTools.LIST_DECKS_AND_NOTES:
+                    return await self.list_decks_and_notes()
                 case AnkiConnectTools.ADD_NOTE:
                     return await self.add_note(arguments)
                 case AnkiConnectTools.GET_EXAMPLES:
@@ -237,35 +229,30 @@ class AnkiServer:
                 case _:
                     raise ValueError(f"Unknown tool: {name}")
 
-    async def list_note_types(self) -> List[TextContent]:
-        """Get all note types and their fields"""
+    async def list_decks_and_notes(self) -> List[TextContent]:
+        """Get all decks and note types with their fields"""
         try:
-            # Get all model names
-            model_names = await self.anki.invoke(AnkiAction.MODEL_NAMES)
+            # Get decks
+            decks = await self.anki.deck_names()
             
-            # Get fields for each model
+            # Get note types and their fields
+            model_names = await self.anki.invoke(AnkiAction.MODEL_NAMES)
             note_types = []
             for model in model_names:
                 fields = await self.anki.invoke(AnkiAction.MODEL_FIELD_NAMES, modelName=model)
                 note_types.append({"name": model, "fields": fields})
             
+            result = {
+                "decks": decks,
+                "note_types": note_types
+            }
+            
             return [TextContent(
                 type="text",
-                text=json.dumps(note_types, indent=2)
+                text=json.dumps(result, indent=2)
             )]
         except Exception as e:
-            raise RuntimeError(f"Failed to get note types: {str(e)}")
-
-    async def list_decks(self) -> List[TextContent]:
-        """Get all deck names"""
-        try:
-            decks = await self.anki.deck_names()
-            return [TextContent(
-                type="text",
-                text=json.dumps(decks, indent=2)
-            )]
-        except Exception as e:
-            raise RuntimeError(f"Failed to get decks: {str(e)}")
+            raise RuntimeError(f"Failed to get decks and note types: {str(e)}")
 
     async def add_note(self, arguments: Optional[dict]) -> List[TextContent]:
         """Create a new note"""
@@ -311,13 +298,13 @@ class AnkiServer:
                 case "recent":
                     query += "added:7"  # Added in last week
                 case "most_reviewed":
-                    query += "prop:reps>10"  # Cards reviewed more than 10 times
+                    query += "prop:reps>10 -is:learn"  # Reviewed cards excluding learning
                 case "best_performance":
-                    query += "prop:lapses<3"  # Cards with few lapses
+                    query += "prop:lapses<3 is:review"  # Review cards with few lapses
                 case "mature":
-                    query += "prop:ivl>=21"  # Cards with intervals >= 21 days
+                    query += "prop:ivl>=21 -is:learn"  # Mature cards not in learning
                 case "young":
-                    query += "prop:ivl<=7"   # Cards with intervals <= 7 days
+                    query += "is:review prop:ivl<=7 -is:learn"  # Young review cards
             
             # Find notes matching criteria
             note_ids = await self.anki.invoke(AnkiAction.FIND_NOTES, query=query)
