@@ -4,69 +4,65 @@ Connect Claude conversations with AnkiConnect via MCP to make spaced repetition 
 
 ## Components
 
-### Resources
-
-The server implements a simple note storage system with:
-- Custom note:// URI scheme for accessing individual notes
-- Each note resource has a name, description and text/plain mimetype
-
-### Prompts
-
-The server provides a single prompt:
-- summarize-notes: Creates summaries of all stored notes
-  - Optional "style" argument to control detail level (brief/detailed)
-  - Generates prompt combining all current notes with style preference
-
 ### Tools
 
-The server implements one tool:
-- add-note: Adds a new note to the server
-  - Takes "name" and "content" as required string arguments
-  - Updates server state and notifies clients of resource changes
+The server implements three tools:
+
+- `num_cards_due_today`: Get the number of cards due today
+  - Optional `deck` argument to filter by specific deck
+  - Returns count of due cards across all decks or specified deck
+
+- `get_due_cards`: Get cards that are due for review
+  - Optional `limit` argument (default: 5) to control number of cards
+  - Optional `deck` argument to filter by specific deck
+  - Optional `today_only` argument (default: true) to show only today's cards
+  - Returns cards in XML format with questions and answers
+
+- `submit_reviews`: Submit answers for reviewed cards
+  - Takes list of `reviews` with `card_id` and `rating`
+  - Ratings: "wrong", "hard", "good", "easy"
+  - Returns confirmation of submitted reviews
 
 ## Configuration
 
-[TODO: Add configuration details specific to your implementation]
+### Prerequisites
+
+- Anki must be running with AnkiConnect plugin installed
+- AnkiConnect must be configured to accept connections (default port: 8765)
+
+### Installation
 
 ## Quickstart
 
-### Install
+1. Install the AnkiConnect plugin in Anki:
+   - Tools > Add-ons > Get Add-ons...
+   - Enter code: `2055492159`
+   - Restart Anki
 
-#### Claude Desktop
+2. Install mcp-ankiconnect:
+   ```bash
+   pip install mcp-ankiconnect
+   ```
 
-On MacOS: `~/Library/Application\ Support/Claude/claude_desktop_config.json`
-On Windows: `%APPDATA%/Claude/claude_desktop_config.json`
+3. Configure Claude Desktop:
 
-<details>
-  <summary>Development/Unpublished Servers Configuration</summary>
-  ```
-  "mcpServers": {
-    "mcp-ankiconnect": {
-      "command": "uv",
-      "args": [
-        "--directory",
-        "/Users/samfarrar/Documents/Programming/claude/mcp-ankiconnect",
-        "run",
-        "mcp-ankiconnect"
-      ]
-    }
-  }
-  ```
-</details>
+   On MacOS: `~/Library/Application\ Support/Claude/claude_desktop_config.json`  
+   On Windows: `%APPDATA%/Claude/claude_desktop_config.json`
 
-<details>
-  <summary>Published Servers Configuration</summary>
-  ```
-  "mcpServers": {
-    "mcp-ankiconnect": {
-      "command": "uvx",
-      "args": [
-        "mcp-ankiconnect"
-      ]
-    }
-  }
-  ```
-</details>
+   Add this configuration:
+   ```json
+   {
+     "mcpServers": {
+       "mcp-ankiconnect": {
+         "command": "uvx",
+         "args": ["mcp-ankiconnect"]
+       }
+     }
+   }
+   ```
+
+4. Start Anki and ensure AnkiConnect is running
+5. Restart Claude Desktop
 
 ## Development
 
