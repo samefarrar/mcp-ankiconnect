@@ -1,14 +1,26 @@
-from .server_prompts import claude_flashcards
-from enum import Enum
-from typing import Any, List, Optional
-
 import json
+import logging
 import httpx
 import mcp.server.stdio
+from enum import Enum
+from typing import Any, List, Optional
+from contextlib import asynccontextmanager
+
+from .server_prompts import claude_flashcards
+from .config import (
+    ANKI_CONNECT_URL, 
+    ANKI_CONNECT_VERSION,
+    RATING_TO_EASE,
+    DEFAULT_REVIEW_LIMIT,
+    MAX_FUTURE_DAYS,
+    HTTPX_TIMEOUT
+)
 from mcp.types import Tool, TextContent
 from mcp.server import NotificationOptions, Server
 from mcp.server.models import InitializationOptions
 from pydantic import BaseModel, Field
+
+logger = logging.getLogger(__name__)
 
 class Rating(str, Enum):
     WRONG = "wrong"  # Again - 1
@@ -55,26 +67,42 @@ class SubmitReviews(BaseModel):
     reviews: List[CardReview]
 
 class AnkiConnectClient:
-    def __init__(self, base_url: str = "http://localhost:8765"):
+    def __init__(self, base_url: str = ANKI_CONNECT_URL):
         self.base_url = base_url
-        self.client = httpx.AsyncClient(timeout=120.0)
+        self.client = httpx.AsyncClient(timeout=HTTPX_TIMEOUT)
+        logger.info(f"Initialized AnkiConnect client with base URL: {base_url}")
 
     async def invoke(self, action: str, **params) -> Any:
-        request = AnkiConnectRequest(action=action, params=params)
-
+        request = AnkiConnectRequest(
+            action=action,
+            version=ANKI_CONNECT_VERSION,
+            params=params
+        )
+        
+        logger.debug(f"Invoking AnkiConnect action: {action} with params: {params}")
         try:
-            response = await self.client.post(self.base_url, json=request.model_dump())
+            response = await self.client.post(
+                self.base_url,
+                json=request.model_dump()
+            )
             response.raise_for_status()
 
             anki_response = AnkiConnectResponse.model_validate(response.json())
             if anki_response.error:
+                logger.error(f"AnkiConnect error for action {action}: {anki_response.error}")
                 raise ValueError(f"AnkiConnect error: {anki_response.error}")
 
             return anki_response.result
 
-        except Exception as e:
-            # Re-raise the exception to ensure it propagates
+        except httpx.HTTPError as e:
+            logger.error(f"HTTP error while invoking {action}: {str(e)}")
+            raise RuntimeError(f"Failed to communicate with AnkiConnect: {str(e)}") from e
+        except ValueError as e:
+            # Re-raise ValueError (from AnkiConnect errors) directly
             raise
+        except Exception as e:
+            logger.error(f"Unexpected error while invoking {action}: {str(e)}")
+            raise RuntimeError(f"Unexpected error during AnkiConnect operation: {str(e)}") from e
 
     async def cards_info(self, card_ids: List[int]) -> List[dict]:
         try:
@@ -145,27 +173,21 @@ class AnkiServer:
                 case _:
                     raise ValueError(f"Unknown tool: {name}")
 
-    async def submit_reviews(self, arguments: dict) -> List[TextContent]:
+    async def submit_reviews(self, arguments: Optional[dict]) -> List[TextContent]:
         if not arguments:
             raise ValueError("Arguments required for submitting reviews")
-            if 'reviews' not in arguments:
-                raise ValueError("'reviews' field must be present for submitting reviews")
+        if 'reviews' not in arguments:
+            raise ValueError("'reviews' field must be present for submitting reviews")
+            
         reviews = arguments.get("reviews")
-        if isinstance(reviews, list) and all(isinstance(r, CardReview) for r in reviews):
-            arguments["reviews"] = reviews
-        else:
-            reviews = json.loads(reviews) if isinstance(reviews, str) else reviews
-            arguments["reviews"] = [CardReview.model_validate(r) for r in reviews]
+        try:
+            if isinstance(reviews, list) and all(isinstance(r, CardReview) for r in reviews):
+                arguments["reviews"] = reviews
+            else:
+                reviews = json.loads(reviews) if isinstance(reviews, str) else reviews
+                arguments["reviews"] = [CardReview.model_validate(r) for r in reviews]
 
-        input_model = SubmitReviews(**arguments)
-
-        # Map ratings to Anki ease values
-        rating_map = {
-            Rating.WRONG: 1,  # Again
-            Rating.HARD: 2,   # Hard
-            Rating.GOOD: 3,   # Good
-            Rating.EASY: 4    # Easy
-        }
+            input_model = SubmitReviews(**arguments)
 
         # Convert reviews to AnkiConnect format
         answers = [
