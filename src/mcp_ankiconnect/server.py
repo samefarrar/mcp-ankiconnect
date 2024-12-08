@@ -151,11 +151,10 @@ class AnkiServer:
                 case _:
                     raise ValueError(f"Unknown tool: {name}")
 
-    async def submit_reviews(self, arguments: Optional[dict]) -> List[TextContent]:
-        if not arguments:
-            raise ValueError("Arguments required for submitting reviews")
-
-        input_model = SubmitReviews(**arguments)
+    async def submit_reviews(self, reviews: List[CardReview]) -> List[TextContent]:
+        if not reviews:
+            raise ValueError("Reviews required for submitting reviews")
+        input_model = SubmitReviews(reviews=reviews)
 
         # Map ratings to Anki ease values
         rating_map = {
@@ -170,10 +169,10 @@ class AnkiServer:
             {"cardId": review.card_id, "ease": rating_map[review.rating]}
             for review in input_model.reviews
         ]
-        
+
         # Submit all reviews at once
         results = await self.anki.answer_cards(answers)
-        
+
         # Generate response messages
         messages = []
         for review, success in zip(input_model.reviews, results):
