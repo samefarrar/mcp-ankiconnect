@@ -95,7 +95,7 @@ class AnkiConnectClient:
 
     async def answer_card(self, card_id: int, ease: int) -> None:
         """Answer a card with the given ease rating.
-        
+
         Args:
             card_id: The ID of the card to answer
             ease: Rating from 1-4 (Again=1, Hard=2, Good=3, Easy=4)
@@ -155,7 +155,7 @@ class AnkiServer:
             raise ValueError("Arguments required for submitting reviews")
 
         input_model = SubmitReviews(**arguments)
-        
+
         # Map ratings to Anki ease values
         rating_map = {
             Rating.WRONG: 1,  # Again
@@ -163,7 +163,7 @@ class AnkiServer:
             Rating.GOOD: 3,   # Good
             Rating.EASY: 4    # Easy
         }
-        
+
         results = []
         for review in input_model.reviews:
             ease = rating_map[review.rating]
