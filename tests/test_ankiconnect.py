@@ -172,6 +172,34 @@ async def test_review_cards_no_cards_found(anki_server, mocked_anki_client):
     assert "No cards found to review" in result[0].text
 
 @pytest.mark.asyncio
+async def test_list_decks_and_notes(anki_server, mocked_anki_client):
+    """Test listing decks and note types"""
+    # Setup mock responses
+    mocked_anki_client.deck_names.return_value = ["Default", "Test"]
+    mocked_anki_client.invoke.side_effect = [
+        ["Basic", "Cloze"],  # MODEL_NAMES response
+        ["Front", "Back"],   # First MODEL_FIELD_NAMES response
+        ["Text", "Back"]     # Second MODEL_FIELD_NAMES response
+    ]
+    
+    # Call function
+    result = await anki_server.list_decks_and_notes()
+    
+    # Verify response format
+    assert len(result) == 1
+    assert result[0].type == "text"
+    
+    # Parse JSON response
+    data = json.loads(result[0].text)
+    assert "decks" in data
+    assert "note_types" in data
+    assert data["decks"] == ["Default", "Test"]
+    assert len(data["note_types"]) == 2
+    assert data["note_types"][0]["name"] == "Basic"
+    assert data["note_types"][0]["fields"] == ["Front", "Back"]
+    assert data["note_types"][1]["name"] == "Cloze"
+    assert data["note_types"][1]["fields"] == ["Text", "Back"]
+
 async def test_invoke_error_handling():
     # Create AnkiConnectClient with mocked httpx client
     with patch('httpx.AsyncClient') as mock_client_class:
