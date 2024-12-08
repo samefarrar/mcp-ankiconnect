@@ -13,7 +13,7 @@ from .config import (
     RATING_TO_EASE,
     DEFAULT_REVIEW_LIMIT,
     MAX_FUTURE_DAYS,
-    HTTPX_TIMEOUT
+    TIMEOUTS
 )
 from mcp.types import Tool, TextContent
 from mcp.server import NotificationOptions, Server
@@ -69,7 +69,7 @@ class SubmitReviews(BaseModel):
 class AnkiConnectClient:
     def __init__(self, base_url: str = ANKI_CONNECT_URL):
         self.base_url = base_url
-        self.client = httpx.AsyncClient(timeout=HTTPX_TIMEOUT)
+        self.client = httpx.AsyncClient(timeout=TIMEOUTS)
         logger.info(f"Initialized AnkiConnect client with base URL: {base_url}")
 
     async def invoke(self, action: str, **params) -> Any:
