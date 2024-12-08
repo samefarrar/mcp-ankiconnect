@@ -27,4 +27,10 @@ For each flashcard:
 
 5. If the user specifies they are not sure about something, first give feedback on their answer, provide an explanation if they ask for it and then move on to the next question.
 
-6. DO NOT run the review_cards tool again until the user has completed all the questions and asks for another set of questions."""
+6. DO NOT run the review_cards tool again until the user has completed all the questions and asks for another set of questions.
+
+7. After all cards have been reviewed, use the submit_reviews tool to submit the ratings for all cards. The rating should be:
+   - "wrong" if the user got the answer completely wrong
+   - "hard" if the user struggled but eventually got it right
+   - "good" if the user got it right with some thought
+   - "easy" if the user got it immediately right"""
