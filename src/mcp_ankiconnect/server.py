@@ -13,6 +13,7 @@ class AnkiAction(str, Enum):
     DECK_NAMES = "deckNames"
     FIND_CARDS = "findCards"
     CARDS_INFO = "cardsInfo"
+    ANSWER_CARD = "guiAnswerCard"
 
 class AnkiConnectRequest(BaseModel):
     action: AnkiAction
@@ -26,6 +27,7 @@ class AnkiConnectResponse(BaseModel):
 class AnkiConnectTools(str, Enum):
     NUM_CARDS_DUE_TODAY = "num_cards_due_today"
     REVIEW_CARDS = "review_cards"
+    INTERACTIVE_REVIEW = "interactive_review"
 
 class NumCardsDueToday(BaseModel):
     deck: Optional[str] = None
@@ -37,6 +39,10 @@ class ReviewCards(BaseModel):
     deck: Optional[str] = None
     # Whether to only show cards due today
     today_only: bool = True
+
+class InteractiveReview(BaseModel):
+    card_id: int
+    answer: str
 
 class AnkiConnectClient:
     def __init__(self, base_url: str = "http://localhost:8765"):
@@ -78,6 +84,18 @@ class AnkiConnectClient:
         except Exception as e:
             raise RuntimeError(f"Error finding cards: {str(e)}") from e
 
+    async def answer_card(self, card_id: int, ease: int) -> None:
+        """Answer a card with the given ease rating.
+        
+        Args:
+            card_id: The ID of the card to answer
+            ease: Rating from 1-4 (Again=1, Hard=2, Good=3, Easy=4)
+        """
+        try:
+            await self.invoke(AnkiAction.ANSWER_CARD, cardId=card_id, ease=ease)
+        except Exception as e:
+            raise RuntimeError(f"Error answering card: {str(e)}") from e
+
     async def close(self):
         await self.client.aclose()
 
@@ -102,6 +120,11 @@ class AnkiServer:
                     description="Review cards due today with an optional limit and deck filter",
                     inputSchema=ReviewCards.schema(),
                 ),
+                Tool(
+                    name="interactive_review",
+                    description="Submit an answer for a flashcard review",
+                    inputSchema=InteractiveReview.schema(),
+                ),
             ]
 
         @self.server.call_tool()
@@ -113,8 +136,41 @@ class AnkiServer:
                     return await self.num_cards_due_today(arguments)
                 case AnkiConnectTools.REVIEW_CARDS:
                     return await self.review_cards(arguments)
+                case AnkiConnectTools.INTERACTIVE_REVIEW:
+                    return await self.interactive_review(arguments)
                 case _:
                     raise ValueError(f"Unknown tool: {name}")
+
+    async def interactive_review(self, arguments: Optional[dict]) -> List[TextContent]:
+        if not arguments:
+            raise ValueError("Arguments required for interactive review")
+
+        input_model = InteractiveReview(**arguments)
+        
+        # Map text answers to Anki ease values
+        answer_map = {
+            "wrong": 1,  # Again
+            "hard": 2,   # Hard
+            "good": 3,   # Good
+            "easy": 4    # Easy
+        }
+        
+        # Normalize and validate the answer
+        answer = input_model.answer.lower().strip()
+        if answer not in answer_map:
+            return [TextContent(
+                type="text",
+                text=f"Invalid answer '{answer}'. Please use: wrong, hard, good, or easy"
+            )]
+
+        # Submit the answer to Anki
+        ease = answer_map[answer]
+        await self.anki.answer_card(input_model.card_id, ease)
+
+        return [TextContent(
+            type="text",
+            text=f"Card {input_model.card_id} marked as {answer}"
+        )]
 
     async def get_cards_due(
         self, deck: Optional[str] = None, day: Optional[int] = 0
