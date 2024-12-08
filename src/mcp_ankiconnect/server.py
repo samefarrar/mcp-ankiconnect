@@ -211,6 +211,9 @@ class AnkiServer:
         card_ids = card_ids[:limit]
 
         cards = await self.anki.cards_info(card_ids=card_ids)
+        
+        # Debug print to see card structure
+        print("DEBUG: Card data structure:", cards)
 
         # Format the card information into a readable message
         cards_info = []
