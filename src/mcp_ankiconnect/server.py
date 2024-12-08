@@ -19,7 +19,7 @@ class AnkiAction(str, Enum):
     DECK_NAMES = "deckNames"
     FIND_CARDS = "findCards"
     CARDS_INFO = "cardsInfo"
-    ANSWER_CARD = "guiAnswerCard"
+    ANSWER_CARD = "answerCard"
 
 class AnkiConnectRequest(BaseModel):
     action: AnkiAction
@@ -101,7 +101,7 @@ class AnkiConnectClient:
             ease: Rating from 1-4 (Again=1, Hard=2, Good=3, Easy=4)
         """
         try:
-            await self.invoke(AnkiAction.ANSWER_CARD, cardId=card_id, ease=ease)
+            await self.invoke(AnkiAction.ANSWER_CARD, card=card_id, ease=ease)
         except Exception as e:
             raise RuntimeError(f"Error answering card: {str(e)}") from e
 
