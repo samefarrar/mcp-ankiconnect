@@ -2,6 +2,7 @@ from .server_prompts import claude_flashcards
 from enum import Enum
 from typing import Any, List, Optional
 
+import json
 import httpx
 import mcp.server.stdio
 from mcp.types import Tool, TextContent
@@ -94,13 +95,6 @@ class AnkiConnectClient:
             raise RuntimeError(f"Error finding cards: {str(e)}") from e
 
     async def answer_cards(self, answers: List[dict]) -> List[bool]:
-        """Answer multiple cards with their ease ratings.
-
-        Args:
-            answers: List of dicts with cardId and ease (1-4) for each card
-        Returns:
-            List of booleans indicating success for each card
-        """
         try:
             return await self.invoke(AnkiAction.ANSWER_CARDS, answers=answers)
         except Exception as e:
@@ -154,7 +148,16 @@ class AnkiServer:
     async def submit_reviews(self, arguments: dict) -> List[TextContent]:
         if not arguments:
             raise ValueError("Arguments required for submitting reviews")
-        input_model = SubmitReviews.model_validate_json(arguments)
+            if 'reviews' not in arguments:
+                raise ValueError("'reviews' field must be present for submitting reviews")
+        reviews = arguments.get("reviews")
+        if isinstance(reviews, list) and all(isinstance(r, CardReview) for r in reviews):
+            arguments["reviews"] = reviews
+        else:
+            reviews = json.loads(reviews) if isinstance(reviews, str) else reviews
+            arguments["reviews"] = [CardReview.model_validate(r) for r in reviews]
+
+        input_model = SubmitReviews(**arguments)
 
         # Map ratings to Anki ease values
         rating_map = {
