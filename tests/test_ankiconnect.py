@@ -264,7 +264,7 @@ async def test_submit_reviews_error_handling(anki_server, mocked_anki_client):
     # Setup test with error condition
     reviews = [{"card_id": 123, "rating": "good"}]
     args = {"reviews": reviews}
-    mocked_anki_client.answer_card.side_effect = RuntimeError("Failed to answer card")
+    mocked_anki_client.answer_cards.side_effect = RuntimeError("Failed to answer card")
 
     # Execute review and verify error propagation
     with pytest.raises(RuntimeError, match="Failed to answer card"):
