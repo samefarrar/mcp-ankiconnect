@@ -90,7 +90,7 @@ async def test_review_cards_no_args(anki_server, mocked_anki_client):
     mocked_anki_client.find_cards.return_value = [1, 2]
     mocked_anki_client.cards_info.return_value = [
         {
-            "cardId": 1234,
+            "cardId": 1,
             "fields": {
                 "Front": {"value": "Question 1", "order": 0},
                 "Back": {"value": "Answer 1", "order": 1}
@@ -98,6 +98,7 @@ async def test_review_cards_no_args(anki_server, mocked_anki_client):
             "fieldOrder": 0
         },
         {
+            "cardId": 2,
             "fields": {
                 "Front": {"value": "Question 2", "order": 0},
                 "Back": {"value": "Answer 2", "order": 1}
@@ -112,7 +113,7 @@ async def test_review_cards_no_args(anki_server, mocked_anki_client):
     # Verify the correct format of returned content
     assert len(result) == 1
     assert result[0].type == "text"
-    assert '<card id="1234">' in result[0].text
+    assert '<card id="1">' in result[0].text
     assert "<question><front>Question 1</front></question>" in result[0].text
     assert "<answer><back>Answer 1</back></answer>" in result[0].text
     assert "<question><front>Question 2</front></question>" in result[0].text
@@ -234,17 +235,17 @@ async def test_submit_reviews_success(anki_server, mocked_anki_client):
         card_id = 123
         reviews = [{"card_id": card_id, "rating": rating}]
         args = {"reviews": reviews}
-            
+
         # Get expected ease value
         ease_map = {"wrong": 1, "hard": 2, "good": 3, "easy": 4}
         expected_ease = ease_map[rating]
-            
+
         # Execute review
         result = await anki_server.submit_reviews(args)
-            
+
         # Verify answer_card was called with correct parameters
         mocked_anki_client.answer_card.assert_called_with(card_id, expected_ease)
-            
+
         # Verify response format
         assert len(result) == 1
         assert result[0].type == "text"
@@ -260,7 +261,7 @@ async def test_submit_reviews_error_handling(anki_server, mocked_anki_client):
     reviews = [{"card_id": 123, "rating": "good"}]
     args = {"reviews": reviews}
     mocked_anki_client.answer_card.side_effect = RuntimeError("Failed to answer card")
-        
+
     # Execute review and verify error propagation
     with pytest.raises(RuntimeError, match="Failed to answer card"):
         await anki_server.submit_reviews(args)
