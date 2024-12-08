@@ -177,10 +177,10 @@ class AnkiServer:
         results = await self.anki.answer_cards(answers)
 
         # Generate response messages
-        messages = []
-        for review, success in zip(input_model.reviews, results):
-            status = "successfully" if success else "failed to be"
-            messages.append(f"Card {review.card_id} {status} marked as {review.rating.value}")
+        messages = [
+            f"Card {review.card_id} {'successfully' if success else 'failed to be'} marked as {review.rating.value}"
+            for review, success in zip(input_model.reviews, results)
+        ]
 
         return [TextContent(
             type="text",
