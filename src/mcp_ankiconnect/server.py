@@ -309,15 +309,15 @@ class AnkiServer:
             
             match input_model.sample:
                 case "recent":
-                    query += "added:1"
+                    query += "added:7"  # Added in last week
                 case "most_reviewed":
-                    query += "rated:31"  # Last month
+                    query += "prop:reps>10"  # Cards reviewed more than 10 times
                 case "best_performance":
-                    query += "rated:31:4"  # Easy ratings in last month
+                    query += "prop:lapses<3"  # Cards with few lapses
                 case "mature":
-                    query += "prop:ivl>21"  # >3 weeks interval
+                    query += "prop:ivl>=21"  # Cards with intervals >= 21 days
                 case "young":
-                    query += "prop:ivl<8"   # <1 week interval
+                    query += "prop:ivl<=7"   # Cards with intervals <= 7 days
             
             # Find notes matching criteria
             note_ids = await self.anki.invoke(AnkiAction.FIND_NOTES, query=query)
