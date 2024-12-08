@@ -19,7 +19,7 @@ class AnkiAction(str, Enum):
     DECK_NAMES = "deckNames"
     FIND_CARDS = "findCards"
     CARDS_INFO = "cardsInfo"
-    ANSWER_CARD = "answerCard"
+    ANSWER_CARDS = "answerCards"
 
 class AnkiConnectRequest(BaseModel):
     action: AnkiAction
@@ -93,17 +93,18 @@ class AnkiConnectClient:
         except Exception as e:
             raise RuntimeError(f"Error finding cards: {str(e)}") from e
 
-    async def answer_card(self, card_id: int, ease: int) -> None:
-        """Answer a card with the given ease rating.
+    async def answer_cards(self, answers: List[dict]) -> List[bool]:
+        """Answer multiple cards with their ease ratings.
 
         Args:
-            card_id: The ID of the card to answer
-            ease: Rating from 1-4 (Again=1, Hard=2, Good=3, Easy=4)
+            answers: List of dicts with cardId and ease (1-4) for each card
+        Returns:
+            List of booleans indicating success for each card
         """
         try:
-            await self.invoke(AnkiAction.ANSWER_CARD, card=card_id, ease=ease)
+            return await self.invoke(AnkiAction.ANSWER_CARDS, answers=answers)
         except Exception as e:
-            raise RuntimeError(f"Error answering card: {str(e)}") from e
+            raise RuntimeError(f"Error answering cards: {str(e)}") from e
 
     async def close(self):
         await self.client.aclose()
@@ -164,15 +165,24 @@ class AnkiServer:
             Rating.EASY: 4    # Easy
         }
 
-        results = []
-        for review in input_model.reviews:
-            ease = rating_map[review.rating]
-            await self.anki.answer_card(review.card_id, ease)
-            results.append(f"Card {review.card_id} marked as {review.rating.value}")
+        # Convert reviews to AnkiConnect format
+        answers = [
+            {"cardId": review.card_id, "ease": rating_map[review.rating]}
+            for review in input_model.reviews
+        ]
+        
+        # Submit all reviews at once
+        results = await self.anki.answer_cards(answers)
+        
+        # Generate response messages
+        messages = []
+        for review, success in zip(input_model.reviews, results):
+            status = "successfully" if success else "failed to be"
+            messages.append(f"Card {review.card_id} {status} marked as {review.rating.value}")
 
         return [TextContent(
             type="text",
-            text="\n".join(results)
+            text="\n".join(messages)
         )]
 
     async def get_cards_due(

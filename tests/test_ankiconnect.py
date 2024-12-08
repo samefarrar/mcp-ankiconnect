@@ -240,16 +240,20 @@ async def test_submit_reviews_success(anki_server, mocked_anki_client):
         ease_map = {"wrong": 1, "hard": 2, "good": 3, "easy": 4}
         expected_ease = ease_map[rating]
 
+        # Setup mock response
+        mocked_anki_client.answer_cards.return_value = [True]
+
         # Execute review
         result = await anki_server.submit_reviews(args)
 
-        # Verify answer_card was called with correct parameters
-        mocked_anki_client.answer_card.assert_called_with(card_id, expected_ease)
+        # Verify answer_cards was called with correct parameters
+        expected_answers = [{"cardId": card_id, "ease": expected_ease}]
+        mocked_anki_client.answer_cards.assert_called_with(expected_answers)
 
         # Verify response format
         assert len(result) == 1
         assert result[0].type == "text"
-        assert result[0].text == f"Card {card_id} marked as {rating}"
+        assert result[0].text == f"Card {card_id} successfully marked as {rating}"
 
 async def test_submit_reviews_missing_arguments(anki_server, mocked_anki_client):
     # Test with no arguments
