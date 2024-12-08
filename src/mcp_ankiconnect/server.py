@@ -202,7 +202,7 @@ class AnkiServer:
         if arguments is None:
             arguments = {}
 
-        input_model = ReviewCards(**arguments)
+        input_model = GetDueCards(**arguments)
         deck = input_model.deck
         limit = input_model.limit
         days_to_review = 0 if input_model.today_only else 5
