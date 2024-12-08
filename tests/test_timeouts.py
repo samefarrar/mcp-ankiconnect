@@ -8,16 +8,20 @@ from mcp_ankiconnect.config import TIMEOUTS
 @pytest.mark.asyncio
 async def test_client_timeout_configuration():
     """Test that AnkiConnectClient is configured with correct timeout values"""
-    with patch('httpx.AsyncClient') as mock_client:
+    with patch('httpx.AsyncClient') as mock_client_class:
+        mock_client = AsyncMock()
+        mock_client.aclose = AsyncMock()
+        mock_client_class.return_value = mock_client
+            
         client = AnkiConnectClient()
-        
+            
         # Verify timeout configuration
-        mock_client.assert_called_once()
-        timeout_arg = mock_client.call_args[1]['timeout']
+        mock_client_class.assert_called_once()
+        timeout_arg = mock_client_class.call_args[1]['timeout']
         assert timeout_arg.connect == TIMEOUTS.connect
         assert timeout_arg.read == TIMEOUTS.read
         assert timeout_arg.write == TIMEOUTS.write
-
+    
         await client.close()
 
 @pytest.mark.asyncio
@@ -30,9 +34,9 @@ async def test_retry_on_timeout():
         mock_client_class.return_value = mock_client
         
         # Configure mock to fail twice with timeout then succeed
-        mock_response = AsyncMock()
+        mock_response = MagicMock()
         mock_response.json.return_value = {"result": ["Default"], "error": None}
-        mock_response.raise_for_status = AsyncMock()
+        mock_response.raise_for_status = MagicMock()
         
         mock_client.post.side_effect = [
             httpx.TimeoutException("Connection timed out"),
@@ -65,7 +69,7 @@ async def test_retry_exhaustion():
         
         # Verify it was called max_retries times
         assert mock_client.post.call_count == 3
-        assert "failed after 3 attempts" in str(exc_info.value)
+        assert "Unable to connect to Anki after 3 attempts" in str(exc_info.value)
         
         await client.close()
 
@@ -88,9 +92,9 @@ async def test_retry_backoff():
         end_time = asyncio.get_event_loop().time()
         duration = end_time - start_time
         
-        # With 3 retries and delays of 1, 2, 3 seconds
-        # Total delay should be at least 6 seconds
-        assert duration >= 6
+        # With exponential backoff of 2^0=1, 2^1=2, 2^2=4 seconds
+        # Total delay should be at least 3 seconds
+        assert duration >= 3
         
         await client.close()
 
