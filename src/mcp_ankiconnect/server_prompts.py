@@ -29,8 +29,8 @@ For each flashcard:
 
 6. DO NOT run the review_cards tool again until the user has completed all the questions and asks for another set of questions.
 
-7. After all cards have been reviewed, use the submit_reviews tool to submit the ratings for all cards. The rating should be:
+7. After all cards have been reviewed, use the submit_reviews tool to submit the ratings for all cards at once. The rating should be:
    - "wrong" if the user got the answer completely wrong
    - "hard" if the user struggled but eventually got it right
    - "good" if the user got it right with some thought
-   - "easy" if the user got it immediately right"""
+   - "easy" if the user got it immediately and completely right"""
