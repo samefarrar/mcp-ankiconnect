@@ -92,8 +92,8 @@ class AnkiConnectClient:
                 break
             except httpx.TimeoutException as e:
                 if attempt == retries - 1:
-                    raise
-                await asyncio.sleep(attempt + 1)  # Exponential backoff
+                    raise RuntimeError(f"Unable to connect to Anki after {retries} attempts. Please ensure Anki is running and the AnkiConnect plugin is installed.")
+                await asyncio.sleep(2 ** attempt)  # Exponential backoff: 1, 2, 4 seconds
                 continue
         try:
             response.raise_for_status()
@@ -125,6 +125,8 @@ class AnkiConnectClient:
         try:
             return await self.invoke(AnkiAction.DECK_NAMES)
         except Exception as e:
+            if isinstance(e, RuntimeError) and "Unable to connect to Anki" in str(e):
+                raise
             raise RuntimeError(f"Error getting deck names: {str(e)}") from e
 
     async def find_cards(self, query: str) -> List[int]:
