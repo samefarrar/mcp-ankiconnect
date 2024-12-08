@@ -151,10 +151,10 @@ class AnkiServer:
                 case _:
                     raise ValueError(f"Unknown tool: {name}")
 
-    async def submit_reviews(self, reviews: List[CardReview]) -> List[TextContent]:
-        if not reviews:
-            raise ValueError("Reviews required for submitting reviews")
-        input_model = SubmitReviews(reviews=reviews)
+    async def submit_reviews(self, arguments: dict) -> List[TextContent]:
+        if not arguments:
+            raise ValueError("Arguments required for submitting reviews")
+        input_model = SubmitReviews.model_validate_json(arguments)
 
         # Map ratings to Anki ease values
         rating_map = {
