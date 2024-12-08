@@ -124,6 +124,7 @@ async def test_review_cards_with_limit(anki_server, mocked_anki_client):
     mocked_anki_client.find_cards.return_value = [1, 2, 3, 4, 5, 6]
     mocked_anki_client.cards_info.return_value = [
         {
+            "cardId": 1,
             "fields": {
                 "Front": {"value": "Question 1", "order": 0},
                 "Back": {"value": "Answer 1", "order": 1}
@@ -131,6 +132,7 @@ async def test_review_cards_with_limit(anki_server, mocked_anki_client):
             "fieldOrder": 0
         },
         {
+            "cardId": 2,
             "fields": {
                 "Front": {"value": "Question 2", "order": 0},
                 "Back": {"value": "Answer 2", "order": 1}
@@ -274,6 +276,7 @@ async def test_full_review_workflow(anki_server, mocked_anki_client):
     ]
     mocked_anki_client.cards_info.return_value = [
         {
+            "cardId": 1,
             "fields": {
                 "Front": {"value": "Test Question 1", "order": 0},
                 "Back": {"value": "Test Answer 1", "order": 1}
@@ -281,6 +284,7 @@ async def test_full_review_workflow(anki_server, mocked_anki_client):
             "fieldOrder": 0
         },
         {
+            "cardId": 2,
             "fields": {
                 "Front": {"value": "Test Question 2", "order": 0},
                 "Back": {"value": "Test Answer 2", "order": 1}
