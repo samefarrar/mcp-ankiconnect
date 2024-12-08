@@ -80,11 +80,21 @@ class AnkiConnectClient:
         )
         
         logger.debug(f"Invoking AnkiConnect action: {action} with params: {params}")
+        
+        retries = 3
+        for attempt in range(retries):
+            try:
+                response = await self.client.post(
+                    self.base_url,
+                    json=request.model_dump()
+                )
+                break
+            except httpx.TimeoutException as e:
+                if attempt == retries - 1:
+                    raise
+                await asyncio.sleep(attempt + 1)  # Exponential backoff
+                continue
         try:
-            response = await self.client.post(
-                self.base_url,
-                json=request.model_dump()
-            )
             response.raise_for_status()
 
             anki_response = AnkiConnectResponse.model_validate(response.json())

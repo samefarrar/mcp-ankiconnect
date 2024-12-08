@@ -24,7 +24,8 @@ async def test_client_timeout_configuration():
 async def test_retry_on_timeout():
     """Test that operations retry on timeout"""
     with patch('httpx.AsyncClient') as mock_client_class:
-        mock_client = AsyncMock()
+        mock_client = AsyncMock(spec=httpx.AsyncClient)
+        mock_client.aclose = AsyncMock()
         mock_client_class.return_value = mock_client
         
         # Configure mock to fail twice with timeout then succeed
