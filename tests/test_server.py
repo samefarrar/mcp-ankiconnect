@@ -12,18 +12,18 @@ from mcp_ankiconnect.server import (
 )
 
 @pytest.fixture
-async def mock_anki(mocker: MockerFixture):
+def mock_anki(mocker: MockerFixture):
     # Mock the AnkiConnectClient instance
     mock_client = mocker.patch('mcp_ankiconnect.server.anki')
     
     # Setup default return values
-    mock_client.deck_names.return_value = mocker.AsyncMock(return_value=["Default", "Test Deck"])
-    mock_client.find_cards.return_value = mocker.AsyncMock(return_value=[1, 2, 3])
-    mock_client.cards_info.return_value = mocker.AsyncMock(return_value=[
+    mock_client.deck_names = mocker.AsyncMock(return_value=["Default", "Test Deck"])
+    mock_client.find_cards = mocker.AsyncMock(return_value=[1, 2, 3])
+    mock_client.cards_info = mocker.AsyncMock(return_value=[
         {"cardId": 1, "deck": "Default"},
         {"cardId": 2, "deck": "Default"},
         {"cardId": 3, "deck": "Default"}
-    ]
+    ])
     
     return mock_client
 
@@ -52,8 +52,8 @@ async def test_num_cards_due_today(mock_anki):
 
 @pytest.mark.asyncio
 async def test_list_decks_and_notes(mock_anki):
-    mock_anki.model_names.return_value = mocker.AsyncMock(return_value=["Basic", "Cloze"])
-    mock_anki.model_field_names.return_value = mocker.AsyncMock(return_value=["Front", "Back"])
+    mock_anki.model_names = mocker.AsyncMock(return_value=["Basic", "Cloze"])
+    mock_anki.model_field_names = mocker.AsyncMock(return_value=["Front", "Back"])
     
     result = await list_decks_and_notes()
     assert "Default" in result
@@ -63,8 +63,8 @@ async def test_list_decks_and_notes(mock_anki):
 
 @pytest.mark.asyncio
 async def test_get_examples(mock_anki):
-    mock_anki.find_notes.return_value = mocker.AsyncMock(return_value=[1, 2])
-    mock_anki.notes_info.return_value = mocker.AsyncMock(return_value=[
+    mock_anki.find_notes = mocker.AsyncMock(return_value=[1, 2])
+    mock_anki.notes_info = mocker.AsyncMock(return_value=[
         {
             "noteId": 1,
             "tags": ["test"],
@@ -100,7 +100,7 @@ async def test_fetch_due_cards_for_review(mock_anki):
 
 @pytest.mark.asyncio
 async def test_submit_reviews(mock_anki):
-    mock_anki.answer_cards.return_value = mocker.AsyncMock(return_value=[True])
+    mock_anki.answer_cards = mocker.AsyncMock(return_value=[True])
     
     class Review:
         def __init__(self, card_id, rating):
