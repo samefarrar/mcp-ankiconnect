@@ -51,7 +51,7 @@ async def test_num_cards_due_today(mock_anki):
     assert "There are 3 cards due in deck 'Default'" in result
 
 @pytest.mark.asyncio
-async def test_list_decks_and_notes(mock_anki):
+async def test_list_decks_and_notes(mock_anki, mocker: MockerFixture):
     mock_anki.model_names = mocker.AsyncMock(return_value=["Basic", "Cloze"])
     mock_anki.model_field_names = mocker.AsyncMock(return_value=["Front", "Back"])
     
@@ -99,7 +99,7 @@ async def test_fetch_due_cards_for_review(mock_anki):
     assert "<answer>" in result
 
 @pytest.mark.asyncio
-async def test_submit_reviews(mock_anki):
+async def test_submit_reviews(mock_anki, mocker: MockerFixture):
     mock_anki.answer_cards = mocker.AsyncMock(return_value=[True])
     
     class Review:
