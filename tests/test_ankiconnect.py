@@ -2,55 +2,66 @@ import json
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from httpx import HTTPError
+from fastmcp import FastMCP
 
 from mcp_ankiconnect.ankiconnect_client import AnkiConnectClient
+from mcp_ankiconnect.server import mcp
 
 @pytest.fixture
 async def mocked_anki_client():
+    """Create a mocked AnkiConnectClient"""
     client = AsyncMock(spec=AnkiConnectClient)
     yield client
     await client.close()
 
+@pytest.fixture
+async def anki_server():
+    """Create a test server instance with mocked client"""
+    server = FastMCP("test-mcp")
+    server.anki = AsyncMock(spec=AnkiConnectClient)
+    yield server
+    await server.cleanup()
+
 # Test AnkiConnectClient operations
 async def test_deck_names(mocked_anki_client):
-    mocked_anki_client.invoke.return_value = ["Default", "Test"]
+    mocked_anki_client.deck_names.return_value = ["Default", "Test"]
     result = await mocked_anki_client.deck_names()
     assert result == ["Default", "Test"]
-    mocked_anki_client.invoke.assert_called_once_with("deckNames")
+    mocked_anki_client.deck_names.assert_called_once()
 
 async def test_find_cards(mocked_anki_client):
-    mocked_anki_client.invoke.return_value = [1, 2, 3]
+    mocked_anki_client.find_cards.return_value = [1, 2, 3]
     result = await mocked_anki_client.find_cards("deck:Test")
     assert result == [1, 2, 3]
-    mocked_anki_client.invoke.assert_called_once_with("findCards", query="deck:Test")
+    mocked_anki_client.find_cards.assert_called_once_with("deck:Test")
 
 async def test_cards_info(mocked_anki_client):
     mock_cards = [{"cardId": 1, "fields": {}}, {"cardId": 2, "fields": {}}]
-    mocked_anki_client.invoke.return_value = mock_cards
+    mocked_anki_client.cards_info.return_value = mock_cards
     result = await mocked_anki_client.cards_info([1, 2])
     assert result == mock_cards
-    mocked_anki_client.invoke.assert_called_once_with("cardsInfo", cards=[1, 2])
+    mocked_anki_client.cards_info.assert_called_once_with([1, 2])
 
 async def test_answer_cards(mocked_anki_client):
     mock_answers = [{"cardId": 1, "ease": 3}, {"cardId": 2, "ease": 4}]
-    mocked_anki_client.invoke.return_value = [True, True]
+    mocked_anki_client.answer_cards.return_value = [True, True]
     result = await mocked_anki_client.answer_cards(mock_answers)
     assert result == [True, True]
-    mocked_anki_client.invoke.assert_called_once_with("answerCards", answers=mock_answers)
+    mocked_anki_client.answer_cards.assert_called_once_with(mock_answers)
 
 async def test_model_names(mocked_anki_client):
     mock_models = ["Basic", "Cloze"]
-    mocked_anki_client.invoke.return_value = mock_models
+    mocked_anki_client.model_names.return_value = mock_models
     result = await mocked_anki_client.model_names()
     assert result == mock_models
-    mocked_anki_client.invoke.assert_called_once_with("modelNames")
+    mocked_anki_client.model_names.assert_called_once()
 
 async def test_model_field_names(mocked_anki_client):
     mock_fields = ["Front", "Back"]
-    mocked_anki_client.invoke.return_value = mock_fields
+    mocked_anki_client.model_field_names.return_value = mock_fields
     result = await mocked_anki_client.model_field_names("Basic")
     assert result == mock_fields
-    mocked_anki_client.invoke.assert_called_once_with("modelFieldNames", modelName="Basic")
+    mocked_anki_client.model_field_names.assert_called_once_with("Basic")
 
 async def test_add_note(mocked_anki_client):
     mock_note = {
@@ -59,10 +70,10 @@ async def test_add_note(mocked_anki_client):
         "fields": {"Front": "Q", "Back": "A"},
         "tags": ["test"]
     }
-    mocked_anki_client.invoke.return_value = 12345  # Note ID
+    mocked_anki_client.add_note.return_value = 12345  # Note ID
     result = await mocked_anki_client.add_note(mock_note)
     assert result == 12345
-    mocked_anki_client.invoke.assert_called_once_with("addNote", note=mock_note)
+    mocked_anki_client.add_note.assert_called_once_with(mock_note)
 
 # Test review card operations
 async def test_fetch_due_cards_for_review_no_args(anki_server, mocked_anki_client):
