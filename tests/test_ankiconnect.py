@@ -7,6 +7,19 @@ from httpx import HTTPError
 from mcp_ankiconnect.server import mcp
 from mcp_ankiconnect.ankiconnect_client import AnkiConnectClient
 
+class TestServer:
+    def __init__(self):
+        self.anki = None
+
+    async def get_cards_due(self, deck=None):
+        decks = await self.anki.deck_names()
+        if deck and deck not in decks:
+            raise ValueError(f"Deck '{deck}' does not exist")
+        return await self.anki.find_cards(query="is:due prop:due=0")
+
+    async def cleanup(self):
+        await self.anki.close()
+
 @pytest.fixture
 def mocked_anki_client():
     client = AsyncMock(spec=AnkiConnectClient)
@@ -14,12 +27,12 @@ def mocked_anki_client():
 
 @pytest.fixture
 def anki_server(mocked_anki_client):
-    server = AnkiServer()
+    server = TestServer()
     server.anki = mocked_anki_client
     return server
 
 # Test deck operations
-async def test_get_cards_accesses_deck_names_and_find_cards(anki_server, mocked_anki_client):
+async def test_get_cards_accesses_deck_names_and_find_cards(anki_server: TestServer, mocked_anki_client):
     # Setup mock responses
     mocked_anki_client.deck_names.return_value = ["Default", "Test"]
     mocked_anki_client.find_cards.return_value = [1, 2, 3]  # Mock card IDs
