@@ -4,7 +4,7 @@ import random
 import asyncio
 from fastmcp import FastMCP
 from mcp_ankiconnect.ankiconnect_client import AnkiConnectClient
-from config import EXCLUDE_STRINGS, RATING_TO_EASE
+from mcp_ankiconnect.config import EXCLUDE_STRINGS, RATING_TO_EASE
 from pydantic import Field
 
 from mcp_ankiconnect.server_prompts import flashcard_guidelines, claude_review_instructions
