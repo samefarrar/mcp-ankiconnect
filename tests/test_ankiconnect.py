@@ -243,7 +243,7 @@ async def test_invoke_error_propagation(anki_server):
 
         # This should propagate through deck_names() -> invoke()
         with pytest.raises(RuntimeError) as exc_info:
-            await anki_server.get_cards_due()
+            await anki_server.get_cards_by_due_and_deck()
         assert "Error getting deck names" in str(exc_info.value)
         assert "Connection failed" in str(exc_info.value)
 
@@ -327,7 +327,7 @@ async def test_full_review_workflow(anki_server, mocked_anki_client):
 
     # Execute review workflow
     args = {"deck": "Test Deck", "limit": 2, "today_only": True}
-    result = await anki_server.get_due_cards(args)
+    result = await anki_server.get_cards_by_due_and_deck(**args)
 
     # Verify the full workflow results
     assert len(result) == 1

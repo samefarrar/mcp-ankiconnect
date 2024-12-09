@@ -12,6 +12,7 @@ from mcp_ankiconnect.server_prompts import flashcard_guidelines, claude_review_i
 mcp = FastMCP("mcp-ankiconnect")
 anki = AnkiConnectClient()
 
+@mcp.tool()
 async def get_cards_by_due_and_deck(deck: Optional[str] = None, day: Optional[int] = 0) -> List[int]:
     decks = await anki.deck_names()
     if deck and deck not in decks:
@@ -166,7 +167,10 @@ async def fetch_due_cards_for_review(
     return examples_prompt
 
 @mcp.tool()
-async def submit_reviews(reviews: List[Dict[Literal["card_id", "rating"], Union[int, Literal["wrong", "hard", "good", "easy"]]]]) -> str:
+@mcp.tool()
+async def submit_reviews(reviews: Optional[List[Dict[Literal["card_id", "rating"], Union[int, Literal["wrong", "hard", "good", "easy"]]]]] = None) -> str:
+    if not reviews:
+        raise ValueError("Arguments required for submitting reviews")
     """Submit multiple card reviews to Anki.
 
     Args:
