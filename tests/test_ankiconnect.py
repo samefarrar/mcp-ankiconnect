@@ -20,7 +20,8 @@ async def anki_server():
     server = FastMCP("test-mcp")
     server.anki = AsyncMock(spec=AnkiConnectClient)
     yield server
-    await server.cleanup()
+    if hasattr(server.anki, 'close'):
+        await server.anki.close()
 
 # Test AnkiConnectClient operations
 async def test_deck_names(mocked_anki_client):
@@ -111,8 +112,9 @@ async def test_fetch_due_cards_for_review_no_args(anki_server, mocked_anki_clien
     assert "<question><front>Question 2</front></question>" in result[0].text
     assert "<answer><back>Answer 2</back></answer>" in result[0].text
 
-async def test_review_cards_with_limit(anki_server, mocked_anki_client):
+async def test_fetch_due_cards_for_review_with_limit(anki_server, mocked_anki_client):
     # Setup mock responses
+    anki_server.anki = mocked_anki_client
     mocked_anki_client.deck_names.return_value = ["Default"]
     mocked_anki_client.find_cards.return_value = [1, 2, 3, 4, 5, 6]
     mocked_anki_client.cards_info.return_value = [
@@ -135,7 +137,7 @@ async def test_review_cards_with_limit(anki_server, mocked_anki_client):
     ]
 
     # Call function with limit
-    result = await anki_server.get_due_cards({"limit": 2})
+    result = await anki_server.fetch_due_cards_for_review(limit=2)
 
     # Verify cards_info was called with correct arguments
     mocked_anki_client.cards_info.assert_called_once_with(
@@ -150,13 +152,14 @@ async def test_review_cards_with_limit(anki_server, mocked_anki_client):
     assert "<question><front>Question 2</front></question>" in result[0].text
     assert "<answer><back>Answer 2</back></answer>" in result[0].text
 
-async def test_review_cards_no_cards_found(anki_server, mocked_anki_client):
+async def test_fetch_due_cards_no_cards_found(anki_server, mocked_anki_client):
     # Setup mock responses
+    anki_server.anki = mocked_anki_client
     mocked_anki_client.deck_names.return_value = ["Default"]
-    mocked_anki_client.invoke.return_value = []
+    mocked_anki_client.find_cards.return_value = []
 
     # Call function
-    result = await anki_server.get_due_cards(None)
+    result = await anki_server.fetch_due_cards_for_review()
 
     # Verify "no cards" message
     assert len(result) == 1
@@ -246,7 +249,8 @@ async def test_invoke_error_propagation(anki_server):
 
 # Test cleanup
 async def test_cleanup(anki_server, mocked_anki_client):
-    await anki_server.cleanup()
+    anki_server.anki = mocked_anki_client
+    await anki_server.anki.close()
     mocked_anki_client.close.assert_called_once()
 
 # Integration-style tests
