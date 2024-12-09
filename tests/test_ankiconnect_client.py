@@ -74,7 +74,7 @@ async def test_error_handling(client: AnkiConnectClient, mocker: MockerFixture, 
         return_value=mock_response({"result": None, "error": error_message})
     )
 
-    with pytest.raises(ValueError, match=f"AnkiConnect error: {error_message}"):
+    with pytest.raises(RuntimeError, match=f"Error getting deck names: AnkiConnect error: {error_message}"):
         await client.deck_names()
 
 @pytest.mark.asyncio
