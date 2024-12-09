@@ -186,12 +186,12 @@ async def submit_reviews(reviews: List[Dict[Literal["card_id", "rating"], Union[
     ]
 
     # Submit all reviews at once
-    results = await self.answer_cards(answers)
+    results = await anki.answer_cards(answers)
 
     # Generate response messages
     messages = [
-        f"Card {review.card_id} {'successfully' if success else 'failed to be'} marked as {review.rating.value}"
-        for review, success in zip(input_model.reviews, results)
+        f"Card {review['card_id']} {'successfully' if success else 'failed to be'} marked as {review['rating']}"
+        for review, success in zip(reviews, results)
     ]
 
     return "\n".join(messages)
