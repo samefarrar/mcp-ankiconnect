@@ -167,7 +167,7 @@ async def fetch_due_cards_for_review(
     return examples_prompt
 
 @mcp.tool()
-async def submit_reviews(reviews: Optional[List[Dict[Literal["card_id", "rating"], Union[int, Literal["wrong", "hard", "good", "easy"]]]]] = None) -> str:
+async def submit_reviews(reviews: List[Dict[Literal["card_id", "rating"], Union[int, Literal["wrong", "hard", "good", "easy"]]]]) -> str:
     """Submit multiple card reviews to Anki.
 
     Args:
@@ -184,7 +184,7 @@ async def submit_reviews(reviews: Optional[List[Dict[Literal["card_id", "rating"
 
     # Convert reviews to AnkiConnect format
     answers = [
-        {"cardId": review.card_id, "ease": RATING_TO_EASE[review.rating]}
+        {"cardId": review["card_id"], "ease": RATING_TO_EASE[review["rating"]]}
         for review in reviews
     ]
 
