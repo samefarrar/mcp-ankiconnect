@@ -2,12 +2,11 @@ import json
 import logging
 import httpx
 import asyncio
-import mcp.server.stdio
 from enum import Enum
 from typing import Any, List, Optional
-from contextlib import asynccontextmanager
 import random
 
+from fastmcp import FastMCP, Context
 from .server_prompts import claude_flashcards, flashcard_guidelines
 from .config import (
     ANKI_CONNECT_URL,
@@ -169,67 +168,36 @@ class AnkiConnectClient:
         await self.client.aclose()
 
 
-class AnkiServer:
-    def __init__(self):
-        self.server = Server("mcp-ankiconnect")
-        self.anki = AnkiConnectClient()
-        self.setup_handlers()
+# Initialize FastMCP and AnkiConnect client
+mcp = FastMCP("mcp-ankiconnect")
+anki = AnkiConnectClient()
 
-    def setup_handlers(self):
-        @self.server.list_tools()
-        async def handle_list_tools() -> list[Tool]:
-            return [
-                Tool(
-                    name="num_cards_due_today",
-                    description="Get the number of cards due today with an optional deck filter",
-                    inputSchema=NumCardsDueToday.schema(),
-                ),
-                Tool(
-                    name="get_due_cards",
-                    description="Get cards due for review with an optional limit and deck filter",
-                    inputSchema=GetDueCards.schema(),
-                ),
-                Tool(
-                    name="submit_reviews",
-                    description="Submit answers for multiple flashcard reviews",
-                    inputSchema=SubmitReviews.schema(),
-                ),
-                Tool(
-                    name="list_decks_and_notes",
-                    description="Get available decks and note types with their fields, this helps when making new cards!",
-                    inputSchema={"type": "object", "properties": {}},
-                ),
-                Tool(
-                    name="add_note",
-                    description="Create a new flashcard note",
-                    inputSchema=AddNote.schema(),
-                ),
-                Tool(
-                    name="get_examples",
-                    description="Get example notes to understand card structure and content style",
-                    inputSchema=GetExamples.schema(),
-                ),
-            ]
+@mcp.tool()
+async def num_cards_due_today(deck: Optional[str] = None) -> str:
+    """Get the number of cards due today with an optional deck filter"""
+    async def get_cards_due(deck: Optional[str] = None, day: Optional[int] = 0) -> List[int]:
+        # First get the deck names to validate deck if provided
+        decks = await anki.deck_names()
+        if deck and deck not in decks:
+            raise ValueError(f"Deck '{deck}' does not exist")
 
-        @self.server.call_tool()
-        async def handle_call_tool(
-            name: str, arguments: Optional[dict] = None
-        ) -> List[TextContent]:
-            match name:
-                case AnkiConnectTools.NUM_CARDS_DUE_TODAY:
-                    return await self.num_cards_due_today(arguments)
-                case AnkiConnectTools.GET_DUE_CARDS:
-                    return await self.get_due_cards(arguments)
-                case AnkiConnectTools.SUBMIT_REVIEWS:
-                    return await self.submit_reviews(arguments)
-                case AnkiConnectTools.LIST_DECKS_AND_NOTES:
-                    return await self.list_decks_and_notes()
-                case AnkiConnectTools.ADD_NOTE:
-                    return await self.add_note(arguments)
-                case AnkiConnectTools.GET_EXAMPLES:
-                    return await self.get_examples(arguments)
-                case _:
-                    raise ValueError(f"Unknown tool: {name}")
+        if day > 0:
+            prop = f"prop:due<{day+1}"
+        else:
+            prop = "prop:due=0"
+        # Construct the search query
+        query = f"is:due {prop}"
+        if deck:
+            query += f' deck:{deck}'
+
+        # Get and return the due cards
+        return await anki.find_cards(query=query)
+
+    card_ids = await get_cards_due(deck, 0)
+    if deck:
+        return f"There are {len(card_ids)} cards due in deck '{deck}'"
+    else:
+        return f"There are {len(card_ids)} cards due across all decks"
 
     async def list_decks_and_notes(self) -> List[TextContent]:
         """Get all decks and note types with their fields"""
@@ -485,28 +453,11 @@ Your note types are: {[note['name'] for note in note_types]}:
             msg = f"There are {len(card_ids)} cards due across all decks"
         return [TextContent(type="text", text=msg)]
 
-    async def run(self):
-        async with mcp.server.stdio.stdio_server() as (read_stream, write_stream):
-            await self.server.run(
-                read_stream,
-                write_stream,
-                InitializationOptions(
-                    server_name="mcp-ankiconnect",
-                    server_version="0.1.0",
-                    capabilities=self.server.get_capabilities(
-                        notification_options=NotificationOptions(),
-                        experimental_capabilities={},
-                    ),
-                ),
-            )
+async def cleanup():
+    await anki.close()
 
-    async def cleanup(self):
-        await self.anki.close()
-
-
-async def main():
-    server = AnkiServer()
+def main():
     try:
-        await server.run()
+        mcp.run()
     finally:
-        await server.cleanup()
+        asyncio.run(cleanup())
