@@ -3,11 +3,16 @@ import json
 import random
 import asyncio
 from fastmcp import FastMCP
-from mcp_ankiconnect.ankiconnect_client import AnkiConnectClient
-from mcp_ankiconnect.config import EXCLUDE_STRINGS, RATING_TO_EASE
+try:
+    from mcp_ankiconnect.ankiconnect_client import AnkiConnectClient
+    from mcp_ankiconnect.config import EXCLUDE_STRINGS, RATING_TO_EASE
+    from mcp_ankiconnect.server_prompts import flashcard_guidelines, claude_review_instructions
+except ImportError:
+    # Handle direct script execution
+    from ankiconnect_client import AnkiConnectClient
+    from config import EXCLUDE_STRINGS, RATING_TO_EASE
+    from server_prompts import flashcard_guidelines, claude_review_instructions
 from pydantic import Field
-
-from mcp_ankiconnect.server_prompts import flashcard_guidelines, claude_review_instructions
 
 mcp = FastMCP("mcp-ankiconnect")
 anki = AnkiConnectClient()
