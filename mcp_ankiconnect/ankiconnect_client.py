@@ -4,7 +4,7 @@ import httpx
 import asyncio
 from enum import Enum
 
-from config import (
+from mcp_ankiconnect.config import (
     ANKI_CONNECT_URL,
     ANKI_CONNECT_VERSION,
     TIMEOUTS,

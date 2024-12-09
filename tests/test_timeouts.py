@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, patch, MagicMock
 import httpx
 import asyncio
 from mcp_ankiconnect.ankiconnect_client import AnkiConnectClient
-from ..config import TIMEOUTS
+from mcp_ankiconnect.config import TIMEOUTS
 
 @pytest.mark.asyncio
 async def test_client_timeout_configuration():
