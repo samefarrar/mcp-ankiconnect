@@ -102,13 +102,13 @@ async def test_get_cards_by_due_and_deck_with_deck_and_day(anki_server, mocked_a
 
     assert result == [4, 5, 6]
 
-async def test_get_cards_due_invalid_deck(anki_server, mocked_anki_client):
+async def test_get_cards_by_due_and_deck_invalid_deck(anki_server, mocked_anki_client):
     # Setup mock responses
     mocked_anki_client.deck_names.return_value = ["Default", "Test"]
 
     # Call function and verify it raises error
     with pytest.raises(ValueError, match="Deck 'Invalid' does not exist"):
-        await anki_server.get_cards_due("Invalid")
+        await anki_server.get_cards_by_due_and_deck(deck="Invalid")
 
 # Test tool operations
 async def test_num_cards_due_today_counts_accurately_without_deck(anki_server, mocked_anki_client):
@@ -119,9 +119,7 @@ async def test_num_cards_due_today_counts_accurately_without_deck(anki_server, m
     # Call function
     result = await anki_server.num_cards_due_today()
 
-    assert len(result) == 1
-    assert result[0].type == "text"
-    assert result[0].text == "There are 3 cards due across all decks"
+    assert result == "There are 3 cards due across all decks"
 
 async def test_num_cards_due_today_with_deck(anki_server, mocked_anki_client):
     # Setup mock responses
@@ -129,14 +127,12 @@ async def test_num_cards_due_today_with_deck(anki_server, mocked_anki_client):
     mocked_anki_client.find_cards.return_value = [1, 2]
 
     # Call function
-    result = await anki_server.num_cards_due_today(arguments = {"deck":"Test"})
+    result = await anki_server.num_cards_due_today(deck="Test")
 
-    assert len(result) == 1
-    assert result[0].type == "text"
-    assert result[0].text == "There are 2 cards due in deck 'Test'"
+    assert result == "There are 2 cards due in deck 'Test'"
 
 # Test review card operations
-async def test_review_cards_no_args(anki_server, mocked_anki_client):
+async def test_fetch_due_cards_for_review_no_args(anki_server, mocked_anki_client):
     # Setup mock responses
     mocked_anki_client.deck_names.return_value = ["Default"]
     mocked_anki_client.find_cards.return_value = [1, 2]
@@ -160,7 +156,7 @@ async def test_review_cards_no_args(anki_server, mocked_anki_client):
     ]
 
     # Call function
-    result = await anki_server.get_due_cards(None)
+    result = await anki_server.fetch_due_cards_for_review()
 
     # Verify the correct format of returned content
     assert len(result) == 1
