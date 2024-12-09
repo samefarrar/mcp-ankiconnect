@@ -6,15 +6,17 @@ import mcp.server.stdio
 from enum import Enum
 from typing import Any, List, Optional
 from contextlib import asynccontextmanager
+import random
 
-from .server_prompts import claude_flashcards
+from .server_prompts import claude_flashcards, flashcard_guidelines
 from .config import (
-    ANKI_CONNECT_URL, 
+    ANKI_CONNECT_URL,
     ANKI_CONNECT_VERSION,
     RATING_TO_EASE,
     DEFAULT_REVIEW_LIMIT,
     MAX_FUTURE_DAYS,
-    TIMEOUTS
+    TIMEOUTS,
+    EXCLUDE_STRINGS
 )
 from mcp.types import Tool, TextContent
 from mcp.server import NotificationOptions, Server
@@ -31,7 +33,7 @@ class Rating(str, Enum):
 
 class AnkiAction(str, Enum):
     DECK_NAMES = "deckNames"
-    FIND_CARDS = "findCards" 
+    FIND_CARDS = "findCards"
     CARDS_INFO = "cardsInfo"
     ANSWER_CARDS = "answerCards"
     MODEL_NAMES = "modelNames"
@@ -77,15 +79,15 @@ class SubmitReviews(BaseModel):
 
 class GetExamples(BaseModel):
     deck: Optional[str] = None
-    limit: int = Field(default=3, ge=1, le=10)
+    limit: int = Field(default=5, ge=1)
     sample: str = Field(
         default="random",
         pattern="^(random|recent|most_reviewed|best_performance|mature|young)$"
     )
 
 class AddNote(BaseModel):
-    deck_name: str
-    note_type: str  
+    deckName: str
+    modelName: str
     fields: dict[str, str]
     tags: List[str] = Field(default_factory=list)
 
@@ -101,9 +103,9 @@ class AnkiConnectClient:
             version=ANKI_CONNECT_VERSION,
             params=params
         )
-        
+
         logger.debug(f"Invoking AnkiConnect action: {action} with params: {params}")
-        
+
         retries = 3
         for attempt in range(retries):
             try:
@@ -194,7 +196,7 @@ class AnkiServer:
                 ),
                 Tool(
                     name="list_decks_and_notes",
-                    description="Get available decks and note types with their fields",
+                    description="Get available decks and note types with their fields, this helps when making new cards!",
                     inputSchema={"type": "object", "properties": {}},
                 ),
                 Tool(
@@ -234,23 +236,27 @@ class AnkiServer:
         try:
             # Get decks
             decks = await self.anki.deck_names()
-            
+            decks = [deck for deck in decks if not any(exclude.lower() in deck.lower() for exclude in EXCLUDE_STRINGS)]
+
             # Get note types and their fields
             model_names = await self.anki.invoke(AnkiAction.MODEL_NAMES)
             note_types = []
             for model in model_names:
+                if any(exclude.lower() in model.lower() for exclude in EXCLUDE_STRINGS):
+                    continue
                 fields = await self.anki.invoke(AnkiAction.MODEL_FIELD_NAMES, modelName=model)
                 note_types.append({"name": model, "fields": fields})
-            
-            result = {
-                "decks": decks,
-                "note_types": note_types
-            }
-            
+
+            result = f"""You have {len(decks)} decks: {', '.join(decks)}
+Your note types are: {[note['name'] for note in note_types]}:
+{chr(10).join([f"{note['name']}" + ': { ' + ', '.join([f'"{field}": "string"' for field in note['fields']]) + ' }' for note in note_types])}
+"""
+
             return [TextContent(
                 type="text",
-                text=json.dumps(result, indent=2)
+                text=result
             )]
+
         except Exception as e:
             raise RuntimeError(f"Failed to get decks and note types: {str(e)}")
 
@@ -258,13 +264,14 @@ class AnkiServer:
         """Create a new note"""
         if not arguments:
             raise ValueError("Arguments required for adding note")
-        
+
         input_model = AddNote(**arguments)
-        
+        input_model.tags.append("mcp_ankiconnect")
+
         try:
             note = {
-                "deckName": input_model.deck_name,
-                "modelName": input_model.note_type,
+                "deckName": input_model.deckName,
+                "modelName": input_model.modelName,
                 "fields": input_model.fields,
                 "tags": input_model.tags,
                 "options": {
@@ -272,7 +279,7 @@ class AnkiServer:
                     "duplicateScope": "deck",
                 }
             }
-            
+
             note_id = await self.anki.invoke(AnkiAction.ADD_NOTE, note=note)
             return [TextContent(
                 type="text",
@@ -285,15 +292,17 @@ class AnkiServer:
         """Get example notes based on criteria"""
         if not arguments:
             arguments = {}
-        
+
         input_model = GetExamples(**arguments)
-        
+
         try:
             # Construct search query based on sampling method
-            query = ""
+            query = "-is:suspended " + " ".join([f"-note:*{exclude_string}*" for exclude_string in EXCLUDE_STRINGS]) + " "
+            #return [TextContent(type="text", text=f"Query: {query}")]
+
             if input_model.deck:
                 query += f"deck:{input_model.deck} "
-            
+
             match input_model.sample:
                 case "recent":
                     query += "added:7"  # Added in last week
@@ -305,42 +314,41 @@ class AnkiServer:
                     query += "prop:ivl>=21 -is:learn"  # Mature cards not in learning
                 case "young":
                     query += "is:review prop:ivl<=7 -is:learn"  # Young review cards
-            
+                case "random":
+                    query += "prop:due<180"
+
             # Find notes matching criteria
             note_ids = await self.anki.invoke(AnkiAction.FIND_NOTES, query=query)
-            
+            # Limit and sample randomly if more notes than limit
+            if len(note_ids) > input_model.limit and input_model.sample == "random":
+                note_ids = random.sample(note_ids, input_model.limit)
             # Limit results
             note_ids = note_ids[:input_model.limit]
-            
+
             if not note_ids:
                 return [TextContent(
                     type="text",
                     text="No example notes found matching criteria"
                 )]
-            
+
             # Get detailed note info
             notes = await self.anki.invoke(AnkiAction.NOTES_INFO, notes=note_ids)
-            
-            # Format response
             examples = []
             for note in notes:
                 example = {
-                    "note_type": note["modelName"],
-                    "deck": note["deckName"],
-                    "fields": note["fields"],
                     "tags": note["tags"],
-                    "stats": {
-                        "reviews": note.get("reps", 0),
-                        "lapses": note.get("lapses", 0),
-                        "interval": note.get("interval", 0)
-                    }
+                    "modelName": note["modelName"],
+                    "fields": {name: {k: v for k, v in value.items() if k != "order"} for name, value in note["fields"].items()}
                 }
                 examples.append(example)
-            
+
+            result = flashcard_guidelines + "\n" + json.dumps(examples, indent=2)
+
             return [TextContent(
                 type="text",
-                text=json.dumps(examples, indent=2)
+                text=result
             )]
+
         except Exception as e:
             raise RuntimeError(f"Failed to get example notes: {str(e)}")
 
@@ -349,7 +357,7 @@ class AnkiServer:
             raise ValueError("Arguments required for submitting reviews")
         if 'reviews' not in arguments:
             raise ValueError("'reviews' field must be present for submitting reviews")
-            
+
         reviews = arguments.get("reviews")
         try:
             if isinstance(reviews, list) and all(isinstance(r, CardReview) for r in reviews):

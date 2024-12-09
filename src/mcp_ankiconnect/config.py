@@ -3,7 +3,7 @@ from typing import Final, NamedTuple
 
 class TimeoutConfig(NamedTuple):
     connect: float  # Connection establishment timeout
-    read: float    # Read operation timeout 
+    read: float    # Read operation timeout
     write: float   # Write operation timeout
 
 # AnkiConnect configuration
@@ -28,3 +28,7 @@ RATING_TO_EASE = {
     "good": 3,   # Good
     "easy": 4    # Easy
 }
+
+EXCLUDE_STRINGS = [
+    "AnKing"
+]

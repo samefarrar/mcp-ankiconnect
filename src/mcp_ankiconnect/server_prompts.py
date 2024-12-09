@@ -32,5 +32,20 @@ For each flashcard:
 7. After all cards have been reviewed, use the submit_reviews tool to submit the ratings for all cards at once. The rating should be:
    - "wrong" if the user got the answer completely wrong
    - "hard" if the user struggled but eventually got it right
-   - "good" if the user got it right with some thought
-   - "easy" if the user got it immediately and completely right"""
+   - "good" if the user got it right. (DEFAULT)
+   - "easy" if the user got it immediately and confidently right, and said it was easy."""
+
+flashcard_guidelines = """
+1. Ensure each flashcard focuses on a single, important concept or fact from the excerpt.
+2. Use a variety of question types, including Cloze format when appropriate.
+3. Make questions clear, concise, and specific.
+4. Avoid yes/no questions and overly complex formulations.
+5. Include questions about important terminology, concepts, and their applications.
+6. When possible, relate the information to real-life contexts or existing knowledge.
+7. Consider potential misunderstandings and address them in your questions.
+8. Make sure they are tagged appropriately so they can easily be found later. Tag by topic and resource.
+
+IMPORTANT: The flashcards format like markdown, so when using numbered lists, ensure you add two line breaks before and after the list to avoid formatting issues.
+
+Here are some examples:
+"""
