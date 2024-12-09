@@ -4,7 +4,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from typing import List, Optional
 from httpx import HTTPError
 
-from ..ankiconnect_client import AnkiServer
+from mcp_ankiconnect.server import mcp
+from mcp_ankiconnect.ankiconnect_client import AnkiConnectClient
 
 @pytest.fixture
 def mocked_anki_client():

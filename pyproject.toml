@@ -1,5 +1,5 @@
 [project]
-name = "mcp-ankiconnect"
+name = "mcp_ankiconnect"
 version = "0.1.0"
 description = "Connect Claude conversations with AnkiConnect via MCP to make spaced repetition as easy as \"Help me remember this\""
 readme = "README.md"
@@ -27,3 +27,4 @@ inspect = "mcp_ankiconnect:inspect"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+asyncio_fixture_loop_scope = "function"
