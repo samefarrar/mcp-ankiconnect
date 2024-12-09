@@ -62,7 +62,7 @@ async def test_list_decks_and_notes(mock_anki):
     assert "Cloze" in result
 
 @pytest.mark.asyncio
-async def test_get_examples(mock_anki):
+async def test_get_examples(mock_anki, mocker: MockerFixture):
     mock_anki.find_notes = mocker.AsyncMock(return_value=[1, 2])
     mock_anki.notes_info = mocker.AsyncMock(return_value=[
         {
@@ -74,7 +74,7 @@ async def test_get_examples(mock_anki):
                 "Back": {"value": "Answer 1", "order": 1}
             }
         }
-    ]
+    ])
     
     result = await get_examples(limit=1)
     assert "Question 1" in result
