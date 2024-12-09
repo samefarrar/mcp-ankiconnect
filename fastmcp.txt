@@ -1,0 +1,89 @@
+# FastMCP Integration
+
+> This `llms.txt` provides a high-level overview of how the FastMCP-based website or application is structured. It helps LLMs and agents identify where to find documentation, tools, prompts, and resources. It also explains how to access and work with code examples, tools, prompts, and resources from the site.
+
+FastMCP is a framework for building MCP (Model-Context Protocol) servers that expose tools, resources, and prompts to LLM-based clients. It provides Python code to:
+
+- Define "tools" (functions) that can be called by LLMs
+- Define "resources" (data sources) to be read by LLMs
+- Define "prompts" (templates) that produce structured conversation fragments
+- Provide a `Context` object that tools can use for logging, resource access, and other runtime features
+
+## How to use this code
+
+**Tools**: Decorate a Python function with `@mcp.tool()` to expose it. The function’s docstring and argument schema will be exposed to LLMs. Tools can be synchronous or async, and can optionally receive a `Context` parameter for advanced features like logging or accessing resources.
+
+**Resources**: Decorate a Python function with `@mcp.resource("scheme://{param}")` to define a resource template. The function parameters must match URI parameters. When accessed, a `FunctionResource` is created dynamically. For static or file-based resources, add them as `FunctionResource`, `FileResource`, etc. LLMs can then `read_resource(...)` at runtime.
+
+**Prompts**: Decorate a function with `@mcp.prompt()` to expose a prompt template. The function returns messages (user/assistant) that define the initial conversation context. LLMs can use `get_prompt(name, arguments)` to retrieve these messages.
+
+**Context**: Tools that accept a `Context` parameter can log messages, report progress, and read resources. This gives you runtime control while serving requests.
+
+The code integrates with `fastmcp.server.FastMCP`, which ties these concepts together and runs them via `mcp.server`. Tools, resources, and prompts are registered on an `FastMCP` instance and served over stdio or SSE.
+
+## Key Concepts
+
+- **Tool**:
+  - Register a tool:
+    ```python
+    from fastmcp import FastMCP
+    mcp = FastMCP("Demo")
+
+    @mcp.tool()
+    def add(a: int, b: int) -> int:
+        "Add two numbers"
+        return a + b
+    ```
+
+  - LLM can call this tool by name: `call_tool("add", {"a":1, "b":2})`.
+
+- **Resource**:
+  - Static file resource:
+    ```python
+    from fastmcp import FastMCP, FileResource
+    mcp = FastMCP("Site")
+    mcp.add_resource(FileResource(uri="file://readme.md", path="/abs/path/readme.md"))
+    ```
+
+  - Dynamic resource with parameters:
+    ```python
+    @mcp.resource("data://{id}")
+    def get_data(id: str) -> str:
+        return f"Data for {id}"
+    ```
+
+  - Access resources at runtime in a tool with `ctx.read_resource("data://example")`.
+
+- **Prompt**:
+  - Define prompts to provide conversation templates:
+    ```python
+    @mcp.prompt()
+    def greet_user(name: str) -> str:
+        return f"Hello {name}, how can I help you?"
+
+    # LLM can get this prompt via get_prompt("greet_user", {"name": "Alice"})
+    ```
+
+- **Context**:
+  - Tools can request a `Context` parameter:
+    ```python
+    from fastmcp import Context
+
+    @mcp.tool()
+    def process_data(x: int, ctx: Context) -> str:
+        ctx.info(f"Processing {x}")
+        data = ctx.read_resource("data://123")
+        return f"Processed {data}"
+    ```
+
+- **Logging and Progress**:
+  ```python
+  @mcp.tool()
+  async def long_task(ctx: Context):
+      ctx.info("Starting long task")
+      await ctx.report_progress(50, 100)
+      return "Halfway done"
+CLI Tools:
+fastmcp dev file.py runs a local dev server with MCP Inspector.
+fastmcp run file.py runs the server (stdio or SSE transport).
+fastmcp install file.py integrates with Claude Desktop's config.
