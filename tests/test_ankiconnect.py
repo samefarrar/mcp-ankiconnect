@@ -1,11 +1,10 @@
 import json
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
-from typing import List, Any, Optional
+from typing import List, Optional
 from httpx import HTTPError
 
-from mcp.types import TextContent
-from mcp_ankiconnect.server import AnkiServer, AnkiAction, AnkiConnectClient
+from ..ankiconnect_client import AnkiServer
 
 @pytest.fixture
 def mocked_anki_client():
@@ -182,14 +181,14 @@ async def test_list_decks_and_notes(anki_server, mocked_anki_client):
         ["Front", "Back"],   # First MODEL_FIELD_NAMES response
         ["Text", "Back"]     # Second MODEL_FIELD_NAMES response
     ]
-    
+
     # Call function
     result = await anki_server.list_decks_and_notes()
-    
+
     # Verify response format
     assert len(result) == 1
     assert result[0].type == "text"
-    
+
     # Parse JSON response
     data = json.loads(result[0].text)
     assert "decks" in data
