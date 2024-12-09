@@ -8,10 +8,11 @@ try:
     from mcp_ankiconnect.config import EXCLUDE_STRINGS, RATING_TO_EASE
     from mcp_ankiconnect.server_prompts import flashcard_guidelines, claude_review_instructions
 except ImportError:
-    # Handle direct script execution
-    from ankiconnect_client import AnkiConnectClient
-    from config import EXCLUDE_STRINGS, RATING_TO_EASE
-    from server_prompts import flashcard_guidelines, claude_review_instructions
+    import os, sys
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from mcp_ankiconnect.ankiconnect_client import AnkiConnectClient
+    from mcp_ankiconnect.config import EXCLUDE_STRINGS, RATING_TO_EASE
+    from mcp_ankiconnect.server_prompts import flashcard_guidelines, claude_review_instructions
 from pydantic import Field
 
 mcp = FastMCP("mcp-ankiconnect")

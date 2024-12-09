@@ -4,11 +4,18 @@ import httpx
 import asyncio
 from enum import Enum
 
-from mcp_ankiconnect.config import (
-    ANKI_CONNECT_URL,
-    ANKI_CONNECT_VERSION,
-    TIMEOUTS,
-)
+try:
+    from mcp_ankiconnect.config import (
+        ANKI_CONNECT_URL,
+        ANKI_CONNECT_VERSION,
+        TIMEOUTS,
+    )
+except ImportError:
+    from config import (
+        ANKI_CONNECT_URL,
+        ANKI_CONNECT_VERSION,
+        TIMEOUTS,
+    )
 
 from pydantic import BaseModel, Field
 
