@@ -11,11 +11,19 @@ class TestServer:
     def __init__(self):
         self.anki = None
 
-    async def get_cards_due(self, deck=None):
+    async def get_cards_by_due_and_deck(self, deck=None, day=0):
         decks = await self.anki.deck_names()
         if deck and deck not in decks:
             raise ValueError(f"Deck '{deck}' does not exist")
-        return await self.anki.find_cards(query="is:due prop:due=0")
+        
+        if day > 0:
+            prop = f"prop:due<{day+1}"
+        else:
+            prop = "prop:due=0"
+        query = f"is:due {prop}"
+        if deck:
+            query += f' deck:{deck}'
+        return await self.anki.find_cards(query=query)
 
     async def cleanup(self):
         await self.anki.close()
@@ -32,13 +40,13 @@ def anki_server(mocked_anki_client):
     return server
 
 # Test deck operations
-async def test_get_cards_accesses_deck_names_and_find_cards(anki_server: TestServer, mocked_anki_client):
+async def test_get_cards_by_due_and_deck_basic(anki_server: TestServer, mocked_anki_client):
     # Setup mock responses
     mocked_anki_client.deck_names.return_value = ["Default", "Test"]
     mocked_anki_client.find_cards.return_value = [1, 2, 3]  # Mock card IDs
 
     # Call function
-    result = await anki_server.get_cards_due()
+    result = await anki_server.get_cards_by_due_and_deck()
 
     mocked_anki_client.deck_names.assert_called_once()
 
@@ -49,17 +57,47 @@ async def test_get_cards_accesses_deck_names_and_find_cards(anki_server: TestSer
 
     assert result == [1, 2, 3]
 
-async def test_get_cards_due_with_deck(anki_server, mocked_anki_client):
+async def test_get_cards_by_due_and_deck_with_day(anki_server: TestServer, mocked_anki_client):
+    # Setup mock responses
+    mocked_anki_client.deck_names.return_value = ["Default", "Test"]
+    mocked_anki_client.find_cards.return_value = [1, 2, 3]
+
+    # Call function with day=5
+    result = await anki_server.get_cards_by_due_and_deck(day=5)
+
+    # Verify correct query construction with day parameter
+    mocked_anki_client.find_cards.assert_called_once_with(
+        query="is:due prop:due<6"
+    )
+
+    assert result == [1, 2, 3]
+
+async def test_get_cards_by_due_and_deck_with_deck(anki_server, mocked_anki_client):
     # Setup mock responses
     mocked_anki_client.deck_names.return_value = ["Default", "Test"]
     mocked_anki_client.find_cards.return_value = [4, 5, 6]
 
     # Call function
-    result = await anki_server.get_cards_due(deck = "Test")
+    result = await anki_server.get_cards_by_due_and_deck(deck="Test")
 
     # Verify correct query construction with deck
     mocked_anki_client.find_cards.assert_called_once_with(
         query='is:due prop:due=0 deck:Test'
+    )
+
+    assert result == [4, 5, 6]
+
+async def test_get_cards_by_due_and_deck_with_deck_and_day(anki_server, mocked_anki_client):
+    # Setup mock responses
+    mocked_anki_client.deck_names.return_value = ["Default", "Test"]
+    mocked_anki_client.find_cards.return_value = [4, 5, 6]
+
+    # Call function with both deck and day
+    result = await anki_server.get_cards_by_due_and_deck(deck="Test", day=3)
+
+    # Verify correct query construction with both parameters
+    mocked_anki_client.find_cards.assert_called_once_with(
+        query='is:due prop:due<4 deck:Test'
     )
 
     assert result == [4, 5, 6]
