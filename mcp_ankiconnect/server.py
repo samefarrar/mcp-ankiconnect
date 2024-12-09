@@ -167,10 +167,7 @@ async def fetch_due_cards_for_review(
     return examples_prompt
 
 @mcp.tool()
-@mcp.tool()
 async def submit_reviews(reviews: Optional[List[Dict[Literal["card_id", "rating"], Union[int, Literal["wrong", "hard", "good", "easy"]]]]] = None) -> str:
-    if not reviews:
-        raise ValueError("Arguments required for submitting reviews")
     """Submit multiple card reviews to Anki.
 
     Args:
@@ -182,6 +179,8 @@ async def submit_reviews(reviews: Optional[List[Dict[Literal["card_id", "rating"
                 "good" - Card was good (Good)
                 "easy" - Card was very easy (Easy)
     """
+    if not reviews:
+        raise ValueError("Arguments required for submitting reviews")
 
     # Convert reviews to AnkiConnect format
     answers = [

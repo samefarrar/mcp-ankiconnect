@@ -23,7 +23,6 @@ dev = ["pytest>=8.3.4", "pytest-asyncio>=0.24.0", "pytest-mock>=3.14.0"]
 
 [project.scripts]
 mcp-ankiconnect = "mcp_ankiconnect:main"
-inspect = "mcp_ankiconnect:inspect"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
