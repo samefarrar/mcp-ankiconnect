@@ -1,6 +1,6 @@
 # mcp-ankiconnect MCP server
 
-Connect Claude conversations with AnkiConnect via MCP to make spaced repetition as easy as "Help me remember this"
+Connect Claude conversations with AnkiConnect via MCP to make spaced repetition as easy as "Let's go through today's flashcards" or "Make flashcards for this"
 
 ## Components
 
@@ -27,8 +27,13 @@ The server implements three tools:
 
 ### Prerequisites
 
-- Anki must be running with AnkiConnect plugin installed
-- AnkiConnect must be configured to accept connections (default port: 8765)
+- Anki must be running with [AnkiConnect plugin](https://ankiweb.net/shared/info/2055492159) installed (plugin id 2055492159)
+  AnkiConnect can be slow on Macs due to the AppSleep feature, so disable it for Anki. To do so run the following in your terminal.
+  ```bash
+  defaults write net.ankiweb.dtop NSAppSleepDisabled -bool true
+  defaults write net.ichi2.anki NSAppSleepDisabled -bool true
+  defaults write org.qt-project.Qt.QtWebEngineCore NSAppSleepDisabled -bool true
+  ```
 
 ### Installation
 
@@ -39,12 +44,7 @@ The server implements three tools:
    - Enter code: `2055492159`
    - Restart Anki
 
-2. Install mcp-ankiconnect:
-   ```bash
-   pip install mcp-ankiconnect
-   ```
-
-3. Configure Claude Desktop:
+2. Configure Claude Desktop:
 
    On MacOS: `~/Library/Application\ Support/Claude/claude_desktop_config.json`  
    On Windows: `%APPDATA%/Claude/claude_desktop_config.json`
@@ -61,47 +61,17 @@ The server implements three tools:
    }
    ```
 
-4. Start Anki and ensure AnkiConnect is running
-5. Restart Claude Desktop
-
-## Development
-
-### Building and Publishing
-
-To prepare the package for distribution:
-
-1. Sync dependencies and update lockfile:
-```bash
-uv sync
-```
-
-2. Build package distributions:
-```bash
-uv build
-```
-
-This will create source and wheel distributions in the `dist/` directory.
-
-3. Publish to PyPI:
-```bash
-uv publish
-```
-
-Note: You'll need to set PyPI credentials via environment variables or command flags:
-- Token: `--token` or `UV_PUBLISH_TOKEN`
-- Or username/password: `--username`/`UV_PUBLISH_USERNAME` and `--password`/`UV_PUBLISH_PASSWORD`
+3. Restart Anki and Claude desktop
 
 ### Debugging
 
 Since MCP servers run over stdio, debugging can be challenging. For the best debugging
 experience, we strongly recommend using the [MCP Inspector](https://github.com/modelcontextprotocol/inspector).
 
-
 You can launch the MCP Inspector via [`npm`](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm) with this command:
 
 ```bash
-npx @modelcontextprotocol/inspector uv --directory /your/path/here run mcp-ankiconnect
+uv run inspect
 ```
-
 
 Upon launching, the Inspector will display a URL that you can access in your browser to begin debugging.
