@@ -15,7 +15,7 @@ from mcp_ankiconnect.server import (
 def mock_anki(mocker: MockerFixture):
     # Mock the AnkiConnectClient instance
     mock_client = mocker.patch('mcp_ankiconnect.server.anki')
-    
+
     # Setup default return values
     mock_client.deck_names = mocker.AsyncMock(return_value=["Default", "Test Deck"])
     mock_client.find_cards = mocker.AsyncMock(return_value=[1, 2, 3])
@@ -24,7 +24,7 @@ def mock_anki(mocker: MockerFixture):
         {"cardId": 2, "deck": "Default"},
         {"cardId": 3, "deck": "Default"}
     ])
-    
+
     return mock_client
 
 @pytest.mark.asyncio
@@ -37,7 +37,7 @@ async def test_get_cards_by_due_and_deck(mock_anki):
     # Test with deck filter
     cards = await get_cards_by_due_and_deck(deck="Default")
     mock_anki.find_cards.assert_called_with(query="is:due prop:due=0 deck:Default")
-    
+
     # Test with day parameter
     cards = await get_cards_by_due_and_deck(day=1)
     mock_anki.find_cards.assert_called_with(query="is:due prop:due<2")
@@ -54,7 +54,7 @@ async def test_num_cards_due_today(mock_anki):
 async def test_list_decks_and_notes(mock_anki, mocker: MockerFixture):
     mock_anki.model_names = mocker.AsyncMock(return_value=["Basic", "Cloze"])
     mock_anki.model_field_names = mocker.AsyncMock(return_value=["Front", "Back"])
-    
+
     result = await list_decks_and_notes()
     assert "Default" in result
     assert "Test Deck" in result
@@ -75,7 +75,7 @@ async def test_get_examples(mock_anki, mocker: MockerFixture):
             }
         }
     ])
-    
+
     result = await get_examples(limit=1)
     assert "Question 1" in result
     assert "Answer 1" in result
@@ -92,7 +92,7 @@ async def test_fetch_due_cards_for_review(mock_anki):
             "fieldOrder": 0
         }
     ]
-    
+
     result = await fetch_due_cards_for_review(limit=1)
     assert "<card id=\"1\">" in result
     assert "<question>" in result
@@ -101,13 +101,12 @@ async def test_fetch_due_cards_for_review(mock_anki):
 @pytest.mark.asyncio
 async def test_submit_reviews(mock_anki, mocker: MockerFixture):
     mock_anki.answer_cards = mocker.AsyncMock(return_value=[True])
-    
-    class Review:
-        def __init__(self, card_id, rating):
-            self.card_id = card_id
-            self.rating = rating
-    
-    reviews = [Review(1, "good")]
+
+    reviews = [
+        {"card_id": 1, "rating": "wrong"},
+        {"card_id": 2, "rating": "hard"},
+        {"card_id": 3, "rating": "good"}
+    ]
     result = await submit_reviews(reviews)
     assert "successfully" in result
     assert "Card 1" in result
