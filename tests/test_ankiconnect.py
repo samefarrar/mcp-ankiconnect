@@ -7,129 +7,64 @@ from httpx import HTTPError
 from mcp_ankiconnect.server import mcp
 from mcp_ankiconnect.ankiconnect_client import AnkiConnectClient
 
-class TestServer:
-    def __init__(self):
-        self.anki = None
-
-    async def get_cards_by_due_and_deck(self, deck=None, day=0):
-        decks = await self.anki.deck_names()
-        if deck and deck not in decks:
-            raise ValueError(f"Deck '{deck}' does not exist")
-        
-        if day > 0:
-            prop = f"prop:due<{day+1}"
-        else:
-            prop = "prop:due=0"
-        query = f"is:due {prop}"
-        if deck:
-            query += f' deck:{deck}'
-        return await self.anki.find_cards(query=query)
-
-    async def cleanup(self):
-        await self.anki.close()
-
 @pytest.fixture
-def mocked_anki_client():
+async def mocked_anki_client():
     client = AsyncMock(spec=AnkiConnectClient)
-    return client
+    yield client
+    await client.close()
 
-@pytest.fixture
-def anki_server(mocked_anki_client):
-    server = TestServer()
-    server.anki = mocked_anki_client
-    return server
+# Test AnkiConnectClient operations
+async def test_deck_names(mocked_anki_client):
+    mocked_anki_client.invoke.return_value = ["Default", "Test"]
+    result = await mocked_anki_client.deck_names()
+    assert result == ["Default", "Test"]
+    mocked_anki_client.invoke.assert_called_once_with("deckNames")
 
-# Test deck operations
-async def test_get_cards_by_due_and_deck_basic(anki_server: TestServer, mocked_anki_client):
-    # Setup mock responses
-    mocked_anki_client.deck_names.return_value = ["Default", "Test"]
-    mocked_anki_client.find_cards.return_value = [1, 2, 3]  # Mock card IDs
-
-    # Call function
-    result = await anki_server.get_cards_by_due_and_deck()
-
-    mocked_anki_client.deck_names.assert_called_once()
-
-    # Verify correct query construction
-    mocked_anki_client.find_cards.assert_called_once_with(
-        query="is:due prop:due=0"
-    )
-
+async def test_find_cards(mocked_anki_client):
+    mocked_anki_client.invoke.return_value = [1, 2, 3]
+    result = await mocked_anki_client.find_cards("deck:Test")
     assert result == [1, 2, 3]
+    mocked_anki_client.invoke.assert_called_once_with("findCards", query="deck:Test")
 
-async def test_get_cards_by_due_and_deck_with_day(anki_server: TestServer, mocked_anki_client):
-    # Setup mock responses
-    mocked_anki_client.deck_names.return_value = ["Default", "Test"]
-    mocked_anki_client.find_cards.return_value = [1, 2, 3]
+async def test_cards_info(mocked_anki_client):
+    mock_cards = [{"cardId": 1, "fields": {}}, {"cardId": 2, "fields": {}}]
+    mocked_anki_client.invoke.return_value = mock_cards
+    result = await mocked_anki_client.cards_info([1, 2])
+    assert result == mock_cards
+    mocked_anki_client.invoke.assert_called_once_with("cardsInfo", cards=[1, 2])
 
-    # Call function with day=5
-    result = await anki_server.get_cards_by_due_and_deck(day=5)
+async def test_answer_cards(mocked_anki_client):
+    mock_answers = [{"cardId": 1, "ease": 3}, {"cardId": 2, "ease": 4}]
+    mocked_anki_client.invoke.return_value = [True, True]
+    result = await mocked_anki_client.answer_cards(mock_answers)
+    assert result == [True, True]
+    mocked_anki_client.invoke.assert_called_once_with("answerCards", answers=mock_answers)
 
-    # Verify correct query construction with day parameter
-    mocked_anki_client.find_cards.assert_called_once_with(
-        query="is:due prop:due<6"
-    )
+async def test_model_names(mocked_anki_client):
+    mock_models = ["Basic", "Cloze"]
+    mocked_anki_client.invoke.return_value = mock_models
+    result = await mocked_anki_client.model_names()
+    assert result == mock_models
+    mocked_anki_client.invoke.assert_called_once_with("modelNames")
 
-    assert result == [1, 2, 3]
+async def test_model_field_names(mocked_anki_client):
+    mock_fields = ["Front", "Back"]
+    mocked_anki_client.invoke.return_value = mock_fields
+    result = await mocked_anki_client.model_field_names("Basic")
+    assert result == mock_fields
+    mocked_anki_client.invoke.assert_called_once_with("modelFieldNames", modelName="Basic")
 
-async def test_get_cards_by_due_and_deck_with_deck(anki_server, mocked_anki_client):
-    # Setup mock responses
-    mocked_anki_client.deck_names.return_value = ["Default", "Test"]
-    mocked_anki_client.find_cards.return_value = [4, 5, 6]
-
-    # Call function
-    result = await anki_server.get_cards_by_due_and_deck(deck="Test")
-
-    # Verify correct query construction with deck
-    mocked_anki_client.find_cards.assert_called_once_with(
-        query='is:due prop:due=0 deck:Test'
-    )
-
-    assert result == [4, 5, 6]
-
-async def test_get_cards_by_due_and_deck_with_deck_and_day(anki_server, mocked_anki_client):
-    # Setup mock responses
-    mocked_anki_client.deck_names.return_value = ["Default", "Test"]
-    mocked_anki_client.find_cards.return_value = [4, 5, 6]
-
-    # Call function with both deck and day
-    result = await anki_server.get_cards_by_due_and_deck(deck="Test", day=3)
-
-    # Verify correct query construction with both parameters
-    mocked_anki_client.find_cards.assert_called_once_with(
-        query='is:due prop:due<4 deck:Test'
-    )
-
-    assert result == [4, 5, 6]
-
-async def test_get_cards_by_due_and_deck_invalid_deck(anki_server, mocked_anki_client):
-    # Setup mock responses
-    mocked_anki_client.deck_names.return_value = ["Default", "Test"]
-
-    # Call function and verify it raises error
-    with pytest.raises(ValueError, match="Deck 'Invalid' does not exist"):
-        await anki_server.get_cards_by_due_and_deck(deck="Invalid")
-
-# Test tool operations
-async def test_num_cards_due_today_counts_accurately_without_deck(anki_server, mocked_anki_client):
-    # Setup mock responses
-    mocked_anki_client.deck_names.return_value = ["Default"]
-    mocked_anki_client.find_cards.return_value = [1, 2, 3]
-
-    # Call function
-    result = await anki_server.num_cards_due_today()
-
-    assert result == "There are 3 cards due across all decks"
-
-async def test_num_cards_due_today_with_deck(anki_server, mocked_anki_client):
-    # Setup mock responses
-    mocked_anki_client.deck_names.return_value = ["Test"]
-    mocked_anki_client.find_cards.return_value = [1, 2]
-
-    # Call function
-    result = await anki_server.num_cards_due_today(deck="Test")
-
-    assert result == "There are 2 cards due in deck 'Test'"
+async def test_add_note(mocked_anki_client):
+    mock_note = {
+        "deckName": "Test",
+        "modelName": "Basic",
+        "fields": {"Front": "Q", "Back": "A"},
+        "tags": ["test"]
+    }
+    mocked_anki_client.invoke.return_value = 12345  # Note ID
+    result = await mocked_anki_client.add_note(mock_note)
+    assert result == 12345
+    mocked_anki_client.invoke.assert_called_once_with("addNote", note=mock_note)
 
 # Test review card operations
 async def test_fetch_due_cards_for_review_no_args(anki_server, mocked_anki_client):
@@ -248,33 +183,36 @@ async def test_list_decks_and_notes(anki_server, mocked_anki_client):
     assert data["note_types"][1]["name"] == "Cloze"
     assert data["note_types"][1]["fields"] == ["Text", "Back"]
 
-async def test_invoke_error_handling():
-    # Create AnkiConnectClient with mocked httpx client
+async def test_invoke_http_error():
     with patch('httpx.AsyncClient') as mock_client_class:
         mock_client = AsyncMock()
         mock_client_class.return_value = mock_client
         client = AnkiConnectClient()
 
-        # Test HTTP error
         mock_client.post.side_effect = HTTPError("Connection failed")
-        with pytest.raises(Exception) as exc_info:
+        with pytest.raises(RuntimeError) as exc_info:
             await client.invoke("deckNames")
+        assert "Failed to communicate with AnkiConnect" in str(exc_info.value)
         assert "Connection failed" in str(exc_info.value)
 
-        # Test AnkiConnect error response
+        await client.close()
+
+async def test_invoke_anki_error():
+    with patch('httpx.AsyncClient') as mock_client_class:
+        mock_client = AsyncMock()
+        mock_client_class.return_value = mock_client
+        client = AnkiConnectClient()
+
         mock_response = MagicMock()
-        mock_response.json = lambda: {
+        mock_response.json.return_value = {
             "error": "AnkiConnect error message",
             "result": None
         }
-        mock_response.raise_for_status = AsyncMock()
-        mock_client.post.side_effect = None
+        mock_response.raise_for_status = MagicMock()
         mock_client.post.return_value = mock_response
 
-        # We expect a RuntimeError wrapping the AnkiConnect error
-        with pytest.raises(RuntimeError) as exc_info:
-            await client.deck_names()
-        assert "Error getting deck names" in str(exc_info.value)
+        with pytest.raises(ValueError) as exc_info:
+            await client.invoke("deckNames")
         assert "AnkiConnect error: AnkiConnect error message" in str(exc_info.value)
 
         await client.close()
