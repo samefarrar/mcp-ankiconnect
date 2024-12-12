@@ -10,15 +10,16 @@ dependencies = [
     "mcp>=1.1.0",
     "pytest-asyncio>=0.24.0",
 ]
-license = {text = "MIT"}
+license = { text = "MIT" }
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
-urls = { repository = "https://github.com/your-username/mcp-ankiconnect" }
+urls = { repository = "https://github.com/samefarrar/mcp-ankiconnect" }
+
 [[project.authors]]
-name = "FazMataz"
+name = "samefarrar"
 email = "samefarrar@gmail.com"
 
 [build-system]
