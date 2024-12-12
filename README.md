@@ -71,7 +71,7 @@ experience, we strongly recommend using the [MCP Inspector](https://github.com/m
 You can launch the MCP Inspector via [`npm`](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm) with this command:
 
 ```bash
-uv run inspect
+uv run fastmcp dev mcp_ankiconnect/server.py
 ```
 
 Upon launching, the Inspector will display a URL that you can access in your browser to begin debugging.
