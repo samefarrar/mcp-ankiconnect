@@ -30,7 +30,7 @@ build-backend = "hatchling.build"
 dev = ["pytest>=8.3.4", "pytest-asyncio>=0.24.0", "pytest-mock>=3.14.0"]
 
 [project.scripts]
-mcp-ankiconnect = "mcp_ankiconnect:main"
+mcp-ankiconnect = "mcp_ankiconnect.server:mcp.run"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

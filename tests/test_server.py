@@ -31,12 +31,12 @@ def mock_anki(mocker: MockerFixture):
 async def test_get_cards_by_due_and_deck(mock_anki):
     # Test with no parameters
     cards = await get_cards_by_due_and_deck()
-    mock_anki.find_cards.assert_called_with(query="is:due prop:due=0")
+    mock_anki.find_cards.assert_called_with(query="is:due prop:due<=0")
     assert cards == [1, 2, 3]
 
     # Test with deck filter
     cards = await get_cards_by_due_and_deck(deck="Default")
-    mock_anki.find_cards.assert_called_with(query="is:due prop:due=0 deck:Default")
+    mock_anki.find_cards.assert_called_with(query="is:due prop:due<=0 deck:Default")
 
     # Test with day parameter
     cards = await get_cards_by_due_and_deck(day=1)

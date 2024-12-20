@@ -1,7 +1,6 @@
 from typing import List, Optional, Literal, Dict, Union
 import json
 import random
-import asyncio
 from fastmcp import FastMCP
 try:
     from mcp_ankiconnect.ankiconnect_client import AnkiConnectClient
@@ -16,10 +15,10 @@ except ImportError:
 from pydantic import Field
 
 mcp = FastMCP("mcp-ankiconnect")
-anki = AnkiConnectClient()
 
 @mcp.tool()
 async def get_cards_by_due_and_deck(deck: Optional[str] = None, day: Optional[int] = 0) -> List[int]:
+    anki = AnkiConnectClient()
     decks = await anki.deck_names()
     if deck and deck not in decks:
         raise ValueError(f"Deck '{deck}' does not exist")
@@ -27,7 +26,7 @@ async def get_cards_by_due_and_deck(deck: Optional[str] = None, day: Optional[in
     if day > 0:
         prop = f"prop:due<{day+1}"
     else:
-        prop = "prop:due=0"
+        prop = "prop:due<=0"
     # Construct the search query
     query = f"is:due {prop}"
     if deck:
@@ -37,6 +36,7 @@ async def get_cards_by_due_and_deck(deck: Optional[str] = None, day: Optional[in
 
 @mcp.tool()
 async def num_cards_due_today(deck: Optional[str] = None) -> str:
+    anki = AnkiConnectClient()
     """Get the number of cards due today with an optional deck filter"""
 
     card_ids = await get_cards_by_due_and_deck(deck, 0)
@@ -47,6 +47,7 @@ async def num_cards_due_today(deck: Optional[str] = None) -> str:
 
 @mcp.tool()
 async def list_decks_and_notes() -> str:
+    anki = AnkiConnectClient()
     """Get all decks and note types with their fields"""
     # Get decks
     decks = await anki.deck_names()
@@ -82,6 +83,7 @@ async def get_examples(
             - best_performance: Notes with less than 3 lapses
             - mature: Notes with interval greater than 21 days
             - young: Notes with interval less than 7 days"""
+        anki = AnkiConnectClient()
 
         query = "-is:suspended " + " ".join([f"-note:*{exclude_string}*" for exclude_string in EXCLUDE_STRINGS]) + " "
 
@@ -134,6 +136,7 @@ async def fetch_due_cards_for_review(
       - deck: str - Filter by specific deck.
       - limit: int - Maximum number of cards to fetch (default 5).
       - today_only: bool - If true, only fetch cards due today, else fetch cards up to 5 days ahead."""
+    anki = AnkiConnectClient()
     days_to_review = 0 if today_only else 5
 
     card_ids = await get_cards_by_due_and_deck(deck, days_to_review)
@@ -185,6 +188,7 @@ async def submit_reviews(reviews: List[Dict[Literal["card_id", "rating"], Union[
                 "good" - Card was good (Good)
                 "easy" - Card was very easy (Easy)
     """
+    anki = AnkiConnectClient()
     if not reviews:
         raise ValueError("Arguments required for submitting reviews")
 
@@ -217,6 +221,7 @@ async def add_note(
         modelName: str - The name of the note type to use.
         fields: dict - The fields of the flashcard to add.
         tags: List[str] - The tags to add to the flashcard."""
+    anki = AnkiConnectClient()
     note = {
         "deckName": deckName,
         "modelName": modelName,
@@ -231,13 +236,3 @@ async def add_note(
     note_id = await anki.add_note(note)
 
     return f"Successfully created note with ID: {note_id}"
-
-
-async def cleanup():
-    await anki.close()
-
-def main():
-    try:
-        mcp.run()
-    finally:
-        asyncio.run(cleanup())
