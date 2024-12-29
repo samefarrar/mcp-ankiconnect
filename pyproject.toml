@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "httpx>=0.28.1",
-    "mcp[cli]>=1.1.0",
+    "mcp[cli]==1.2.0rc1",
     "pytest-asyncio>=0.24.0",
 ]
 license = { text = "MIT" }
@@ -34,3 +34,7 @@ mcp-ankiconnect = "mcp_ankiconnect.server:mcp.run"
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 asyncio_fixture_loop_scope = "function"
+
+[tool.pyright]
+venvPath = "."
+venv = ".venv"
