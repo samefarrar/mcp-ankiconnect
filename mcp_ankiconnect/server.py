@@ -25,7 +25,6 @@ async def get_anki_client():
 
 mcp = FastMCP("mcp-ankiconnect")
 
-@mcp.tool()
 async def get_cards_by_due_and_deck(deck: Optional[str] = None, day: Optional[int] = 0) -> List[int]:
     async with get_anki_client() as anki:
         decks = await anki.deck_names()
@@ -37,7 +36,7 @@ async def get_cards_by_due_and_deck(deck: Optional[str] = None, day: Optional[in
         else:
             prop = "prop:due<=0"
         # Construct the search query
-        query = f"is:due {prop}"
+        query = f"is:due -is:suspended {prop}"
         if deck:
             query += f' deck:{deck}'
         # Get and return the due cards
@@ -45,8 +44,8 @@ async def get_cards_by_due_and_deck(deck: Optional[str] = None, day: Optional[in
 
 @mcp.tool()
 async def num_cards_due_today(deck: Optional[str] = None) -> str:
-    anki = AnkiConnectClient()
     """Get the number of cards due today with an optional deck filter"""
+    anki = AnkiConnectClient()
 
     card_ids = await get_cards_by_due_and_deck(deck, 0)
     if deck:
@@ -56,13 +55,12 @@ async def num_cards_due_today(deck: Optional[str] = None) -> str:
 
 @mcp.tool()
 async def list_decks_and_notes() -> str:
-    anki = AnkiConnectClient()
     """Get all decks and note types with their fields"""
-    # Get decks
+    anki = AnkiConnectClient()
+
     decks = await anki.deck_names()
     decks = [deck for deck in decks if not any(exclude.lower() in deck.lower() for exclude in EXCLUDE_STRINGS)]
 
-    # Get note types and their fields
     model_names = await anki.model_names()
     note_types = []
     for model in model_names:
@@ -86,12 +84,14 @@ async def get_examples(
         pattern="^(random|recent|most_reviewed|best_performance|mature|young)$"
     ))-> str:
         """Get example notes from Anki to guide your flashcard making. Limit the number of examples returned and provide a sampling technique:
+
             - random: Randomly sample notes
             - recent: Notes added in the last week
             - most_reviewed: Notes with more than 10 reviews
             - best_performance: Notes with less than 3 lapses
             - mature: Notes with interval greater than 21 days
-            - young: Notes with interval less than 7 days"""
+            - young: Notes with interval less than 7 days
+            """
         anki = AnkiConnectClient()
 
         query = "-is:suspended " + " ".join([f"-note:*{exclude_string}*" for exclude_string in EXCLUDE_STRINGS]) + " "
@@ -143,7 +143,7 @@ async def fetch_due_cards_for_review(
 ) -> str:
     """Fetch cards that are due for learning and format them for review. Takes optional arguments:
       - deck: str - Filter by specific deck.
-      - limit: int - Maximum number of cards to fetch (default 5).
+      - limit: int - Maximum number of cards to fetch (default 5). More than 5 is overwhelming for users.
       - today_only: bool - If true, only fetch cards due today, else fetch cards up to 5 days ahead."""
     anki = AnkiConnectClient()
     days_to_review = 0 if today_only else 5
