@@ -46,7 +46,7 @@ The server implements three tools:
 
 2. Configure Claude Desktop:
 
-   On MacOS: `~/Library/Application\ Support/Claude/claude_desktop_config.json`  
+   On MacOS: `~/Library/Application\ Support/Claude/claude_desktop_config.json`
    On Windows: `%APPDATA%/Claude/claude_desktop_config.json`
 
    Add this configuration:
@@ -54,8 +54,8 @@ The server implements three tools:
    {
      "mcpServers": {
        "mcp-ankiconnect": {
-         "command": "uvx",
-         "args": ["mcp-ankiconnect"]
+         "command": "uv",
+         "args": ["run", "--with", "mcp-ankiconnect==0.3.1", "--with", "mcp[cli]==1.2.0rc1", "mcp-ankiconnect"]
        }
      }
    }
@@ -67,11 +67,17 @@ The server implements three tools:
 
 Since MCP servers run over stdio, debugging can be challenging. For the best debugging
 experience, we strongly recommend using the [MCP Inspector](https://github.com/modelcontextprotocol/inspector).
-
-You can launch the MCP Inspector via [`npm`](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm) with this command:
+First, clone the repository and install the dependencies:
 
 ```bash
-uv run fastmcp dev mcp_ankiconnect/server.py
+git clone https://github.com/samefarrar/mcp-ankiconnect.git
+cd mcp-ankiconnect
+uv sync
+```
+You can launch the MCP Inspector via the mcp CLI:
+
+```bash
+uv run mcp dev mcp_ankiconnect/server.py
 ```
 
 Upon launching, the Inspector will display a URL that you can access in your browser to begin debugging.
