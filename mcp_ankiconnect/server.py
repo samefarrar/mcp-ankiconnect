@@ -3,9 +3,9 @@ import json
 import random
 from contextlib import asynccontextmanager
 from mcp.server.fastmcp import FastMCP
-from .ankiconnect_client import AnkiConnectClient
-from .config import EXCLUDE_STRINGS, RATING_TO_EASE
-from .server_prompts import flashcard_guidelines, claude_review_instructions
+from mcp_ankiconnect.ankiconnect_client import AnkiConnectClient
+from mcp_ankiconnect.config import EXCLUDE_STRINGS, RATING_TO_EASE
+from mcp_ankiconnect.server_prompts import flashcard_guidelines, claude_review_instructions
 from pydantic import Field
 
 @asynccontextmanager
