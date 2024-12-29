@@ -1,31 +1,40 @@
 from typing import List, Optional, Literal, Dict, Union
 import json
 import random
+from contextlib import asynccontextmanager
 from mcp.server.fastmcp import FastMCP
 from .ankiconnect_client import AnkiConnectClient
 from .config import EXCLUDE_STRINGS, RATING_TO_EASE
 from .server_prompts import flashcard_guidelines, claude_review_instructions
 from pydantic import Field
 
+@asynccontextmanager
+async def get_anki_client():
+    client = AnkiConnectClient()
+    try:
+        yield client
+    finally:
+        await client.close()
+
 mcp = FastMCP("mcp-ankiconnect")
 
 @mcp.tool()
 async def get_cards_by_due_and_deck(deck: Optional[str] = None, day: Optional[int] = 0) -> List[int]:
-    anki = AnkiConnectClient()
-    decks = await anki.deck_names()
-    if deck and deck not in decks:
-        raise ValueError(f"Deck '{deck}' does not exist")
+    async with get_anki_client() as anki:
+        decks = await anki.deck_names()
+        if deck and deck not in decks:
+            raise ValueError(f"Deck '{deck}' does not exist")
 
-    if day > 0:
-        prop = f"prop:due<{day+1}"
-    else:
-        prop = "prop:due<=0"
-    # Construct the search query
-    query = f"is:due {prop}"
-    if deck:
-        query += f' deck:{deck}'
-    # Get and return the due cards
-    return await anki.find_cards(query=query)
+        if day > 0:
+            prop = f"prop:due<{day+1}"
+        else:
+            prop = "prop:due<=0"
+        # Construct the search query
+        query = f"is:due {prop}"
+        if deck:
+            query += f' deck:{deck}'
+        # Get and return the due cards
+        return await anki.find_cards(query=query)
 
 @mcp.tool()
 async def num_cards_due_today(deck: Optional[str] = None) -> str:

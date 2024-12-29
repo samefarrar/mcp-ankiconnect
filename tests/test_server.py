@@ -13,17 +13,22 @@ from mcp_ankiconnect.server import (
 
 @pytest.fixture
 def mock_anki(mocker: MockerFixture):
-    # Mock the AnkiConnectClient instance
-    mock_client = mocker.patch('mcp_ankiconnect.server.anki')
+    # Create a mock client
+    mock_client = mocker.AsyncMock()
 
     # Setup default return values
-    mock_client.deck_names = mocker.AsyncMock(return_value=["Default", "Test Deck"])
-    mock_client.find_cards = mocker.AsyncMock(return_value=[1, 2, 3])
-    mock_client.cards_info = mocker.AsyncMock(return_value=[
+    mock_client.deck_names.return_value = ["Default", "Test Deck"]
+    mock_client.find_cards.return_value = [1, 2, 3]
+    mock_client.cards_info.return_value = [
         {"cardId": 1, "deck": "Default"},
         {"cardId": 2, "deck": "Default"},
         {"cardId": 3, "deck": "Default"}
-    ])
+    ]
+
+    # Mock the context manager
+    mocker.patch('mcp_ankiconnect.server.AnkiConnectClient', return_value=mock_client)
+    mock_client.__aenter__ = mocker.AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = mocker.AsyncMock()
 
     return mock_client
 
