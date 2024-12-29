@@ -1,7 +1,7 @@
 from typing import List, Optional, Literal, Dict, Union
 import json
 import random
-from fastmcp import FastMCP
+from mcp.server.fastmcp import FastMCP
 try:
     from mcp_ankiconnect.ankiconnect_client import AnkiConnectClient
     from mcp_ankiconnect.config import EXCLUDE_STRINGS, RATING_TO_EASE
