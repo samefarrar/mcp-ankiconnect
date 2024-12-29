@@ -1,4 +1,3 @@
-import asyncio
 from mcp_ankiconnect.server import mcp
 
 def main():
