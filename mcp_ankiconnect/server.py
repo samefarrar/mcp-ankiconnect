@@ -1,12 +1,19 @@
 from typing import List, Optional, Literal, Dict, Union
 import json
 import random
+import logging
 from contextlib import asynccontextmanager
 from mcp.server.fastmcp import FastMCP
 from mcp_ankiconnect.ankiconnect_client import AnkiConnectClient
 from mcp_ankiconnect.config import EXCLUDE_STRINGS, RATING_TO_EASE
 from mcp_ankiconnect.server_prompts import flashcard_guidelines, claude_review_instructions
 from pydantic import Field
+
+logger = logging.getLogger(__name__)
+
+logger.info("Initializing MCP-AnkiConnect server")
+mcp = FastMCP("mcp-ankiconnect")
+logger.debug("Created FastMCP instance")
 
 @asynccontextmanager
 async def get_anki_client():
