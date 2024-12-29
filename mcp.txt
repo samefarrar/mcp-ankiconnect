@@ -1,4 +1,4 @@
-# Clients
+# Example Clients
 
 A list of applications that support MCP integrations
 
@@ -6,13 +6,17 @@ This page provides an overview of applications that support the Model Context Pr
 
 ## Feature support matrix
 
-| Client                       | [Resources] | [Prompts] | [Tools] | [Sampling] | Roots | Notes                                            |
-| ---------------------------- | ----------- | --------- | ------- | ---------- | ----- | ------------------------------------------------ |
-| [Claude Desktop App][Claude] | ✅           | ✅         | ✅       | ❌          | ❌     | Full support for all MCP features                |
-| [Zed][Zed]                   | ❌           | ✅         | ❌       | ❌          | ❌     | Prompts appear as slash commands                 |
-| [Sourcegraph Cody][Cody]     | ✅           | ❌         | ❌       | ❌          | ❌     | Supports resources through OpenCTX               |
-| [Firebase Genkit][Genkit]    | ⚠️          | ✅         | ✅       | ❌          | ❌     | Supports resource list and lookup through tools. |
-| [Continue][Continue]         | ✅           | ✅         | ✅       | ❌          | ❌     | Full support for all MCP features                |
+| Client                               | [Resources] | [Prompts] | [Tools] | [Sampling] | Roots | Notes                                                              |
+| ------------------------------------ | ----------- | --------- | ------- | ---------- | ----- | ------------------------------------------------------------------ |
+| [Claude Desktop App][Claude]         | ✅           | ✅         | ✅       | ❌          | ❌     | Full support for all MCP features                                  |
+| [Zed][Zed]                           | ❌           | ✅         | ❌       | ❌          | ❌     | Prompts appear as slash commands                                   |
+| [Sourcegraph Cody][Cody]             | ✅           | ❌         | ❌       | ❌          | ❌     | Supports resources through OpenCTX                                 |
+| [Firebase Genkit][Genkit]            | ⚠️          | ✅         | ✅       | ❌          | ❌     | Supports resource list and lookup through tools.                   |
+| [Continue][Continue]                 | ✅           | ✅         | ✅       | ❌          | ❌     | Full support for all MCP features                                  |
+| [GenAIScript][GenAIScript]           | ❌           | ❌         | ✅       | ❌          | ❌     | Supports tools.                                                    |
+| [Cline][Cline]                       | ✅           | ❌         | ✅       | ❌          | ❌     | Supports tools and resources.                                      |
+| [LibreChat][LibreChat]               | ❌           | ❌         | ✅       | ❌          | ❌     | Supports tools for Agents                                          |
+| [TheiaAI/TheiaIDE][TheiaAI/TheiaIDE] | ❌           | ❌         | ✅       | ❌          | ❌     | Supports tools for Agents in Theia AI and the AI-powered Theia IDE |
 
 [Claude]: https://claude.ai/download
 
@@ -23,6 +27,14 @@ This page provides an overview of applications that support the Model Context Pr
 [Genkit]: https://github.com/firebase/genkit
 
 [Continue]: https://github.com/continuedev/continue
+
+[GenAIScript]: https://microsoft.github.io/genaiscript/reference/scripts/mcp-tools/
+
+[Cline]: https://github.com/cline/cline
+
+[LibreChat]: https://github.com/danny-avila/LibreChat
+
+[TheiaAI/TheiaIDE]: https://eclipsesource.com/blogs/2024/12/19/theia-ide-and-theia-ai-support-mcp/
 
 [Resources]: https://modelcontextprotocol.io/docs/concepts/resources
 
@@ -91,6 +103,54 @@ The Claude desktop application provides comprehensive support for MCP, enabling 
 *   Use both built-in and MCP tools directly in chat
 *   Supports VS Code and JetBrains IDEs, with any LLM
 
+### GenAIScript
+
+Programmatically assemble prompts for LLMs using [GenAIScript](https://microsoft.github.io/genaiscript/) (in JavaScript). Orchestrate LLMs, tools, and data in JavaScript.
+
+**Key features:**
+
+*   JavaScript toolbox to work with prompts
+*   Abstraction to make it easy and productive
+*   Seamless Visual Studio Code integration
+
+### Cline
+
+[Cline](https://github.com/cline/cline) is an autonomous coding agent in VS Code that edits files, runs commands, uses a browser, and more–with your permission at each step.
+
+**Key features:**
+
+*   Create and add tools through natural language (e.g. "add a tool that searches the web")
+*   Share custom MCP servers Cline creates with others via the `~/Documents/Cline/MCP` directory
+*   Displays configured MCP servers along with their tools, resources, and any error logs
+
+### LibreChat
+
+[LibreChat](https://github.com/danny-avila/LibreChat) is an open-source, customizable AI chat UI that supports multiple AI providers, now including MCP integration.
+
+**Key features:**
+
+*   Extend current tool ecosystem, including [Code Interpreter](https://www.librechat.ai/docs/features/code_interpreter) and Image generation tools, through MCP servers
+*   Add tools to customizable [Agents](https://www.librechat.ai/docs/features/agents), using a variety of LLMs from top providers
+*   Open-source and self-hostable, with secure multi-user support
+*   Future roadmap includes expanded MCP feature support
+
+### TheiaAI/TheiaIDE
+
+[Theia AI](https://eclipsesource.com/blogs/2024/10/07/introducing-theia-ai/) is a framework for building AI-enhanced tools and IDEs. The [AI-powered Theia IDE](https://eclipsesource.com/blogs/2024/10/08/introducting-ai-theia-ide/) is an open and flexible development environment built on Theia AI.
+
+**Key features:**
+
+*   **Tool Integration**: Theia AI enables AI agents, including those in the Theia IDE, to utilize MCP servers for seamless tool interaction.
+*   **Customizable Prompts**: The Theia IDE allows users to define and adapt prompts, dynamically integrating MCP servers for tailored workflows.
+*   **Custom agents**: The Theia IDE supports creating custom agents that leverage MCP capabilities, enabling users to design dedicated workflows on the fly.
+
+Theia AI and Theia IDE's MCP integration provide users with flexibility, making them powerful platforms for exploring and adapting MCP.
+
+**Learn more:**
+
+*   [Theia IDE and Theia AI MCP Announcement](https://eclipsesource.com/blogs/2024/12/19/theia-ide-and-theia-ai-support-mcp/)
+*   [Download the AI-powered Theia IDE](https://theia-ide.org/)
+
 ## Adding MCP support to your application
 
 If you've added MCP support to your application, we encourage you to submit a pull request to add it to this list. MCP integration can provide your users with powerful contextual AI capabilities and make your application part of the growing MCP ecosystem.
@@ -107,6 +167,76 @@ To get started with implementing MCP in your application, check out our [Python]
 ## Updates and corrections
 
 This list is maintained by the community. If you notice any inaccuracies or would like to update information about MCP support in your application, please submit a pull request or [open an issue in our documentation repository](https://github.com/modelcontextprotocol/docs/issues).
+
+
+# Contributing
+
+How to participate in Model Context Protocol development
+
+We welcome contributions from the community! Please review our [contributing guidelines](https://github.com/modelcontextprotocol/.github/blob/main/CONTRIBUTING.md) for details on how to submit changes.
+
+All contributors must adhere to our [Code of Conduct](https://github.com/modelcontextprotocol/.github/blob/main/CODE_OF_CONDUCT.md).
+
+For questions and discussions, please use [GitHub Discussions](https://github.com/orgs/modelcontextprotocol/discussions).
+
+
+# Roadmap
+
+Our plans for evolving Model Context Protocol (H1 2025)
+
+The Model Context Protocol is rapidly evolving. This page outlines our current thinking on key priorities and future direction for **the first half of 2025**, though these may change significantly as the project develops.
+
+<Note>The ideas presented here are not commitments—we may solve these challenges differently than described, or some may not materialize at all. This is also not an *exhaustive* list; we may incorporate work that isn't mentioned here.</Note>
+
+We encourage community participation! Each section links to relevant discussions where you can learn more and contribute your thoughts.
+
+## Remote MCP Support
+
+Our top priority is enabling [remote MCP connections](https://github.com/modelcontextprotocol/specification/discussions/102), allowing clients to securely connect to MCP servers over the internet. Key initiatives include:
+
+*   [**Authentication & Authorization**](https://github.com/modelcontextprotocol/specification/discussions/64): Adding standardized auth capabilities, particularly focused on OAuth 2.0 support.
+
+*   [**Service Discovery**](https://github.com/modelcontextprotocol/specification/discussions/69): Defining how clients can discover and connect to remote MCP servers.
+
+*   [**Stateless Operations**](https://github.com/modelcontextprotocol/specification/discussions/102): Thinking about whether MCP could encompass serverless environments too, where they will need to be mostly stateless.
+
+## Reference Implementations
+
+To help developers build with MCP, we want to offer documentation for:
+
+*   **Client Examples**: Comprehensive reference client implementation(s), demonstrating all protocol features
+*   **Protocol Drafting**: Streamlined process for proposing and incorporating new protocol features
+
+## Distribution & Discovery
+
+Looking ahead, we're exploring ways to make MCP servers more accessible. Some areas we may investigate include:
+
+*   **Package Management**: Standardized packaging format for MCP servers
+*   **Installation Tools**: Simplified server installation across MCP clients
+*   **Sandboxing**: Improved security through server isolation
+*   **Server Registry**: A common directory for discovering available MCP servers
+
+## Agent Support
+
+We're expanding MCP's capabilities for [complex agentic workflows](https://github.com/modelcontextprotocol/specification/discussions/111), particularly focusing on:
+
+*   [**Hierarchical Agent Systems**](https://github.com/modelcontextprotocol/specification/discussions/94): Improved support for trees of agents through namespacing and topology awareness.
+
+*   [**Interactive Workflows**](https://github.com/modelcontextprotocol/specification/issues/97): Better handling of user permissions and information requests across agent hierarchies, and ways to send output to users instead of models.
+
+*   [**Streaming Results**](https://github.com/modelcontextprotocol/specification/issues/117): Real-time updates from long-running agent operations.
+
+## Broader Ecosystem
+
+We're also invested in:
+
+*   **Community-Led Standards Development**: Fostering a collaborative ecosystem where all AI providers can help shape MCP as an open standard through equal participation and shared governance, ensuring it meets the needs of diverse AI applications and use cases.
+*   [**Additional Modalities**](https://github.com/modelcontextprotocol/specification/discussions/88): Expanding beyond text to support audio, video, and other formats.
+*   \[**Standardization**] Considering standardization through a standardization body.
+
+## Get Involved
+
+We welcome community participation in shaping MCP's future. Visit our [GitHub Discussions](https://github.com/orgs/modelcontextprotocol/discussions) to join the conversation and contribute your ideas.
 
 
 # Core architecture
@@ -234,27 +364,27 @@ MCP has these main types of messages:
     }
     ```
 
-2.  **Notifications** are one-way messages that don't expect a response:
-    ```typescript
-    interface Notification {
-      method: string;
-      params?: { ... };
-    }
-    ```
-
-3.  **Results** are successful responses to requests:
+2.  **Results** are successful responses to requests:
     ```typescript
     interface Result {
       [key: string]: unknown;
     }
     ```
 
-4.  **Errors** indicate that a request failed:
+3.  **Errors** indicate that a request failed:
     ```typescript
     interface Error {
       code: number;
       message: string;
       data?: unknown;
+    }
+    ```
+
+4.  **Notifications** are one-way messages that don't expect a response:
+    ```typescript
+    interface Notification {
+      method: string;
+      params?: { ... };
     }
     ```
 
@@ -1149,6 +1279,86 @@ When exposing resources:
 *   Handle resource cleanup appropriately
 
 
+# Roots
+
+Understanding roots in MCP
+
+Roots are a concept in MCP that define the boundaries where servers can operate. They provide a way for clients to inform servers about relevant resources and their locations.
+
+## What are Roots?
+
+A root is a URI that a client suggests a server should focus on. When a client connects to a server, it declares which roots the server should work with. While primarily used for filesystem paths, roots can be any valid URI including HTTP URLs.
+
+For example, roots could be:
+
+```
+file:///home/user/projects/myapp
+https://api.example.com/v1
+```
+
+## Why Use Roots?
+
+Roots serve several important purposes:
+
+1.  **Guidance**: They inform servers about relevant resources and locations
+2.  **Clarity**: Roots make it clear which resources are part of your workspace
+3.  **Organization**: Multiple roots let you work with different resources simultaneously
+
+## How Roots Work
+
+When a client supports roots, it:
+
+1.  Declares the `roots` capability during connection
+2.  Provides a list of suggested roots to the server
+3.  Notifies the server when roots change (if supported)
+
+While roots are informational and not strictly enforcing, servers should:
+
+1.  Respect the provided roots
+2.  Use root URIs to locate and access resources
+3.  Prioritize operations within root boundaries
+
+## Common Use Cases
+
+Roots are commonly used to define:
+
+*   Project directories
+*   Repository locations
+*   API endpoints
+*   Configuration locations
+*   Resource boundaries
+
+## Best Practices
+
+When working with roots:
+
+1.  Only suggest necessary resources
+2.  Use clear, descriptive names for roots
+3.  Monitor root accessibility
+4.  Handle root changes gracefully
+
+## Example
+
+Here's how a typical MCP client might expose roots:
+
+```json
+{
+  "roots": [
+    {
+      "uri": "file:///home/user/projects/frontend",
+      "name": "Frontend Repository"
+    },
+    {
+      "uri": "https://api.example.com/v1",
+      "name": "API Endpoint"
+    }
+  ]
+}
+```
+
+This configuration suggests the server focus on both a local repository and an API endpoint while keeping them logically separated.
+
+
 # Sampling
 
 Let your servers request completions from LLMs
@@ -1470,7 +1680,12 @@ Here's an example of implementing a basic tool in an MCP server:
       if (request.params.name === "calculate_sum") {
         const { a, b } = request.params.arguments;
         return {
-          toolResult: a + b
+          content: [
+            {
+              type: "text",
+              text: String(a + b)
+            }
+          ]
         };
       }
       throw new Error("Tool not found");
@@ -2109,1432 +2324,6 @@ Tips for debugging transport issues:
 10. Use proper error tracking
 
 
-# Python
-
-Create a simple MCP server in Python in 15 minutes
-
-Let's build your first MCP server in Python! We'll create a weather server that provides current weather data as a resource and lets Claude fetch forecasts using tools.
-
-<Note>
-  This guide uses the OpenWeatherMap API. You'll need a free API key from [OpenWeatherMap](https://openweathermap.org/api) to follow along.
-</Note>
-
-## Prerequisites
-
-<Info>
-  The following steps are for macOS. Guides for other platforms are coming soon.
-</Info>
-
-<Steps>
-  <Step title="Install Python">
-    You'll need Python 3.10 or higher:
-
-    ```bash
-    python --version  # Should be 3.10 or higher
-    ```
-  </Step>
-
-  <Step title="Install uv via homebrew">
-    See [https://docs.astral.sh/uv/](https://docs.astral.sh/uv/) for more information.
-
-    ```bash
-    brew install uv
-    uv --version # Should be 0.4.18 or higher
-    ```
-  </Step>
-
-  <Step title="Create a new project using the MCP project creator">
-    ```bash
-    uvx create-mcp-server --path weather_service
-    cd weather_service
-    ```
-  </Step>
-
-  <Step title="Install additional dependencies">
-    ```bash
-    uv add httpx python-dotenv
-    ```
-  </Step>
-
-  <Step title="Set up environment">
-    Create `.env`:
-
-    ```bash
-    OPENWEATHER_API_KEY=your-api-key-here
-    ```
-  </Step>
-</Steps>
-
-## Create your server
-
-<Steps>
-  <Step title="Add the base imports and setup">
-    In `weather_service/src/weather_service/server.py`
-
-    ```python
-    import os
-    import json
-    import logging
-    from datetime import datetime, timedelta
-    from collections.abc import Sequence
-    from functools import lru_cache
-    from typing import Any
-
-    import httpx
-    import asyncio
-    from dotenv import load_dotenv
-    from mcp.server import Server
-    from mcp.types import (
-        Resource,
-        Tool,
-        TextContent,
-        ImageContent,
-        EmbeddedResource,
-        LoggingLevel
-    )
-    from pydantic import AnyUrl
-
-    # Load environment variables
-    load_dotenv()
-
-    # Configure logging
-    logging.basicConfig(level=logging.INFO)
-    logger = logging.getLogger("weather-server")
-
-    # API configuration
-    API_KEY = os.getenv("OPENWEATHER_API_KEY")
-    if not API_KEY:
-        raise ValueError("OPENWEATHER_API_KEY environment variable required")
-
-    API_BASE_URL = "http://api.openweathermap.org/data/2.5"
-    DEFAULT_CITY = "London"
-    CURRENT_WEATHER_ENDPOINT = "weather"
-    FORECAST_ENDPOINT = "forecast"
-
-    # The rest of our server implementation will go here
-    ```
-  </Step>
-
-  <Step title="Add weather fetching functionality">
-    Add this functionality:
-
-    ```python
-    # Create reusable params
-    http_params = {
-        "appid": API_KEY,
-        "units": "metric"
-    }
-
-    async def fetch_weather(city: str) -> dict[str, Any]:
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                f"{API_BASE_URL}/weather",
-                params={"q": city, **http_params}
-            )
-            response.raise_for_status()
-            data = response.json()
-
-        return {
-            "temperature": data["main"]["temp"],
-            "conditions": data["weather"][0]["description"],
-            "humidity": data["main"]["humidity"],
-            "wind_speed": data["wind"]["speed"],
-            "timestamp": datetime.now().isoformat()
-        }
-
-
-    app = Server("weather-server")
-    ```
-  </Step>
-
-  <Step title="Implement resource handlers">
-    Add these resource-related handlers to our main function:
-
-    ```python
-    app = Server("weather-server")
-
-    @app.list_resources()
-    async def list_resources() -> list[Resource]:
-        """List available weather resources."""
-        uri = AnyUrl(f"weather://{DEFAULT_CITY}/current")
-        return [
-            Resource(
-                uri=uri,
-                name=f"Current weather in {DEFAULT_CITY}",
-                mimeType="application/json",
-                description="Real-time weather data"
-            )
-        ]
-
-    @app.read_resource()
-    async def read_resource(uri: AnyUrl) -> str:
-        """Read current weather data for a city."""
-        city = DEFAULT_CITY
-        if str(uri).startswith("weather://") and str(uri).endswith("/current"):
-            city = str(uri).split("/")[-2]
-        else:
-            raise ValueError(f"Unknown resource: {uri}")
-
-        try:
-            weather_data = await fetch_weather(city)
-            return json.dumps(weather_data, indent=2)
-        except httpx.HTTPError as e:
-            raise RuntimeError(f"Weather API error: {str(e)}")
-
-    ```
-  </Step>
-
-  <Step title="Implement tool handlers">
-    Add these tool-related handlers:
-
-    ```python
-    app = Server("weather-server")
-
-    # Resource implementation ...
-
-    @app.list_tools()
-    async def list_tools() -> list[Tool]:
-        """List available weather tools."""
-        return [
-            Tool(
-                name="get_forecast",
-                description="Get weather forecast for a city",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "city": {
-                            "type": "string",
-                            "description": "City name"
-                        },
-                        "days": {
-                            "type": "number",
-                            "description": "Number of days (1-5)",
-                            "minimum": 1,
-                            "maximum": 5
-                        }
-                    },
-                    "required": ["city"]
-                }
-            )
-        ]
-
-    @app.call_tool()
-    async def call_tool(name: str, arguments: Any) -> Sequence[TextContent | ImageContent | EmbeddedResource]:
-        """Handle tool calls for weather forecasts."""
-        if name != "get_forecast":
-            raise ValueError(f"Unknown tool: {name}")
-
-        if not isinstance(arguments, dict) or "city" not in arguments:
-            raise ValueError("Invalid forecast arguments")
-
-        city = arguments["city"]
-        days = min(int(arguments.get("days", 3)), 5)
-
-        try:
-            async with httpx.AsyncClient() as client:
-                response = await client.get(
-                    f"{API_BASE_URL}/{FORECAST_ENDPOINT}",
-                    params={
-                        "q": city,
-                        "cnt": days * 8,  # API returns 3-hour intervals
-                        **http_params,
-                    }
-                )
-                response.raise_for_status()
-                data = response.json()
-
-            forecasts = []
-            for i in range(0, len(data["list"]), 8):
-                day_data = data["list"][i]
-                forecasts.append({
-                    "date": day_data["dt_txt"].split()[0],
-                    "temperature": day_data["main"]["temp"],
-                    "conditions": day_data["weather"][0]["description"]
-                })
-
-            return [
-                TextContent(
-                    type="text",
-                    text=json.dumps(forecasts, indent=2)
-                )
-            ]
-        except httpx.HTTPError as e:
-            logger.error(f"Weather API error: {str(e)}")
-            raise RuntimeError(f"Weather API error: {str(e)}")
-    ```
-  </Step>
-
-  <Step title="Add the main function">
-    Add this to the end of `weather_service/src/weather_service/server.py`:
-
-    ```python
-    async def main():
-        # Import here to avoid issues with event loops
-        from mcp.server.stdio import stdio_server
-
-        async with stdio_server() as (read_stream, write_stream):
-            await app.run(
-                read_stream,
-                write_stream,
-                app.create_initialization_options()
-            )
-    ```
-  </Step>
-
-  <Step title="Check your entry point in __init__.py">
-    Add this to the end of `weather_service/src/weather_service/__init__.py`:
-
-    ```python
-    from . import server
-    import asyncio
-
-    def main():
-       """Main entry point for the package."""
-       asyncio.run(server.main())
-
-    # Optionally expose other important items at package level
-    __all__ = ['main', 'server']
-    ```
-  </Step>
-</Steps>
-
-## Connect to Claude Desktop
-
-<Steps>
-  <Step title="Update Claude config">
-    Add to `claude_desktop_config.json`:
-
-    ```json
-    {
-      "mcpServers": {
-        "weather": {
-          "command": "uv",
-          "args": [
-            "--directory",
-            "path/to/your/project",
-            "run",
-            "weather-service"
-          ],
-          "env": {
-            "OPENWEATHER_API_KEY": "your-api-key"
-          }
-        }
-      }
-    }
-    ```
-  </Step>
-
-  <Step title="Restart Claude">
-    1.  Quit Claude completely
-
-    2.  Start Claude again
-
-    3.  Look for your weather server in the 🔌 menu
-  </Step>
-</Steps>
-
-## Try it out!
-
-<AccordionGroup>
-  <Accordion title="Check Current Weather" active>
-    Ask Claude:
-
-    ```
-    What's the current weather in San Francisco? Can you analyze the conditions and tell me if it's a good day for outdoor activities?
-    ```
-  </Accordion>
-
-  <Accordion title="Get a Forecast">
-    Ask Claude:
-
-    ```
-    Can you get me a 5-day forecast for Tokyo and help me plan what clothes to pack for my trip?
-    ```
-  </Accordion>
-
-  <Accordion title="Compare Weather">
-    Ask Claude:
-
-    ```
-    Can you analyze the forecast for both Tokyo and San Francisco and tell me which city would be better for outdoor photography this week?
-    ```
-  </Accordion>
-</AccordionGroup>
-
-## Understanding the code
-
-<Tabs>
-  <Tab title="Type Hints">
-    ```python
-    async def read_resource(self, uri: str) -> ReadResourceResult:
-        # ...
-    ```
-
-    Python type hints help catch errors early and improve code maintainability.
-  </Tab>
-
-  <Tab title="Resources">
-    ```python
-    @app.list_resources()
-    async def list_resources(self) -> ListResourcesResult:
-        return ListResourcesResult(
-            resources=[
-                Resource(
-                    uri=f"weather://{DEFAULT_CITY}/current",
-                    name=f"Current weather in {DEFAULT_CITY}",
-                    mimeType="application/json",
-                    description="Real-time weather data"
-                )
-            ]
-        )
-    ```
-
-    Resources provide data that Claude can access as context.
-  </Tab>
-
-  <Tab title="Tools">
-    ```python
-    Tool(
-        name="get_forecast",
-        description="Get weather forecast for a city",
-        inputSchema={
-            "type": "object",
-            "properties": {
-                "city": {
-                    "type": "string",
-                    "description": "City name"
-                },
-                "days": {
-                    "type": "number",
-                    "description": "Number of days (1-5)",
-                    "minimum": 1,
-                    "maximum": 5
-                }
-            },
-            "required": ["city"]
-        }
-    )
-    ```
-
-    Tools let Claude take actions through your server with validated inputs.
-  </Tab>
-
-  <Tab title="Server Structure">
-    ```python
-    # Create server instance with name
-    app = Server("weather-server")
-
-    # Register resource handler
-    @app.list_resources()
-    async def list_resources() -> list[Resource]:
-        """List available resources"""
-        return [...]
-
-    # Register tool handler
-    @app.call_tool()
-    async def call_tool(name: str, arguments: Any) -> Sequence[TextContent]:
-        """Handle tool execution"""
-        return [...]
-
-    # Register additional handlers
-    @app.read_resource()
-    ...
-    @app.list_tools()
-    ...
-    ```
-
-    The MCP server uses a simple app pattern - create a Server instance and register handlers with decorators. Each handler maps to a specific MCP protocol operation.
-  </Tab>
-</Tabs>
-
-## Best practices
-
-<CardGroup cols={1}>
-  <Card title="Error Handling" icon="shield">
-    ```python
-    try:
-        async with httpx.AsyncClient() as client:
-            response = await client.get(..., params={..., **http_params})
-            response.raise_for_status()
-    except httpx.HTTPError as e:
-        raise McpError(
-            ErrorCode.INTERNAL_ERROR,
-            f"API error: {str(e)}"
-        )
-    ```
-  </Card>
-
-  <Card title="Type Validation" icon="check">
-    ```python
-    if not isinstance(args, dict) or "city" not in args:
-        raise McpError(
-            ErrorCode.INVALID_PARAMS,
-            "Invalid forecast arguments"
-        )
-    ```
-  </Card>
-
-  <Card title="Environment Variables" icon="gear">
-    ```python
-    if not API_KEY:
-        raise ValueError("OPENWEATHER_API_KEY is required")
-    ```
-  </Card>
-</CardGroup>
-
-## Available transports
-
-While this guide uses stdio transport, MCP supports additional transport options:
-
-### SSE (Server-Sent Events)
-
-```python
-from mcp.server.sse import SseServerTransport
-from starlette.applications import Starlette
-from starlette.routing import Route
-
-# Create SSE transport with endpoint
-sse = SseServerTransport("/messages")
-
-# Handler for SSE connections
-async def handle_sse(scope, receive, send):
-    async with sse.connect_sse(scope, receive, send) as streams:
-        await app.run(
-            streams[0], streams[1], app.create_initialization_options()
-        )
-
-# Handler for client messages
-async def handle_messages(scope, receive, send):
-    await sse.handle_post_message(scope, receive, send)
-
-# Create Starlette app with routes
-app = Starlette(
-    debug=True,
-    routes=[
-        Route("/sse", endpoint=handle_sse),
-        Route("/messages", endpoint=handle_messages, methods=["POST"]),
-    ],
-)
-
-# Run with any ASGI server
-import uvicorn
-uvicorn.run(app, host="0.0.0.0", port=8000)
-```
-
-## Advanced features
-
-<Steps>
-  <Step title="Understanding Request Context">
-    The request context provides access to the current request's metadata and the active client session. Access it through `server.request_context`:
-
-    ```python
-    @app.call_tool()
-    async def call_tool(name: str, arguments: Any) -> Sequence[TextContent]:
-        # Access the current request context
-        ctx = self.request_context
-
-        # Get request metadata like progress tokens
-        if progress_token := ctx.meta.progressToken:
-            # Send progress notifications via the session
-            await ctx.session.send_progress_notification(
-                progress_token=progress_token,
-                progress=0.5,
-                total=1.0
-            )
-
-        # Sample from the LLM client
-        result = await ctx.session.create_message(
-            messages=[
-                SamplingMessage(
-                    role="user",
-                    content=TextContent(
-                        type="text",
-                        text="Analyze this weather data: " + json.dumps(arguments)
-                    )
-                )
-            ],
-            max_tokens=100
-        )
-
-        return [TextContent(type="text", text=result.content.text)]
-    ```
-  </Step>
-
-  <Step title="Add caching">
-    ```python
-    # Cache settings
-    cache_timeout = timedelta(minutes=15)
-    last_cache_time = None
-    cached_weather = None
-
-    async def fetch_weather(city: str) -> dict[str, Any]:
-        global cached_weather, last_cache_time
-
-        now = datetime.now()
-        if (cached_weather is None or
-            last_cache_time is None or
-            now - last_cache_time > cache_timeout):
-
-            async with httpx.AsyncClient() as client:
-                response = await client.get(
-                    f"{API_BASE_URL}/{CURRENT_WEATHER_ENDPOINT}",
-                    params={"q": city, **http_params}
-                )
-                response.raise_for_status()
-                data = response.json()
-
-            cached_weather = {
-                "temperature": data["main"]["temp"],
-                "conditions": data["weather"][0]["description"],
-                "humidity": data["main"]["humidity"],
-                "wind_speed": data["wind"]["speed"],
-                "timestamp": datetime.now().isoformat()
-            }
-            last_cache_time = now
-
-        return cached_weather
-    ```
-  </Step>
-
-  <Step title="Add progress notifications">
-    ```python
-    @self.call_tool()
-    async def call_tool(self, name: str, arguments: Any) -> CallToolResult:
-        if progress_token := self.request_context.meta.progressToken:
-            # Send progress notifications
-            await self.request_context.session.send_progress_notification(
-                progress_token=progress_token,
-                progress=1,
-                total=2
-            )
-
-            # Fetch data...
-
-            await self.request_context.session.send_progress_notification(
-                progress_token=progress_token,
-                progress=2,
-                total=2
-            )
-
-        # Rest of the method implementation...
-    ```
-  </Step>
-
-  <Step title="Add logging support">
-    ```python
-    # Set up logging
-    logger = logging.getLogger("weather-server")
-    logger.setLevel(logging.INFO)
-
-    @app.set_logging_level()
-    async def set_logging_level(level: LoggingLevel) -> EmptyResult:
-        logger.setLevel(level.upper())
-        await app.request_context.session.send_log_message(
-            level="info",
-            data=f"Log level set to {level}",
-            logger="weather-server"
-        )
-        return EmptyResult()
-
-    # Use logger throughout the code
-    # For example:
-    # logger.info("Weather data fetched successfully")
-    # logger.error(f"Error fetching weather data: {str(e)}")
-    ```
-  </Step>
-
-  <Step title="Add resource templates">
-    ```python
-    @app.list_resource_templates()
-    async def list_resource_templates() -> list[ResourceTemplate]:
-        return [
-            ResourceTemplate(
-                uriTemplate="weather://{city}/current",
-                name="Current weather for any city",
-                mimeType="application/json"
-            )
-        ]
-    ```
-  </Step>
-</Steps>
-
-## Testing
-
-<Steps>
-  <Step title="Create test file">
-    Create `tests/weather_test.py`:
-
-    ```python
-    import pytest
-    import os
-    from unittest.mock import patch, Mock
-    from datetime import datetime
-    import json
-    from pydantic import AnyUrl
-    os.environ["OPENWEATHER_API_KEY"] = "TEST"
-
-    from weather_service.server import (
-        fetch_weather,
-        read_resource,
-        call_tool,
-        list_resources,
-        list_tools,
-        DEFAULT_CITY
-    )
-
-    @pytest.fixture
-    def anyio_backend():
-        return "asyncio"
-
-    @pytest.fixture
-    def mock_weather_response():
-        return {
-            "main": {
-                "temp": 20.5,
-                "humidity": 65
-            },
-            "weather": [
-                {"description": "scattered clouds"}
-            ],
-            "wind": {
-                "speed": 3.6
-            }
-        }
-
-    @pytest.fixture
-    def mock_forecast_response():
-        return {
-            "list": [
-                {
-                    "dt_txt": "2024-01-01 12:00:00",
-                    "main": {"temp": 18.5},
-                    "weather": [{"description": "sunny"}]
-                },
-                {
-                    "dt_txt": "2024-01-02 12:00:00",
-                    "main": {"temp": 17.2},
-                    "weather": [{"description": "cloudy"}]
-                }
-            ]
-        }
-
-    @pytest.mark.anyio
-    async def test_fetch_weather(mock_weather_response):
-        with patch('requests.Session.get') as mock_get:
-            mock_get.return_value.json.return_value = mock_weather_response
-            mock_get.return_value.raise_for_status = Mock()
-
-            weather = await fetch_weather("London")
-
-            assert weather["temperature"] == 20.5
-            assert weather["conditions"] == "scattered clouds"
-            assert weather["humidity"] == 65
-            assert weather["wind_speed"] == 3.6
-            assert "timestamp" in weather
-
-    @pytest.mark.anyio
-    async def test_read_resource():
-        with patch('weather_service.server.fetch_weather') as mock_fetch:
-            mock_fetch.return_value = {
-                "temperature": 20.5,
-                "conditions": "clear sky",
-                "timestamp": datetime.now().isoformat()
-            }
-
-            uri = AnyUrl("weather://London/current")
-            result = await read_resource(uri)
-
-            assert isinstance(result, str)
-            assert "temperature" in result
-            assert "clear sky" in result
-
-    @pytest.mark.anyio
-    async def test_call_tool(mock_forecast_response):
-        class Response():
-            def raise_for_status(self):
-                pass
-
-            def json(self):
-                return mock_forecast_response
-
-        class AsyncClient():
-            async def __aenter__(self):
-                return self
-
-            async def __aexit__(self, *exc_info):
-                pass
-
-            async def get(self, *args, **kwargs):
-                return Response()
-
-        with patch('httpx.AsyncClient', new=AsyncClient) as mock_client:
-            result = await call_tool("get_forecast", {"city": "London", "days": 2})
-
-            assert len(result) == 1
-            assert result[0].type == "text"
-            forecast_data = json.loads(result[0].text)
-            assert len(forecast_data) == 1
-            assert forecast_data[0]["temperature"] == 18.5
-            assert forecast_data[0]["conditions"] == "sunny"
-
-    @pytest.mark.anyio
-    async def test_list_resources():
-        resources = await list_resources()
-        assert len(resources) == 1
-        assert resources[0].name == f"Current weather in {DEFAULT_CITY}"
-        assert resources[0].mimeType == "application/json"
-
-    @pytest.mark.anyio
-    async def test_list_tools():
-        tools = await list_tools()
-        assert len(tools) == 1
-        assert tools[0].name == "get_forecast"
-        assert "city" in tools[0].inputSchema["properties"]
-    ```
-  </Step>
-
-  <Step title="Run tests">
-    ```bash
-    uv add --dev pytest
-    uv run pytest
-    ```
-  </Step>
-</Steps>
-
-## Troubleshooting
-
-### Installation issues
-
-```bash
-# Check Python version
-python --version
-
-# Reinstall dependencies
-uv sync --reinstall
-```
-
-### Type checking
-
-```bash
-# Install mypy
-uv add --dev pyright
-
-# Run type checker
-uv run pyright src
-```
-
-## Next steps
-
-<CardGroup cols={2}>
-  <Card title="Architecture overview" icon="sitemap" href="/docs/concepts/architecture">
-    Learn more about the MCP architecture
-  </Card>
-
-  <Card title="Python SDK" icon="python" href="https://github.com/modelcontextprotocol/python-sdk">
-    Check out the Python SDK on GitHub
-  </Card>
-</CardGroup>
-
-
-# TypeScript
-
-Create a simple MCP server in TypeScript in 15 minutes
-
-Let's build your first MCP server in TypeScript! We'll create a weather server that provides current weather data as a resource and lets Claude fetch forecasts using tools.
-
-<Note>
-  This guide uses the OpenWeatherMap API. You'll need a free API key from [OpenWeatherMap](https://openweathermap.org/api) to follow along.
-</Note>
-
-## Prerequisites
-
-<Steps>
-  <Step title="Install Node.js">
-    You'll need Node.js 18 or higher:
-
-    ```bash
-    node --version  # Should be v18 or higher
-    npm --version
-    ```
-  </Step>
-
-  <Step title="Create a new project">
-    You can use our [create-typescript-server](https://github.com/modelcontextprotocol/create-typescript-server) tool to bootstrap a new project:
-
-    ```bash
-    npx @modelcontextprotocol/create-server weather-server
-    cd weather-server
-    ```
-  </Step>
-
-  <Step title="Install dependencies">
-    ```bash
-    npm install --save axios dotenv
-    ```
-  </Step>
-
-  <Step title="Set up environment">
-    Create `.env`:
-
-    ```bash
-    OPENWEATHER_API_KEY=your-api-key-here
-    ```
-
-    Make sure to add your environment file to `.gitignore`
-
-    ```bash
-    .env
-    ```
-  </Step>
-</Steps>
-
-## Create your server
-
-<Steps>
-  <Step title="Define types">
-    Create a file `src/types.ts`, and add the following:
-
-    ```typescript
-    export interface OpenWeatherResponse {
-      main: {
-        temp: number;
-        humidity: number;
-      };
-      weather: Array<{
-        description: string;
-      }>;
-      wind: {
-        speed: number;
-      };
-      dt_txt?: string;
-    }
-
-    export interface WeatherData {
-      temperature: number;
-      conditions: string;
-      humidity: number;
-      wind_speed: number;
-      timestamp: string;
-    }
-
-    export interface ForecastDay {
-      date: string;
-      temperature: number;
-      conditions: string;
-    }
-
-    export interface GetForecastArgs {
-      city: string;
-      days?: number;
-    }
-
-    // Type guard for forecast arguments
-    export function isValidForecastArgs(args: any): args is GetForecastArgs {
-      return (
-        typeof args === "object" &&
-        args !== null &&
-        "city" in args &&
-        typeof args.city === "string" &&
-        (args.days === undefined || typeof args.days === "number")
-      );
-    }
-    ```
-  </Step>
-
-  <Step title="Add the base code">
-    Replace `src/index.ts` with the following:
-
-    ```typescript
-    #!/usr/bin/env node
-    import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-    import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-    import {
-      ListResourcesRequestSchema,
-      ReadResourceRequestSchema,
-      ListToolsRequestSchema,
-      CallToolRequestSchema,
-      ErrorCode,
-      McpError
-    } from "@modelcontextprotocol/sdk/types.js";
-    import axios from "axios";
-    import dotenv from "dotenv";
-    import {
-      WeatherData,
-      ForecastDay,
-      OpenWeatherResponse,
-      isValidForecastArgs
-    } from "./types.js";
-
-    dotenv.config();
-
-    const API_KEY = process.env.OPENWEATHER_API_KEY;
-    if (!API_KEY) {
-      throw new Error("OPENWEATHER_API_KEY environment variable is required");
-    }
-
-    const API_CONFIG = {
-      BASE_URL: 'http://api.openweathermap.org/data/2.5',
-      DEFAULT_CITY: 'San Francisco',
-      ENDPOINTS: {
-        CURRENT: 'weather',
-        FORECAST: 'forecast'
-      }
-    } as const;
-
-    class WeatherServer {
-      private server: Server;
-      private axiosInstance;
-
-      constructor() {
-        this.server = new Server({
-          name: "example-weather-server",
-          version: "0.1.0"
-        }, {
-          capabilities: {
-            resources: {},
-            tools: {}
-          }
-        });
-
-        // Configure axios with defaults
-        this.axiosInstance = axios.create({
-          baseURL: API_CONFIG.BASE_URL,
-          params: {
-            appid: API_KEY,
-            units: "metric"
-          }
-        });
-
-        this.setupHandlers();
-        this.setupErrorHandling();
-      }
-
-      private setupErrorHandling(): void {
-        this.server.onerror = (error) => {
-          console.error("[MCP Error]", error);
-        };
-
-        process.on('SIGINT', async () => {
-          await this.server.close();
-          process.exit(0);
-        });
-      }
-
-      private setupHandlers(): void {
-        this.setupResourceHandlers();
-        this.setupToolHandlers();
-      }
-
-      private setupResourceHandlers(): void {
-        // Implementation continues in next section
-      }
-
-      private setupToolHandlers(): void {
-        // Implementation continues in next section
-      }
-
-      async run(): Promise<void> {
-        const transport = new StdioServerTransport();
-        await this.server.connect(transport);
-
-        // Although this is just an informative message, we must log to stderr,
-        // to avoid interfering with MCP communication that happens on stdout
-        console.error("Weather MCP server running on stdio");
-      }
-    }
-
-    const server = new WeatherServer();
-    server.run().catch(console.error);
-    ```
-  </Step>
-
-  <Step title="Add resource handlers">
-    Add this to the `setupResourceHandlers` method:
-
-    ```typescript
-    private setupResourceHandlers(): void {
-      this.server.setRequestHandler(
-        ListResourcesRequestSchema,
-        async () => ({
-          resources: [{
-            uri: `weather://${API_CONFIG.DEFAULT_CITY}/current`,
-            name: `Current weather in ${API_CONFIG.DEFAULT_CITY}`,
-            mimeType: "application/json",
-            description: "Real-time weather data including temperature, conditions, humidity, and wind speed"
-          }]
-        })
-      );
-
-      this.server.setRequestHandler(
-        ReadResourceRequestSchema,
-        async (request) => {
-          const city = API_CONFIG.DEFAULT_CITY;
-          if (request.params.uri !== `weather://${city}/current`) {
-            throw new McpError(
-              ErrorCode.InvalidRequest,
-              `Unknown resource: ${request.params.uri}`
-            );
-          }
-
-          try {
-            const response = await this.axiosInstance.get<OpenWeatherResponse>(
-              API_CONFIG.ENDPOINTS.CURRENT,
-              {
-                params: { q: city }
-              }
-            );
-
-            const weatherData: WeatherData = {
-              temperature: response.data.main.temp,
-              conditions: response.data.weather[0].description,
-              humidity: response.data.main.humidity,
-              wind_speed: response.data.wind.speed,
-              timestamp: new Date().toISOString()
-            };
-
-            return {
-              contents: [{
-                uri: request.params.uri,
-                mimeType: "application/json",
-                text: JSON.stringify(weatherData, null, 2)
-              }]
-            };
-          } catch (error) {
-            if (axios.isAxiosError(error)) {
-              throw new McpError(
-                ErrorCode.InternalError,
-                `Weather API error: ${error.response?.data.message ?? error.message}`
-              );
-            }
-            throw error;
-          }
-        }
-      );
-    }
-    ```
-  </Step>
-
-  <Step title="Add tool handlers">
-    Add these handlers to the `setupToolHandlers` method:
-
-    ```typescript
-    private setupToolHandlers(): void {
-      this.server.setRequestHandler(
-        ListToolsRequestSchema,
-        async () => ({
-          tools: [{
-            name: "get_forecast",
-            description: "Get weather forecast for a city",
-            inputSchema: {
-              type: "object",
-              properties: {
-                city: {
-                  type: "string",
-                  description: "City name"
-                },
-                days: {
-                  type: "number",
-                  description: "Number of days (1-5)",
-                  minimum: 1,
-                  maximum: 5
-                }
-              },
-              required: ["city"]
-            }
-          }]
-        })
-      );
-
-      this.server.setRequestHandler(
-        CallToolRequestSchema,
-        async (request) => {
-          if (request.params.name !== "get_forecast") {
-            throw new McpError(
-              ErrorCode.MethodNotFound,
-              `Unknown tool: ${request.params.name}`
-            );
-          }
-
-          if (!isValidForecastArgs(request.params.arguments)) {
-            throw new McpError(
-              ErrorCode.InvalidParams,
-              "Invalid forecast arguments"
-            );
-          }
-
-          const city = request.params.arguments.city;
-          const days = Math.min(request.params.arguments.days || 3, 5);
-
-          try {
-            const response = await this.axiosInstance.get<{
-              list: OpenWeatherResponse[]
-            }>(API_CONFIG.ENDPOINTS.FORECAST, {
-              params: {
-                q: city,
-                cnt: days * 8 // API returns 3-hour intervals
-              }
-            });
-
-            const forecasts: ForecastDay[] = [];
-            for (let i = 0; i < response.data.list.length; i += 8) {
-              const dayData = response.data.list[i];
-              forecasts.push({
-                date: dayData.dt_txt?.split(' ')[0] ?? new Date().toISOString().split('T')[0],
-                temperature: dayData.main.temp,
-                conditions: dayData.weather[0].description
-              });
-            }
-
-            return {
-              content: [{
-                type: "text",
-                text: JSON.stringify(forecasts, null, 2)
-              }]
-            };
-          } catch (error) {
-            if (axios.isAxiosError(error)) {
-              return {
-                content: [{
-                  type: "text",
-                  text: `Weather API error: ${error.response?.data.message ?? error.message}`
-                }],
-                isError: true,
-              }
-            }
-            throw error;
-          }
-        }
-      );
-    }
-    ```
-  </Step>
-
-  <Step title="Build and test">
-    ```bash
-    npm run build
-    ```
-  </Step>
-</Steps>
-
-## Connect to Claude Desktop
-
-<Steps>
-  <Step title="Update Claude config">
-    If you didn't already connect to Claude Desktop during project setup, add to `claude_desktop_config.json`:
-
-    ```json
-    {
-      "mcpServers": {
-        "weather": {
-          "command": "node",
-          "args": ["/path/to/weather-server/build/index.js"],
-          "env": {
-            "OPENWEATHER_API_KEY": "your-api-key",
-          }
-        }
-      }
-    }
-    ```
-  </Step>
-
-  <Step title="Restart Claude">
-    1.  Quit Claude completely
-    2.  Start Claude again
-    3.  Look for your weather server in the 🔌 menu
-  </Step>
-</Steps>
-
-## Try it out!
-
-<AccordionGroup>
-  <Accordion title="Check Current Weather" active>
-    Ask Claude:
-
-    ```
-    What's the current weather in San Francisco? Can you analyze the conditions?
-    ```
-  </Accordion>
-
-  <Accordion title="Get a Forecast">
-    Ask Claude:
-
-    ```
-    Can you get me a 5-day forecast for Tokyo and tell me if I should pack an umbrella?
-    ```
-  </Accordion>
-
-  <Accordion title="Compare Weather">
-    Ask Claude:
-
-    ```
-    Can you analyze the forecast for both Tokyo and San Francisco and tell me which city will be warmer this week?
-    ```
-  </Accordion>
-</AccordionGroup>
-
-## Understanding the code
-
-<Tabs>
-  <Tab title="Type Safety">
-    ```typescript
-    interface WeatherData {
-      temperature: number;
-      conditions: string;
-      humidity: number;
-      wind_speed: number;
-      timestamp: string;
-    }
-    ```
-
-    TypeScript adds type safety to our MCP server, making it more reliable and easier to maintain.
-  </Tab>
-
-  <Tab title="Resources">
-    ```typescript
-    this.server.setRequestHandler(
-      ListResourcesRequestSchema,
-      async () => ({
-        resources: [{
-          uri: `weather://${DEFAULT_CITY}/current`,
-          name: `Current weather in ${DEFAULT_CITY}`,
-          mimeType: "application/json"
-        }]
-      })
-    );
-    ```
-
-    Resources provide data that Claude can access as context.
-  </Tab>
-
-  <Tab title="Tools">
-    ```typescript
-    {
-      name: "get_forecast",
-      description: "Get weather forecast for a city",
-      inputSchema: {
-        type: "object",
-        properties: {
-          city: { type: "string" },
-          days: { type: "number" }
-        }
-      }
-    }
-    ```
-
-    Tools let Claude take actions through your server with type-safe inputs.
-  </Tab>
-</Tabs>
-
-## Best practices
-
-<CardGroup cols={1}>
-  <Card title="Error Handling" icon="shield">
-    When a tool encounters an error, return the error message with `isError: true`, so the model can self-correct:
-
-    ```typescript
-    try {
-      const response = await axiosInstance.get(...);
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        return {
-          content: {
-            mimeType: "text/plain",
-            text: `Weather API error: ${error.response?.data.message ?? error.message}`
-          },
-          isError: true,
-        }
-      }
-      throw error;
-    }
-    ```
-
-    For other handlers, throw an error, so the application can notify the user:
-
-    ```typescript
-    try {
-      const response = await this.axiosInstance.get(...);
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        throw new McpError(
-          ErrorCode.InternalError,
-          `Weather API error: ${error.response?.data.message}`
-        );
-      }
-      throw error;
-    }
-    ```
-  </Card>
-
-  <Card title="Type Validation" icon="check">
-    ```typescript
-    function isValidForecastArgs(args: any): args is GetForecastArgs {
-      return (
-        typeof args === "object" &&
-        args !== null &&
-        "city" in args &&
-        typeof args.city === "string"
-      );
-    }
-    ```
-
-    <Tip>You can also use libraries like [Zod](https://zod.dev/) to perform this validation automatically.</Tip>
-  </Card>
-</CardGroup>
-
-## Available transports
-
-While this guide uses stdio to run the MCP server as a local process, MCP supports other [transports](/docs/concepts/transports) as well.
-
-## Troubleshooting
-
-<Info>
-  The following troubleshooting tips are for macOS. Guides for other platforms are coming soon.
-</Info>
-
-### Build errors
-
-```bash
-# Check TypeScript version
-npx tsc --version
-
-# Clean and rebuild
-rm -rf build/
-npm run build
-```
-
-### Runtime errors
-
-Look for detailed error messages in the Claude Desktop logs:
-
-```bash
-# Monitor logs
-tail -n 20 -f ~/Library/Logs/Claude/mcp*.log
-```
-
-### Type errors
-
-```bash
-# Check types without building
-npx tsc --noEmit
-```
-
-## Next steps
-
-<CardGroup cols={2}>
-  <Card title="Architecture overview" icon="sitemap" href="/docs/concepts/architecture">
-    Learn more about the MCP architecture
-  </Card>
-
-  <Card title="TypeScript SDK" icon="square-js" href="https://github.com/modelcontextprotocol/typescript-sdk">
-    Check out the TypeScript SDK on GitHub
-  </Card>
-</CardGroup>
-
-<Note>
-  Need help? Ask Claude! Since it has access to the MCP SDK documentation, it can help you debug issues and suggest improvements to your server.
-</Note>
-
-
 # Debugging
 
 A comprehensive guide to debugging Model Context Protocol (MCP) integrations
@@ -3570,11 +2359,11 @@ MCP provides several tools for debugging at different levels:
 
 The Claude.app interface provides basic server status information:
 
-1.  Click the 🔌 icon to view:
+1.  Click the <img src="https://mintlify.s3.us-west-1.amazonaws.com/mcp/images/claude-desktop-mcp-plug-icon.svg" style={{display: 'inline', margin: 0, height: '1.3em'}} /> icon to view:
     *   Connected servers
     *   Available prompts and resources
 
-2.  Click the 🔨 icon to view:
+2.  Click the <img src="https://mintlify.s3.us-west-1.amazonaws.com/mcp/images/claude-desktop-mcp-hammer-icon.svg" style={{display: 'inline', margin: 0, height: '1.3em'}} /> icon to view:
     *   Tools made available to the model
 
 ### Viewing logs
@@ -3620,6 +2409,25 @@ Use the Network panel to inspect:
 
 ## Common issues
 
+### Working directory
+
+When using MCP servers with Claude Desktop:
+
+*   The working directory for servers launched via `claude_desktop_config.json` may be undefined (like `/` on macOS) since Claude Desktop could be started from anywhere
+*   Always use absolute paths in your configuration and `.env` files to ensure reliable operation
+*   For testing servers directly via command line, the working directory will be where you run the command
+
+For example in `claude_desktop_config.json`, use:
+
+```json
+{
+  "command": "npx",
+  "args": ["-y", "@modelcontextprotocol/server-filesystem", "/Users/username/data"]
+}
+```
+
+Instead of relative paths like `./data`
+
 ### Environment variables
 
 MCP servers inherit only a subset of environment variables automatically, like `USER`, `HOME`, and `PATH`.
@@ -3645,6 +2453,7 @@ Common initialization problems:
     *   Incorrect server executable path
     *   Missing required files
     *   Permission problems
+    *   Try using an absolute path for `command`
 
 2.  **Configuration Errors**
     *   Invalid JSON syntax
@@ -3943,35 +2752,216 @@ The Inspector provides several features for interacting with your MCP server:
 </CardGroup>
 
 
+# Example Servers
+
+A list of example servers and implementations
+
+This page showcases various Model Context Protocol (MCP) servers that demonstrate the protocol's capabilities and versatility. These servers enable Large Language Models (LLMs) to securely access tools and data sources.
+
+## Reference implementations
+
+These official reference servers demonstrate core MCP features and SDK usage:
+
+### Data and file systems
+
+*   **[Filesystem](https://github.com/modelcontextprotocol/servers/tree/main/src/filesystem)** - Secure file operations with configurable access controls
+*   **[PostgreSQL](https://github.com/modelcontextprotocol/servers/tree/main/src/postgres)** - Read-only database access with schema inspection capabilities
+*   **[SQLite](https://github.com/modelcontextprotocol/servers/tree/main/src/sqlite)** - Database interaction and business intelligence features
+*   **[Google Drive](https://github.com/modelcontextprotocol/servers/tree/main/src/gdrive)** - File access and search capabilities for Google Drive
+
+### Development tools
+
+*   **[Git](https://github.com/modelcontextprotocol/servers/tree/main/src/git)** - Tools to read, search, and manipulate Git repositories
+*   **[GitHub](https://github.com/modelcontextprotocol/servers/tree/main/src/github)** - Repository management, file operations, and GitHub API integration
+*   **[GitLab](https://github.com/modelcontextprotocol/servers/tree/main/src/gitlab)** - GitLab API integration enabling project management
+*   **[Sentry](https://github.com/modelcontextprotocol/servers/tree/main/src/sentry)** - Retrieving and analyzing issues from Sentry.io
+
+### Web and browser automation
+
+*   **[Brave Search](https://github.com/modelcontextprotocol/servers/tree/main/src/brave-search)** - Web and local search using Brave's Search API
+*   **[Fetch](https://github.com/modelcontextprotocol/servers/tree/main/src/fetch)** - Web content fetching and conversion optimized for LLM usage
+*   **[Puppeteer](https://github.com/modelcontextprotocol/servers/tree/main/src/puppeteer)** - Browser automation and web scraping capabilities
+
+### Productivity and communication
+
+*   **[Slack](https://github.com/modelcontextprotocol/servers/tree/main/src/slack)** - Channel management and messaging capabilities
+*   **[Google Maps](https://github.com/modelcontextprotocol/servers/tree/main/src/google-maps)** - Location services, directions, and place details
+*   **[Memory](https://github.com/modelcontextprotocol/servers/tree/main/src/memory)** - Knowledge graph-based persistent memory system
+
+### AI and specialized tools
+
+*   **[EverArt](https://github.com/modelcontextprotocol/servers/tree/main/src/everart)** - AI image generation using various models
+*   **[Sequential Thinking](https://github.com/modelcontextprotocol/servers/tree/main/src/sequentialthinking)** - Dynamic problem-solving through thought sequences
+*   **[AWS KB Retrieval](https://github.com/modelcontextprotocol/servers/tree/main/src/aws-kb-retrieval-server)** - Retrieval from AWS Knowledge Base using Bedrock Agent Runtime
+
+## Official integrations
+
+These MCP servers are maintained by companies for their platforms:
+
+*   **[Axiom](https://github.com/axiomhq/mcp-server-axiom)** - Query and analyze logs, traces, and event data using natural language
+*   **[Browserbase](https://github.com/browserbase/mcp-server-browserbase)** - Automate browser interactions in the cloud
+*   **[Cloudflare](https://github.com/cloudflare/mcp-server-cloudflare)** - Deploy and manage resources on the Cloudflare developer platform
+*   **[E2B](https://github.com/e2b-dev/mcp-server)** - Execute code in secure cloud sandboxes
+*   **[Neon](https://github.com/neondatabase/mcp-server-neon)** - Interact with the Neon serverless Postgres platform
+*   **[Obsidian Markdown Notes](https://github.com/calclavia/mcp-obsidian)** - Read and search through Markdown notes in Obsidian vaults
+*   **[Qdrant](https://github.com/qdrant/mcp-server-qdrant/)** - Implement semantic memory using the Qdrant vector search engine
+*   **[Raygun](https://github.com/MindscapeHQ/mcp-server-raygun)** - Access crash reporting and monitoring data
+*   **[Search1API](https://github.com/fatwang2/search1api-mcp)** - Unified API for search, crawling, and sitemaps
+*   **[Tinybird](https://github.com/tinybirdco/mcp-tinybird)** - Interface with the Tinybird serverless ClickHouse platform
+
+## Community highlights
+
+A growing ecosystem of community-developed servers extends MCP's capabilities:
+
+*   **[Docker](https://github.com/ckreiling/mcp-server-docker)** - Manage containers, images, volumes, and networks
+*   **[Kubernetes](https://github.com/Flux159/mcp-server-kubernetes)** - Manage pods, deployments, and services
+*   **[Linear](https://github.com/jerhadf/linear-mcp-server)** - Project management and issue tracking
+*   **[Snowflake](https://github.com/datawiz168/mcp-snowflake-service)** - Interact with Snowflake databases
+*   **[Spotify](https://github.com/varunneal/spotify-mcp)** - Control Spotify playback and manage playlists
+*   **[Todoist](https://github.com/abhiz123/todoist-mcp-server)** - Task management integration
+
+> **Note:** Community servers are untested and should be used at your own risk. They are not affiliated with or endorsed by Anthropic.
+
+For a complete list of community servers, visit the [MCP Servers Repository](https://github.com/modelcontextprotocol/servers).
+
+## Getting started
+
+### Using reference servers
+
+TypeScript-based servers can be used directly with `npx`:
+
+```bash
+npx -y @modelcontextprotocol/server-memory
+```
+
+Python-based servers can be used with `uvx` (recommended) or `pip`:
+
+```bash
+# Using uvx
+uvx mcp-server-git
+
+# Using pip
+pip install mcp-server-git
+python -m mcp_server_git
+```
+
+### Configuring with Claude
+
+To use an MCP server with Claude, add it to your configuration:
+
+```json
+{
+  "mcpServers": {
+    "memory": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-memory"]
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/path/to/allowed/files"]
+    },
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "<YOUR_TOKEN>"
+      }
+    }
+  }
+}
+```
+
+## Additional resources
+
+*   [MCP Servers Repository](https://github.com/modelcontextprotocol/servers) - Complete collection of reference implementations and community servers
+*   [Awesome MCP Servers](https://github.com/punkpeye/awesome-mcp-servers) - Curated list of MCP servers
+*   [MCP CLI](https://github.com/wong2/mcp-cli) - Command-line inspector for testing MCP servers
+*   [MCP Get](https://mcp-get.com) - Tool for installing and managing MCP servers
+
+Visit our [GitHub Discussions](https://github.com/orgs/modelcontextprotocol/discussions) to engage with the MCP community.
+
+
 # Introduction
 
 Get started with the Model Context Protocol (MCP)
 
-The Model Context Protocol (MCP) is an open protocol that enables seamless integration between LLM applications and external data sources and tools. Whether you're building an AI-powered IDE, enhancing a chat interface, or creating custom AI workflows, MCP provides a standardized way to connect LLMs with the context they need.
+MCP is an open protocol that standardizes how applications provide context to LLMs. Think of MCP like a USB-C port for AI applications. Just as USB-C provides a standardized way to connect your devices to various peripherals and accessories, MCP provides a standardized way to connect AI models to different data sources and tools.
 
-## Get started with MCP
+## Why MCP?
+
+MCP helps you build agents and complex workflows on top of LLMs. LLMs frequently need to integrate with data and tools, and MCP provides:
+
+*   A growing list of pre-built integrations that your LLM can directly plug into
+*   The flexibility to switch between LLM providers and vendors
+*   Best practices for securing your data within your infrastructure
+
+### General architecture
+
+At its core, MCP follows a client-server architecture where a host application can connect to multiple servers:
+
+```mermaid
+flowchart LR
+    subgraph "Your Computer"
+        Host["Host with MCP Client\n(Claude, IDEs, Tools)"]
+        S1["MCP Server A"]
+        S2["MCP Server B"]
+        S3["MCP Server C"]
+        Host <-->|"MCP Protocol"| S1
+        Host <-->|"MCP Protocol"| S2
+        Host <-->|"MCP Protocol"| S3
+        S1 <--> D1[("Local\nData Source A")]
+        S2 <--> D2[("Local\nData Source B")]
+    end
+    subgraph "Internet"
+        S3 <-->|"Web APIs"| D3[("Remote\nService C")]
+    end
+```
+
+*   **MCP Hosts**: Programs like Claude Desktop, IDEs, or AI tools that want to access data through MCP
+*   **MCP Clients**: Protocol clients that maintain 1:1 connections with servers
+*   **MCP Servers**: Lightweight programs that each expose specific capabilities through the standardized Model Context Protocol
+*   **Local Data Sources**: Your computer's files, databases, and services that MCP servers can securely access
+*   **Remote Services**: External systems available over the internet (e.g., through APIs) that MCP servers can connect to
+
+## Get started
 
 Choose the path that best fits your needs:
 
-<CardGroup cols={1}>
-  <Card title="Quickstart" icon="bolt" href="/quickstart">
-    The fastest way to see MCP in action—connect example servers to Claude Desktop
+#### Quick Starts
+
+<CardGroup cols={2}>
+  <Card title="For Server Developers" icon="bolt" href="/quickstart/server">
+    Get started building your own server to use in Claude for Desktop and other clients
   </Card>
 
-  <Card title="Build your first server (Python)" icon="python" href="/docs/first-server/python">
-    Create a simple MCP server in Python to understand the basics
+  <Card title="For Client Developers" icon="bolt" href="/quickstart/client">
+    Get started building your own client that can integrate with all MCP servers
   </Card>
 
-  <Card title="Build your first server (TypeScript)" icon="square-js" href="/docs/first-server/typescript">
-    Create a simple MCP server in TypeScript to understand the basics
+  <Card title="For Claude Desktop Users" icon="bolt" href="/quickstart/user">
+    Get started using pre-built servers in Claude for Desktop
   </Card>
 </CardGroup>
 
-## Development tools
-
-Essential tools for building and debugging MCP servers:
+#### Examples
 
 <CardGroup cols={2}>
+  <Card title="Example Servers" icon="grid" href="/examples">
+    Check out our gallery of official MCP servers and implementations
+  </Card>
+
+  <Card title="Example Clients" icon="cubes" href="/clients">
+    View the list of clients that support MCP integrations
+  </Card>
+</CardGroup>
+
+## Tutorials
+
+<CardGroup cols={2}>
+  <Card title="Building MCP with LLMs" icon="comments" href="/tutorials/building-mcp-with-llms">
+    Learn how to use LLMs like Claude to speed up your MCP development
+  </Card>
+
   <Card title="Debugging Guide" icon="bug" href="/docs/tools/debugging">
     Learn how to effectively debug MCP servers and integrations
   </Card>
@@ -3986,7 +2976,7 @@ Essential tools for building and debugging MCP servers:
 Dive deeper into MCP's core concepts and capabilities:
 
 <CardGroup cols={2}>
-  <Card title="Core Architecture" icon="sitemap" href="/docs/concepts/architecture">
+  <Card title="Core architecture" icon="sitemap" href="/docs/concepts/architecture">
     Understand how MCP connects clients, servers, and LLMs
   </Card>
 
@@ -4013,469 +3003,1862 @@ Dive deeper into MCP's core concepts and capabilities:
 
 ## Contributing
 
-Want to contribute? Check out [@modelcontextprotocol](https://github.com/modelcontextprotocol) on GitHub to join our growing community of developers building with MCP.
+Want to contribute? Check out our [Contributing Guide](/development/contributing) to learn how you can help improve MCP.
 
 
-# Quickstart
+# For Client Developers
 
-Get started with MCP in less than 5 minutes
+Get started building your own client that can integrate with all MCP servers.
 
-MCP is a protocol that enables secure connections between host applications, such as [Claude Desktop](https://claude.ai/download), and local services. In this quickstart guide, you'll learn how to:
-
-*   Set up a local SQLite database
-*   Connect Claude Desktop to it through MCP
-*   Query and analyze your data securely
-
-<Note>
-  While this guide focuses on using Claude Desktop as an example MCP host, the protocol is open and can be integrated by any application. IDEs, AI tools, and other software can all use MCP to connect to local integrations in a standardized way.
-</Note>
-
-<Warning>
-  Claude Desktop's MCP support is currently in developer preview and only supports connecting to local MCP servers running on your machine. Remote MCP connections are not yet supported. This integration is only available in the Claude Desktop app, not the Claude web interface (claude.ai).
-</Warning>
-
-## How MCP works
-
-MCP (Model Context Protocol) is an open protocol that enables secure, controlled interactions between AI applications and local or remote resources. Let's break down how it works, then look at how we'll use it in this guide.
-
-### General Architecture
-
-At its core, MCP follows a client-server architecture where a host application can connect to multiple servers:
-
-```mermaid
-flowchart LR
-    subgraph "Your Computer"
-        Host["MCP Host\n(Claude, IDEs, Tools)"]
-        S1["MCP Server A"]
-        S2["MCP Server B"]
-        S3["MCP Server C"]
-
-        Host <-->|"MCP Protocol"| S1
-        Host <-->|"MCP Protocol"| S2
-        Host <-->|"MCP Protocol"| S3
-
-        S1 <--> R1[("Local\nResource A")]
-        S2 <--> R2[("Local\nResource B")]
-    end
-
-    subgraph "Internet"
-        S3 <-->|"Web APIs"| R3[("Remote\nResource C")]
-    end
-```
-
-*   **MCP Hosts**: Programs like Claude Desktop, IDEs, or AI tools that want to access resources through MCP
-*   **MCP Clients**: Protocol clients that maintain 1:1 connections with servers
-*   **MCP Servers**: Lightweight programs that each expose specific capabilities through the standardized Model Context Protocol
-*   **Local Resources**: Your computer's resources (databases, files, services) that MCP servers can securely access
-*   **Remote Resources**: Resources available over the internet (e.g., through APIs) that MCP servers can connect to
-
-### In This Guide
-
-For this quickstart, we'll implement a focused example using SQLite:
-
-```mermaid
-flowchart LR
-    subgraph "Your Computer"
-        direction LR
-        Claude["Claude Desktop"]
-        MCP["SQLite MCP Server"]
-        DB[(SQLite Database\n~/test.db)]
-
-        Claude <-->|"MCP Protocol\n(Queries & Results)"| MCP
-        MCP <-->|"Local Access\n(SQL Operations)"| DB
-    end
-```
-
-1.  Claude Desktop acts as our MCP client
-2.  A SQLite MCP Server provides secure database access
-3.  Your local SQLite database stores the actual data
-
-The communication between the SQLite MCP server and your local SQLite database happens entirely on your machine—your SQLite database is not exposed to the internet. The Model Context Protocol ensures that Claude Desktop can only perform approved database operations through well-defined interfaces. This gives you a secure way to let Claude analyze and interact with your local data while maintaining complete control over what it can access.
-
-## Prerequisites
-
-*   macOS or Windows
-*   The latest version of [Claude Desktop](https://claude.ai/download) installed
-*   [uv](https://docs.astral.sh/uv/) 0.4.18 or higher (`uv --version` to check)
-*   Git (`git --version` to check)
-*   SQLite (`sqlite3 --version` to check)
-
-<AccordionGroup>
-  <Accordion title="Installing prerequisites (macOS)">
-    ```bash
-    # Using Homebrew
-    brew install uv git sqlite3
-
-    # Or download directly:
-    # uv: https://docs.astral.sh/uv/
-    # Git: https://git-scm.com
-    # SQLite: https://www.sqlite.org/download.html
-    ```
-  </Accordion>
-
-  <Accordion title="Installing prerequisites (Windows)">
-    ```powershell
-    # Using winget
-    winget install --id=astral-sh.uv -e
-    winget install git.git sqlite.sqlite
-
-    # Or download directly:
-    # uv: https://docs.astral.sh/uv/
-    # Git: https://git-scm.com
-    # SQLite: https://www.sqlite.org/download.html
-    ```
-  </Accordion>
-</AccordionGroup>
-
-## Installation
+In this tutorial, you'll learn how to build a LLM-powered chatbot client that connects to MCP servers. It helps to have gone through the [Server quickstart](/quickstart/server) that guides you through the basic of building your first server.
 
 <Tabs>
-  <Tab title="macOS">
-    <Steps>
-      <Step title="Create a sample database">
-        Let's create a simple SQLite database for testing:
+  <Tab title="Python">
+    [You can find the complete code for this tutorial here.](https://github.com/modelcontextprotocol/quickstart-resources/tree/main/mcp-client)
 
-        ```bash
-        # Create a new SQLite database
-        sqlite3 ~/test.db <<EOF
-        CREATE TABLE products (
-          id INTEGER PRIMARY KEY,
-          name TEXT,
-          price REAL
-        );
+    ## System Requirements
 
-        INSERT INTO products (name, price) VALUES
-          ('Widget', 19.99),
-          ('Gadget', 29.99),
-          ('Gizmo', 39.99),
-          ('Smart Watch', 199.99),
-          ('Wireless Earbuds', 89.99),
-          ('Portable Charger', 24.99),
-          ('Bluetooth Speaker', 79.99),
-          ('Phone Stand', 15.99),
-          ('Laptop Sleeve', 34.99),
-          ('Mini Drone', 299.99),
-          ('LED Desk Lamp', 45.99),
-          ('Keyboard', 129.99),
-          ('Mouse Pad', 12.99),
-          ('USB Hub', 49.99),
-          ('Webcam', 69.99),
-          ('Screen Protector', 9.99),
-          ('Travel Adapter', 27.99),
-          ('Gaming Headset', 159.99),
-          ('Fitness Tracker', 119.99),
-          ('Portable SSD', 179.99);
-        EOF
-        ```
-      </Step>
+    Before starting, ensure your system meets these requirements:
 
-      <Step title="Configure Claude Desktop">
-        Open your Claude Desktop App configuration at `~/Library/Application Support/Claude/claude_desktop_config.json` in a text editor.
+    *   Mac or Windows computer
+    *   Latest Python version installed
+    *   Latest version of `uv` installed
 
-        For example, if you have [VS Code](https://code.visualstudio.com/) installed:
+    ## Setting Up Your Environment
 
-        ```bash
-        code ~/Library/Application\ Support/Claude/claude_desktop_config.json
-        ```
+    First, create a new Python project with `uv`:
 
-        Add this configuration (replace YOUR\_USERNAME with your actual username):
+    ```bash
+    # Create project directory
+    uv init mcp-client
+    cd mcp-client
 
-        ```json
-        {
-          "mcpServers": {
-            "sqlite": {
-              "command": "uvx",
-              "args": ["mcp-server-sqlite", "--db-path", "/Users/YOUR_USERNAME/test.db"]
+    # Create virtual environment
+    uv venv
+
+    # Activate virtual environment
+    # On Windows:
+    .venv\Scripts\activate
+    # On Unix or MacOS:
+    source .venv/bin/activate
+
+    # Install required packages
+    uv add mcp anthropic python-dotenv
+
+    # Remove boilerplate files
+    rm hello.py
+
+    # Create our main file
+    touch client.py
+    ```
+
+    ## Setting Up Your API Key
+
+    You'll need an Anthropic API key from the [Anthropic Console](https://console.anthropic.com/settings/keys).
+
+    Create a `.env` file to store it:
+
+    ```bash
+    # Create .env file
+    touch .env
+    ```
+
+    Add your key to the `.env` file:
+
+    ```bash
+    ANTHROPIC_API_KEY=<your key here>
+    ```
+
+    Add `.env` to your `.gitignore`:
+
+    ```bash
+    echo ".env" >> .gitignore
+    ```
+
+    <Warning>
+      Make sure you keep your `ANTHROPIC_API_KEY` secure!
+    </Warning>
+
+    ## Creating the Client
+
+    ### Basic Client Structure
+
+    First, let's set up our imports and create the basic client class:
+
+    ```python
+    import asyncio
+    from typing import Optional
+    from contextlib import AsyncExitStack
+
+    from mcp import ClientSession, StdioServerParameters
+    from mcp.client.stdio import stdio_client
+
+    from anthropic import Anthropic
+    from dotenv import load_dotenv
+
+    load_dotenv()  # load environment variables from .env
+
+    class MCPClient:
+        def __init__(self):
+            # Initialize session and client objects
+            self.session: Optional[ClientSession] = None
+            self.exit_stack = AsyncExitStack()
+            self.anthropic = Anthropic()
+        # methods will go here
+    ```
+
+    ### Server Connection Management
+
+    Next, we'll implement the method to connect to an MCP server:
+
+    ```python
+    async def connect_to_server(self, server_script_path: str):
+        """Connect to an MCP server
+
+        Args:
+            server_script_path: Path to the server script (.py or .js)
+        """
+        is_python = server_script_path.endswith('.py')
+        is_js = server_script_path.endswith('.js')
+        if not (is_python or is_js):
+            raise ValueError("Server script must be a .py or .js file")
+
+        command = "python" if is_python else "node"
+        server_params = StdioServerParameters(
+            command=command,
+            args=[server_script_path],
+            env=None
+        )
+
+        stdio_transport = await self.exit_stack.enter_async_context(stdio_client(server_params))
+        self.stdio, self.write = stdio_transport
+        self.session = await self.exit_stack.enter_async_context(ClientSession(self.stdio, self.write))
+
+        await self.session.initialize()
+
+        # List available tools
+        response = await self.session.list_tools()
+        tools = response.tools
+        print("\nConnected to server with tools:", [tool.name for tool in tools])
+    ```
+
+    ### Query Processing Logic
+
+    Now let's add the core functionality for processing queries and handling tool calls:
+
+    ```python
+    async def process_query(self, query: str) -> str:
+        """Process a query using Claude and available tools"""
+        messages = [
+            {
+                "role": "user",
+                "content": query
             }
-          }
-        }
-        ```
+        ]
 
-        This tells Claude Desktop:
+        response = await self.session.list_tools()
+        available_tools = [{
+            "name": tool.name,
+            "description": tool.description,
+            "input_schema": tool.inputSchema
+        } for tool in response.tools]
 
-        1.  There's an MCP server named "sqlite"
-        2.  Launch it by running `uvx mcp-server-sqlite`
-        3.  Connect it to your test database
+        # Initial Claude API call
+        response = self.anthropic.messages.create(
+            model="claude-3-5-sonnet-20241022",
+            max_tokens=1000,
+            messages=messages,
+            tools=available_tools
+        )
 
-        Save the file, and restart **Claude Desktop**.
-      </Step>
-    </Steps>
-  </Tab>
+        # Process response and handle tool calls
+        tool_results = []
+        final_text = []
 
-  <Tab title="Windows">
-    <Steps>
-      <Step title="Create a sample database">
-        Let's create a simple SQLite database for testing:
+        for content in response.content:
+            if content.type == 'text':
+                final_text.append(content.text)
+            elif content.type == 'tool_use':
+                tool_name = content.name
+                tool_args = content.input
 
-        ```powershell
-        # Create a new SQLite database
-        $sql = @'
-        CREATE TABLE products (
-          id INTEGER PRIMARY KEY,
-          name TEXT,
-          price REAL
-        );
+                # Execute tool call
+                result = await self.session.call_tool(tool_name, tool_args)
+                tool_results.append({"call": tool_name, "result": result})
+                final_text.append(f"[Calling tool {tool_name} with args {tool_args}]")
 
-        INSERT INTO products (name, price) VALUES
-          ('Widget', 19.99),
-          ('Gadget', 29.99),
-          ('Gizmo', 39.99),
-          ('Smart Watch', 199.99),
-          ('Wireless Earbuds', 89.99),
-          ('Portable Charger', 24.99),
-          ('Bluetooth Speaker', 79.99),
-          ('Phone Stand', 15.99),
-          ('Laptop Sleeve', 34.99),
-          ('Mini Drone', 299.99),
-          ('LED Desk Lamp', 45.99),
-          ('Keyboard', 129.99),
-          ('Mouse Pad', 12.99),
-          ('USB Hub', 49.99),
-          ('Webcam', 69.99),
-          ('Screen Protector', 9.99),
-          ('Travel Adapter', 27.99),
-          ('Gaming Headset', 159.99),
-          ('Fitness Tracker', 119.99),
-          ('Portable SSD', 179.99);
-        '@
+                # Continue conversation with tool results
+                if hasattr(content, 'text') and content.text:
+                    messages.append({
+                      "role": "assistant",
+                      "content": content.text
+                    })
+                messages.append({
+                    "role": "user",
+                    "content": result.content
+                })
 
-        cd ~
-        & sqlite3 test.db $sql
-        ```
-      </Step>
+                # Get next response from Claude
+                response = self.anthropic.messages.create(
+                    model="claude-3-5-sonnet-20241022",
+                    max_tokens=1000,
+                    messages=messages,
+                )
 
-      <Step title="Configure Claude Desktop">
-        Open your Claude Desktop App configuration at `%APPDATA%\Claude\claude_desktop_config.json` in a text editor.
+                final_text.append(response.content[0].text)
 
-        For example, if you have [VS Code](https://code.visualstudio.com/) installed:
+        return "\n".join(final_text)
+    ```
 
-        ```powershell
-        code $env:AppData\Claude\claude_desktop_config.json
-        ```
+    ### Interactive Chat Interface
 
-        Add this configuration (replace YOUR\_USERNAME with your actual username):
+    Now we'll add the chat loop and cleanup functionality:
 
-        ```json
-        {
-          "mcpServers": {
-            "sqlite": {
-              "command": "uvx",
-              "args": [
-                "mcp-server-sqlite",
-                "--db-path",
-                "C:\\Users\\YOUR_USERNAME\\test.db"
-              ]
-            }
-          }
-        }
-        ```
+    ```python
+    async def chat_loop(self):
+        """Run an interactive chat loop"""
+        print("\nMCP Client Started!")
+        print("Type your queries or 'quit' to exit.")
 
-        This tells Claude Desktop:
+        while True:
+            try:
+                query = input("\nQuery: ").strip()
 
-        1.  There's an MCP server named "sqlite"
-        2.  Launch it by running `uvx mcp-server-sqlite`
-        3.  Connect it to your test database
+                if query.lower() == 'quit':
+                    break
 
-        Save the file, and restart **Claude Desktop**.
-      </Step>
-    </Steps>
+                response = await self.process_query(query)
+                print("\n" + response)
+
+            except Exception as e:
+                print(f"\nError: {str(e)}")
+
+    async def cleanup(self):
+        """Clean up resources"""
+        await self.exit_stack.aclose()
+    ```
+
+    ### Main Entry Point
+
+    Finally, we'll add the main execution logic:
+
+    ```python
+    async def main():
+        if len(sys.argv) < 2:
+            print("Usage: python client.py <path_to_server_script>")
+            sys.exit(1)
+
+        client = MCPClient()
+        try:
+            await client.connect_to_server(sys.argv[1])
+            await client.chat_loop()
+        finally:
+            await client.cleanup()
+
+    if __name__ == "__main__":
+        import sys
+        asyncio.run(main())
+    ```
+
+    You can find the complete `client.py` file [here.](https://gist.github.com/zckly/f3f28ea731e096e53b39b47bf0a2d4b1)
+
+    ## Key Components Explained
+
+    ### 1. Client Initialization
+
+    *   The `MCPClient` class initializes with session management and API clients
+    *   Uses `AsyncExitStack` for proper resource management
+    *   Configures the Anthropic client for Claude interactions
+
+    ### 2. Server Connection
+
+    *   Supports both Python and Node.js servers
+    *   Validates server script type
+    *   Sets up proper communication channels
+    *   Initializes the session and lists available tools
+
+    ### 3. Query Processing
+
+    *   Maintains conversation context
+    *   Handles Claude's responses and tool calls
+    *   Manages the message flow between Claude and tools
+    *   Combines results into a coherent response
+
+    ### 4. Interactive Interface
+
+    *   Provides a simple command-line interface
+    *   Handles user input and displays responses
+    *   Includes basic error handling
+    *   Allows graceful exit
+
+    ### 5. Resource Management
+
+    *   Proper cleanup of resources
+    *   Error handling for connection issues
+    *   Graceful shutdown procedures
+
+    ## Common Customization Points
+
+    1.  **Tool Handling**
+        *   Modify `process_query()` to handle specific tool types
+        *   Add custom error handling for tool calls
+        *   Implement tool-specific response formatting
+
+    2.  **Response Processing**
+        *   Customize how tool results are formatted
+        *   Add response filtering or transformation
+        *   Implement custom logging
+
+    3.  **User Interface**
+        *   Add a GUI or web interface
+        *   Implement rich console output
+        *   Add command history or auto-completion
+
+    ## Running the Client
+
+    To run your client with any MCP server:
+
+    ```bash
+    uv run client.py path/to/server.py # python server
+    uv run client.py path/to/build/index.js # node server
+    ```
+
+    <Note>
+      If you're continuing the weather tutorial from the server quickstart, your command might look something like this: `python client.py .../weather/src/weather/server.py`
+    </Note>
+
+    The client will:
+
+    1.  Connect to the specified server
+    2.  List available tools
+    3.  Start an interactive chat session where you can:
+        *   Enter queries
+        *   See tool executions
+        *   Get responses from Claude
+
+    Here's an example of what it should look like if connected to the weather server from the server quickstart:
+
+    <Frame>
+      <img src="https://mintlify.s3.us-west-1.amazonaws.com/mcp/images/client-claude-cli-python.png" />
+    </Frame>
+
+    ## How It Works
+
+    When you submit a query:
+
+    1.  The client gets the list of available tools from the server
+    2.  Your query is sent to Claude along with tool descriptions
+    3.  Claude decides which tools (if any) to use
+    4.  The client executes any requested tool calls through the server
+    5.  Results are sent back to Claude
+    6.  Claude provides a natural language response
+    7.  The response is displayed to you
+
+    ## Best practices
+
+    1.  **Error Handling**
+        *   Always wrap tool calls in try-catch blocks
+        *   Provide meaningful error messages
+        *   Gracefully handle connection issues
+
+    2.  **Resource Management**
+        *   Use `AsyncExitStack` for proper cleanup
+        *   Close connections when done
+        *   Handle server disconnections
+
+    3.  **Security**
+        *   Store API keys securely in `.env`
+        *   Validate server responses
+        *   Be cautious with tool permissions
+
+    ## Troubleshooting
+
+    ### Server Path Issues
+
+    *   Double-check the path to your server script is correct
+    *   Use the absolute path if the relative path isn't working
+    *   For Windows users, make sure to use forward slashes (/) or escaped backslashes (\\) in the path
+    *   Verify the server file has the correct extension (.py for Python or .js for Node.js)
+
+    Example of correct path usage:
+
+    ```bash
+    # Relative path
+    uv run client.py ./server/weather.py
+
+    # Absolute path
+    uv run client.py /Users/username/projects/mcp-server/weather.py
+
+    # Windows path (either format works)
+    uv run client.py C:/projects/mcp-server/weather.py
+    uv run client.py C:\\projects\\mcp-server\\weather.py
+    ```
+
+    ### Response Timing
+
+    *   The first response might take up to 30 seconds to return
+    *   This is normal and happens while:
+        *   The server initializes
+        *   Claude processes the query
+        *   Tools are being executed
+    *   Subsequent responses are typically faster
+    *   Don't interrupt the process during this initial waiting period
+
+    ### Common Error Messages
+
+    If you see:
+
+    *   `FileNotFoundError`: Check your server path
+    *   `Connection refused`: Ensure the server is running and the path is correct
+    *   `Tool execution failed`: Verify the tool's required environment variables are set
+    *   `Timeout error`: Consider increasing the timeout in your client configuration
   </Tab>
 </Tabs>
 
-## Test it out
-
-Let's verify everything is working. Try sending this prompt to Claude Desktop:
-
-```
-Can you connect to my SQLite database and tell me what products are available, and their prices?
-```
-
-Claude Desktop will:
-
-1.  Connect to the SQLite MCP server
-2.  Query your local database
-3.  Format and present the results
-
-<Frame caption="Claude Desktop successfully queries our SQLite database 🎉">
-  <img src="https://mintlify.s3.us-west-1.amazonaws.com/mcp/images/quickstart-screenshot.png" alt="Example Claude Desktop conversation showing database query results" />
-</Frame>
-
-## What's happening under the hood?
-
-When you interact with Claude Desktop using MCP:
-
-1.  **Server Discovery**: Claude Desktop connects to your configured MCP servers on startup
-
-2.  **Protocol Handshake**: When you ask about data, Claude Desktop:
-    *   Identifies which MCP server can help (sqlite in this case)
-    *   Negotiates capabilities through the protocol
-    *   Requests data or actions from the MCP server
-
-3.  **Interaction Flow**:
-    ```mermaid
-    sequenceDiagram
-        participant C as Claude Desktop
-        participant M as MCP Server
-        participant D as SQLite DB
-
-        C->>M: Initialize connection
-        M-->>C: Available capabilities
-
-        C->>M: Query request
-        M->>D: SQL query
-        D-->>M: Results
-        M-->>C: Formatted results
-    ```
-
-4.  **Security**:
-    *   MCP servers only expose specific, controlled capabilities
-    *   MCP servers run locally on your machine, and the resources they access are not exposed to the internet
-    *   Claude Desktop requires user confirmation for sensitive operations
-
-## Try these examples
-
-Now that MCP is working, try these increasingly powerful examples:
-
-<AccordionGroup>
-  <Accordion title="Basic Queries" active>
-    ```
-    What's the average price of all products in the database?
-    ```
-  </Accordion>
-
-  <Accordion title="Data Analysis">
-    ```
-    Can you analyze the price distribution and suggest any pricing optimizations?
-    ```
-  </Accordion>
-
-  <Accordion title="Complex Operations">
-    ```
-    Could you help me design and create a new table for storing customer orders?
-    ```
-  </Accordion>
-</AccordionGroup>
-
-## Add more capabilities
-
-Want to give Claude Desktop more local integration capabilities? Add these servers to your configuration:
-
-<Note>
-  Note that these MCP servers will require [Node.js](https://nodejs.org/en) to be installed on your machine.
-</Note>
-
-<AccordionGroup>
-  <Accordion title="File System Access" icon="folder-open">
-    Add this to your config to let Claude Desktop read and analyze files:
-
-    ```json
-    "filesystem": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/Users/YOUR_USERNAME/Desktop"]
-    }
-    ```
-  </Accordion>
-
-  <Accordion title="PostgreSQL Connection" icon="database">
-    Connect Claude Desktop to your PostgreSQL database:
-
-    ```json
-    "postgres": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-postgres", "postgresql://localhost/mydb"]
-    }
-    ```
-  </Accordion>
-</AccordionGroup>
-
-## More MCP Clients
-
-While this guide demonstrates MCP using Claude Desktop as a client, several other applications support MCP integration:
+## Next steps
 
 <CardGroup cols={2}>
-  <Card title="Zed Editor" icon="pen-to-square" href="https://zed.dev">
-    A high-performance, multiplayer code editor with built-in MCP support for AI-powered coding assistance
+  <Card title="Example servers" icon="grid" href="/examples">
+    Check out our gallery of official MCP servers and implementations
   </Card>
 
-  <Card title="Cody" icon="magnifying-glass" href="https://sourcegraph.com/cody">
-    Code intelligence platform featuring MCP integration for enhanced code search and analysis capabilities
+  <Card title="Clients" icon="cubes" href="/clients">
+    View the list of clients that support MCP integrations
+  </Card>
+
+  <Card title="Building MCP with LLMs" icon="comments" href="/building-mcp-with-llms">
+    Learn how to use LLMs like Claude to speed up your MCP development
+  </Card>
+
+  <Card title="Core architecture" icon="sitemap" href="/docs/concepts/architecture">
+    Understand how MCP connects clients, servers, and LLMs
   </Card>
 </CardGroup>
 
-Each host application may implement MCP features differently or support different capabilities. Check their respective documentation for specific setup instructions and supported features.
+
+# For Server Developers
+
+Get started building your own server to use in Claude for Desktop and other clients.
+
+In this tutorial, we'll build a simple MCP weather server and connect it to a host, Claude for Desktop. We'll start with a basic setup, and then progress to more complex use cases.
+
+### What we'll be building
+
+Many LLMs (including Claude) do not currently have the ability to fetch the forecast and severe weather alerts. Let's use MCP to solve that!
+
+We'll build a server that exposes two tools: `get-alerts` and `get-forecast`. Then we'll connect the server to an MCP host (in this case, Claude for Desktop):
+
+<Frame>
+  <img src="https://mintlify.s3.us-west-1.amazonaws.com/mcp/images/weather-alerts.png" />
+</Frame>
+
+<Frame>
+  <img src="https://mintlify.s3.us-west-1.amazonaws.com/mcp/images/current-weather.png" />
+</Frame>
+
+<Note>
+  Servers can connect to any client. We've chosen Claude for Desktop here for simplicity, but we also have guides on [building your own client](/quickstart/client) as well as a [list of other clients here](/clients).
+</Note>
+
+<Accordion title="Why Claude for Desktop and not Claude.ai?">
+  Because servers are locally run, MCP currently only supports desktop hosts. Remote hosts are in active development.
+</Accordion>
+
+### Core MCP Concepts
+
+MCP servers can provide three main types of capabilities:
+
+1.  **Resources**: File-like data that can be read by clients (like API responses or file contents)
+2.  **Tools**: Functions that can be called by the LLM (with user approval)
+3.  **Prompts**: Pre-written templates that help users accomplish specific tasks
+
+This tutorial will primarily focus on tools.
+
+<Tabs>
+  <Tab title="Python">
+    Let's get started with building our weather server! [You can find the complete code for what we'll be building here.](https://github.com/modelcontextprotocol/quickstart-resources/tree/main/weather-server-python)
+
+    ### Prerequisite knowledge
+
+    This quickstart assumes you have familiarity with:
+
+    *   Python
+    *   LLMs like Claude
+
+    ### System requirements
+
+    For Python, make sure you have Python 3.9 or higher installed.
+
+    ### Set up your environment
+
+    First, let's install `uv` and set up our Python project and environment:
+
+    <CodeGroup>
+      ```bash MacOS/Linux
+      curl -LsSf https://astral.sh/uv/install.sh | sh
+      ```
+
+      ```powershell Windows
+      powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+      ```
+    </CodeGroup>
+
+    Make sure to restart your terminal afterwards to ensure that the `uv` command gets picked up.
+
+    Now, let's create and set up our project:
+
+    <CodeGroup>
+      ```bash MacOS/Linux
+      # Create a new directory for our project
+      uv init weather
+      cd weather
+
+      # Create virtual environment and activate it
+      uv venv
+      source .venv/bin/activate
+
+      # Install dependencies
+      uv add mcp httpx
+
+      # Remove template file
+      rm hello.py
+
+      # Create our files
+      mkdir -p src/weather
+      touch src/weather/__init__.py
+      touch src/weather/server.py
+      ```
+
+      ```powershell Windows
+      # Create a new directory for our project
+      uv init weather
+      cd weather
+
+      # Create virtual environment and activate it
+      uv venv
+      .venv\Scripts\activate
+
+      # Install dependencies
+      uv add mcp httpx
+
+      # Clean up boilerplate code
+      rm hello.py
+
+      # Create our files
+      md src
+      md src\weather
+      new-item src\weather\__init__.py
+      new-item src\weather\server.py
+      ```
+    </CodeGroup>
+
+    Add this code to `pyproject.toml`:
+
+    ```toml
+    ...rest of config
+
+    [build-system]
+    requires = [ "hatchling",]
+    build-backend = "hatchling.build"
+
+    [project.scripts]
+    weather = "weather:main"
+    ```
+
+    Add this code to `__init__.py`:
+
+    ```python src/weather/__init__.py
+    from . import server
+    import asyncio
+
+    def main():
+        """Main entry point for the package."""
+        asyncio.run(server.main())
+
+    # Optionally expose other important items at package level
+    __all__ = ['main', 'server']
+    ```
+
+    Now let's dive into building your server.
+
+    ## Building your server
+
+    ### Importing packages
+
+    Add these to the top of your `server.py`:
+
+    ```python
+    from typing import Any
+    import asyncio
+    import httpx
+    from mcp.server.models import InitializationOptions
+    import mcp.types as types
+    from mcp.server import NotificationOptions, Server
+    import mcp.server.stdio
+    ```
+
+    ### Setting up the instance
+
+    Then initialize the server instance and the base URL for the NWS API:
+
+    ```python
+    NWS_API_BASE = "https://api.weather.gov"
+    USER_AGENT = "weather-app/1.0"
+
+    server = Server("weather")
+    ```
+
+    ### Implementing tool listing
+
+    We need to tell clients what tools are available. The `list_tools()` decorator registers this handler:
+
+    ```python
+    @server.list_tools()
+    async def handle_list_tools() -> list[types.Tool]:
+        """
+        List available tools.
+        Each tool specifies its arguments using JSON Schema validation.
+        """
+        return [
+            types.Tool(
+                name="get-alerts",
+                description="Get weather alerts for a state",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "state": {
+                            "type": "string",
+                            "description": "Two-letter state code (e.g. CA, NY)",
+                        },
+                    },
+                    "required": ["state"],
+                },
+            ),
+            types.Tool(
+                name="get-forecast",
+                description="Get weather forecast for a location",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "latitude": {
+                            "type": "number",
+                            "description": "Latitude of the location",
+                        },
+                        "longitude": {
+                            "type": "number",
+                            "description": "Longitude of the location",
+                        },
+                    },
+                    "required": ["latitude", "longitude"],
+                },
+            ),
+        ]
+
+    ```
+
+    This defines our two tools: `get-alerts` and `get-forecast`.
+
+    ### Helper functions
+
+    Next, let's add our helper functions for querying and formatting the data from the National Weather Service API:
+
+    ```python
+    async def make_nws_request(client: httpx.AsyncClient, url: str) -> dict[str, Any] | None:
+        """Make a request to the NWS API with proper error handling."""
+        headers = {
+            "User-Agent": USER_AGENT,
+            "Accept": "application/geo+json"
+        }
+
+        try:
+            response = await client.get(url, headers=headers, timeout=30.0)
+            response.raise_for_status()
+            return response.json()
+        except Exception:
+            return None
+
+    def format_alert(feature: dict) -> str:
+        """Format an alert feature into a concise string."""
+        props = feature["properties"]
+        return (
+            f"Event: {props.get('event', 'Unknown')}\n"
+            f"Area: {props.get('areaDesc', 'Unknown')}\n"
+            f"Severity: {props.get('severity', 'Unknown')}\n"
+            f"Status: {props.get('status', 'Unknown')}\n"
+            f"Headline: {props.get('headline', 'No headline')}\n"
+            "---"
+        )
+    ```
+
+    ### Implementing tool execution
+
+    The tool execution handler is responsible for actually executing the logic of each tool. Let's add it:
+
+    ```python
+    @server.call_tool()
+    async def handle_call_tool(
+        name: str, arguments: dict | None
+    ) -> list[types.TextContent | types.ImageContent | types.EmbeddedResource]:
+        """
+        Handle tool execution requests.
+        Tools can fetch weather data and notify clients of changes.
+        """
+        if not arguments:
+            raise ValueError("Missing arguments")
+
+        if name == "get-alerts":
+            state = arguments.get("state")
+            if not state:
+                raise ValueError("Missing state parameter")
+
+            # Convert state to uppercase to ensure consistent format
+            state = state.upper()
+            if len(state) != 2:
+                raise ValueError("State must be a two-letter code (e.g. CA, NY)")
+
+            async with httpx.AsyncClient() as client:
+                alerts_url = f"{NWS_API_BASE}/alerts?area={state}"
+                alerts_data = await make_nws_request(client, alerts_url)
+
+                if not alerts_data:
+                    return [types.TextContent(type="text", text="Failed to retrieve alerts data")]
+
+                features = alerts_data.get("features", [])
+                if not features:
+                    return [types.TextContent(type="text", text=f"No active alerts for {state}")]
+
+                # Format each alert into a concise string
+                formatted_alerts = [format_alert(feature) for feature in features[:20]] # only take the first 20 alerts
+                alerts_text = f"Active alerts for {state}:\n\n" + "\n".join(formatted_alerts)
+
+                return [
+                    types.TextContent(
+                        type="text",
+                        text=alerts_text
+                    )
+                ]
+        elif name == "get-forecast":
+            try:
+                latitude = float(arguments.get("latitude"))
+                longitude = float(arguments.get("longitude"))
+            except (TypeError, ValueError):
+                return [types.TextContent(
+                    type="text",
+                    text="Invalid coordinates. Please provide valid numbers for latitude and longitude."
+                )]
+
+            # Basic coordinate validation
+            if not (-90 <= latitude <= 90) or not (-180 <= longitude <= 180):
+                return [types.TextContent(
+                    type="text",
+                    text="Invalid coordinates. Latitude must be between -90 and 90, longitude between -180 and 180."
+                )]
+
+            async with httpx.AsyncClient() as client:
+                # First get the grid point
+                lat_str = f"{latitude}"
+                lon_str = f"{longitude}"
+                points_url = f"{NWS_API_BASE}/points/{lat_str},{lon_str}"
+                points_data = await make_nws_request(client, points_url)
+
+                if not points_data:
+                    return [types.TextContent(type="text", text=f"Failed to retrieve grid point data for coordinates: {latitude}, {longitude}. This location may not be supported by the NWS API (only US locations are supported).")]
+
+                # Extract forecast URL from the response
+                properties = points_data.get("properties", {})
+                forecast_url = properties.get("forecast")
+
+                if not forecast_url:
+                    return [types.TextContent(type="text", text="Failed to get forecast URL from grid point data")]
+
+                # Get the forecast
+                forecast_data = await make_nws_request(client, forecast_url)
+
+                if not forecast_data:
+                    return [types.TextContent(type="text", text="Failed to retrieve forecast data")]
+
+                # Format the forecast periods
+                periods = forecast_data.get("properties", {}).get("periods", [])
+                if not periods:
+                    return [types.TextContent(type="text", text="No forecast periods available")]
+
+                # Format each period into a concise string
+                formatted_forecast = []
+                for period in periods:
+                    forecast_text = (
+                        f"{period.get('name', 'Unknown')}:\n"
+                        f"Temperature: {period.get('temperature', 'Unknown')}°{period.get('temperatureUnit', 'F')}\n"
+                        f"Wind: {period.get('windSpeed', 'Unknown')} {period.get('windDirection', '')}\n"
+                        f"{period.get('shortForecast', 'No forecast available')}\n"
+                        "---"
+                    )
+                    formatted_forecast.append(forecast_text)
+
+                forecast_text = f"Forecast for {latitude}, {longitude}:\n\n" + "\n".join(formatted_forecast)
+
+                return [types.TextContent(
+                    type="text",
+                    text=forecast_text
+                )]
+        else:
+            raise ValueError(f"Unknown tool: {name}")
+    ```
+
+    ### Running the server
+
+    Finally, implement the main function to run the server:
+
+    ```python
+    async def main():
+        # Run the server using stdin/stdout streams
+        async with mcp.server.stdio.stdio_server() as (read_stream, write_stream):
+            await server.run(
+                read_stream,
+                write_stream,
+                InitializationOptions(
+                    server_name="weather",
+                    server_version="0.1.0",
+                    capabilities=server.get_capabilities(
+                        notification_options=NotificationOptions(),
+                        experimental_capabilities={},
+                    ),
+                ),
+            )
+
+    # This is needed if you'd like to connect to a custom client
+    if __name__ == "__main__":
+        asyncio.run(main())
+    ```
+
+    Your server is complete! Run `uv run src/weather/server.py` to confirm that everything's working.
+
+    Let's now test your server from an existing MCP host, Claude for Desktop.
+
+    ## Testing your server with Claude for Desktop
+
+    <Note>
+      Claude for Desktop is not yet available on Linux. Linux users can proceed to the [Building a client](/quickstart/client) tutorial to build an MCP client that connects to the server we just built.
+    </Note>
+
+    First, make sure you have Claude for Desktop installed. [You can install the latest version
+    here.](https://claude.ai/download) If you already have Claude for Desktop, **make sure it's updated to the latest version.**
+
+    We'll need to configure Claude for Desktop for whichever MCP servers you want to use. To do this, open your Claude for Desktop App configuration at `~/Library/Application Support/Claude/claude_desktop_config.json` in a text editor. Make sure to create the file if it doesn't exist.
+
+    For example, if you have [VS Code](https://code.visualstudio.com/) installed:
+
+    <Tabs>
+      <Tab title="MacOS/Linux">
+        ```bash
+        code ~/Library/Application\ Support/Claude/claude_desktop_config.json
+        ```
+      </Tab>
+
+      <Tab title="Windows">
+        ```powershell
+        code $env:AppData\Claude\claude_desktop_config.json
+        ```
+      </Tab>
+    </Tabs>
+
+    You'll then add your servers in the `mcpServers` key. The MCP UI elements will only show up in Claude for Desktop if at least one server is properly configured.
+
+    In this case, we'll add our single weather server like so:
+
+    <Tabs>
+      <Tab title="MacOS/Linux">
+        ```json Python
+        {
+            "mcpServers": {
+                "weather": {
+                    "command": "uv",
+                    "args": [
+                        "--directory",
+                        "/ABSOLUTE/PATH/TO/PARENT/FOLDER/weather",
+                        "run",
+                        "weather"
+                    ]
+                }
+            }
+        }
+        ```
+      </Tab>
+
+      <Tab title="Windows">
+        ```json Python
+        {
+            "mcpServers": {
+                "weather": {
+                    "command": "uv",
+                    "args": [
+                        "--directory",
+                        "C:\\ABSOLUTE\\PATH\\TO\\PARENT\\FOLDER\\weather",
+                        "run",
+                        "weather"
+                    ]
+                }
+            }
+        }
+        ```
+      </Tab>
+    </Tabs>
+
+    <Note>
+      Make sure you pass in the absolute path to your server.
+    </Note>
+
+    This tells Claude for Desktop:
+
+    1.  There's an MCP server named "weather"
+    2.  To launch it by running `uv --directory /ABSOLUTE/PATH/TO/PARENT/FOLDER/weather run weather`
+
+    Save the file, and restart **Claude for Desktop**.
+  </Tab>
+
+  <Tab title="Node">
+    Let's get started with building our weather server! [You can find the complete code for what we'll be building here.](https://github.com/modelcontextprotocol/quickstart-resources/tree/main/weather-server-typescript)
+
+    ### Prerequisite knowledge
+
+    This quickstart assumes you have familiarity with:
+
+    *   TypeScript
+    *   LLMs like Claude
+
+    ### System requirements
+
+    For TypeScript, make sure you have the latest version of Node installed.
+
+    ### Set up your environment
+
+    First, let's install Node.js and npm if you haven't already. You can download them from [nodejs.org](https://nodejs.org/).
+    Verify your Node.js installation:
+
+    ```bash
+    node --version
+    npm --version
+    ```
+
+    For this tutorial, you'll need Node.js version 16 or higher.
+
+    Now, let's create and set up our project:
+
+    <CodeGroup>
+      ```bash MacOS/Linux
+      # Create a new directory for our project
+      mkdir weather
+      cd weather
+
+      # Initialize a new npm project
+      npm init -y
+
+      # Install dependencies
+      npm install @modelcontextprotocol/sdk zod
+      npm install -D @types/node typescript
+
+      # Create our files
+      mkdir src
+      touch src/index.ts
+      ```
+
+      ```powershell Windows
+      # Create a new directory for our project
+      md weather
+      cd weather
+
+      # Initialize a new npm project
+      npm init -y
+
+      # Install dependencies
+      npm install @modelcontextprotocol/sdk zod
+      npm install -D @types/node typescript
+
+      # Create our files
+      md src
+      new-item src\index.ts
+      ```
+    </CodeGroup>
+
+    Update your package.json to add type: "module" and a build script:
+
+    ```json package.json
+    {
+      "type": "module",
+      "bin": {
+        "weather": "./build/index.js"
+      },
+      "scripts": {
+        "build": "tsc && node -e \"require('fs').chmodSync('build/index.js', '755')\"",
+      },
+      "files": [
+        "build"
+      ],
+    }
+    ```
+
+    Create a `tsconfig.json` in the root of your project:
+
+    ```json tsconfig.json
+    {
+      "compilerOptions": {
+        "target": "ES2022",
+        "module": "Node16",
+        "moduleResolution": "Node16",
+        "outDir": "./build",
+        "rootDir": "./src",
+        "strict": true,
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "forceConsistentCasingInFileNames": true
+      },
+      "include": ["src/**/*"],
+      "exclude": ["node_modules"]
+    }
+    ```
+
+    Now let's dive into building your server.
+
+    ## Building your server
+
+    ### Importing packages
+
+    Add these to the top of your `src/index.ts`:
+
+    ```typescript
+    import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+    import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+    import {
+      CallToolRequestSchema,
+      ListToolsRequestSchema,
+    } from "@modelcontextprotocol/sdk/types.js";
+    import { z } from "zod";
+    ```
+
+    ### Setting up the instance
+
+    Then initialize the NWS API base URL, validation schemas, and server instance:
+
+    ```typescript
+    const NWS_API_BASE = "https://api.weather.gov";
+    const USER_AGENT = "weather-app/1.0";
+
+    // Define Zod schemas for validation
+    const AlertsArgumentsSchema = z.object({
+      state: z.string().length(2),
+    });
+
+    const ForecastArgumentsSchema = z.object({
+      latitude: z.number().min(-90).max(90),
+      longitude: z.number().min(-180).max(180),
+    });
+
+    // Create server instance
+    const server = new Server(
+      {
+        name: "weather",
+        version: "1.0.0",
+      },
+      {
+        capabilities: {
+          tools: {},
+        },
+      }
+    );
+    ```
+
+    ### Implementing tool listing
+
+    We need to tell clients what tools are available. This `server.setRequestHandler` call will register this list for us:
+
+    ```typescript
+    // List available tools
+    server.setRequestHandler(ListToolsRequestSchema, async () => {
+      return {
+        tools: [
+          {
+            name: "get-alerts",
+            description: "Get weather alerts for a state",
+            inputSchema: {
+              type: "object",
+              properties: {
+                state: {
+                  type: "string",
+                  description: "Two-letter state code (e.g. CA, NY)",
+                },
+              },
+              required: ["state"],
+            },
+          },
+          {
+            name: "get-forecast",
+            description: "Get weather forecast for a location",
+            inputSchema: {
+              type: "object",
+              properties: {
+                latitude: {
+                  type: "number",
+                  description: "Latitude of the location",
+                },
+                longitude: {
+                  type: "number",
+                  description: "Longitude of the location",
+                },
+              },
+              required: ["latitude", "longitude"],
+            },
+          },
+        ],
+      };
+    });
+    ```
+
+    This defines our two tools: `get-alerts` and `get-forecast`.
+
+    ### Helper functions
+
+    Next, let's add our helper functions for querying and formatting the data from the National Weather Service API:
+
+    ```typescript
+    // Helper function for making NWS API requests
+    async function makeNWSRequest<T>(url: string): Promise<T | null> {
+      const headers = {
+        "User-Agent": USER_AGENT,
+        Accept: "application/geo+json",
+      };
+
+      try {
+        const response = await fetch(url, { headers });
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return (await response.json()) as T;
+      } catch (error) {
+        console.error("Error making NWS request:", error);
+        return null;
+      }
+    }
+
+    interface AlertFeature {
+      properties: {
+        event?: string;
+        areaDesc?: string;
+        severity?: string;
+        status?: string;
+        headline?: string;
+      };
+    }
+
+    // Format alert data
+    function formatAlert(feature: AlertFeature): string {
+      const props = feature.properties;
+      return [
+        `Event: ${props.event || "Unknown"}`,
+        `Area: ${props.areaDesc || "Unknown"}`,
+        `Severity: ${props.severity || "Unknown"}`,
+        `Status: ${props.status || "Unknown"}`,
+        `Headline: ${props.headline || "No headline"}`,
+        "---",
+      ].join("\n");
+    }
+
+    interface ForecastPeriod {
+      name?: string;
+      temperature?: number;
+      temperatureUnit?: string;
+      windSpeed?: string;
+      windDirection?: string;
+      shortForecast?: string;
+    }
+
+    interface AlertsResponse {
+      features: AlertFeature[];
+    }
+
+    interface PointsResponse {
+      properties: {
+        forecast?: string;
+      };
+    }
+
+    interface ForecastResponse {
+      properties: {
+        periods: ForecastPeriod[];
+      };
+    }
+    ```
+
+    ### Implementing tool execution
+
+    The tool execution handler is responsible for actually executing the logic of each tool. Let's add it:
+
+    ```typescript
+    // Handle tool execution
+    server.setRequestHandler(CallToolRequestSchema, async (request) => {
+      const { name, arguments: args } = request.params;
+
+      try {
+        if (name === "get-alerts") {
+          const { state } = AlertsArgumentsSchema.parse(args);
+          const stateCode = state.toUpperCase();
+
+          const alertsUrl = `${NWS_API_BASE}/alerts?area=${stateCode}`;
+          const alertsData = await makeNWSRequest<AlertsResponse>(alertsUrl);
+
+          if (!alertsData) {
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: "Failed to retrieve alerts data",
+                },
+              ],
+            };
+          }
+
+          const features = alertsData.features || [];
+          if (features.length === 0) {
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: `No active alerts for ${stateCode}`,
+                },
+              ],
+            };
+          }
+
+          const formattedAlerts = features.map(formatAlert).slice(0, 20) // only take the first 20 alerts;
+          const alertsText = `Active alerts for ${stateCode}:\n\n${formattedAlerts.join(
+            "\n"
+          )}`;
+
+          return {
+            content: [
+              {
+                type: "text",
+                text: alertsText,
+              },
+            ],
+          };
+        } else if (name === "get-forecast") {
+          const { latitude, longitude } = ForecastArgumentsSchema.parse(args);
+
+          // Get grid point data
+          const pointsUrl = `${NWS_API_BASE}/points/${latitude.toFixed(
+            4
+          )},${longitude.toFixed(4)}`;
+          const pointsData = await makeNWSRequest<PointsResponse>(pointsUrl);
+
+          if (!pointsData) {
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: `Failed to retrieve grid point data for coordinates: ${latitude}, ${longitude}. This location may not be supported by the NWS API (only US locations are supported).`,
+                },
+              ],
+            };
+          }
+
+          const forecastUrl = pointsData.properties?.forecast;
+          if (!forecastUrl) {
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: "Failed to get forecast URL from grid point data",
+                },
+              ],
+            };
+          }
+
+          // Get forecast data
+          const forecastData = await makeNWSRequest<ForecastResponse>(forecastUrl);
+          if (!forecastData) {
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: "Failed to retrieve forecast data",
+                },
+              ],
+            };
+          }
+
+          const periods = forecastData.properties?.periods || [];
+          if (periods.length === 0) {
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: "No forecast periods available",
+                },
+              ],
+            };
+          }
+
+          // Format forecast periods
+          const formattedForecast = periods.map((period: ForecastPeriod) =>
+            [
+              `${period.name || "Unknown"}:`,
+              `Temperature: ${period.temperature || "Unknown"}°${
+                period.temperatureUnit || "F"
+              }`,
+              `Wind: ${period.windSpeed || "Unknown"} ${
+                period.windDirection || ""
+              }`,
+              `${period.shortForecast || "No forecast available"}`,
+              "---",
+            ].join("\n")
+          );
+
+          const forecastText = `Forecast for ${latitude}, ${longitude}:\n\n${formattedForecast.join(
+            "\n"
+          )}`;
+
+          return {
+            content: [
+              {
+                type: "text",
+                text: forecastText,
+              },
+            ],
+          };
+        } else {
+          throw new Error(`Unknown tool: ${name}`);
+        }
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          throw new Error(
+            `Invalid arguments: ${error.errors
+              .map((e) => `${e.path.join(".")}: ${e.message}`)
+              .join(", ")}`
+          );
+        }
+        throw error;
+      }
+    });
+    ```
+
+    ### Running the server
+
+    Finally, implement the main function to run the server:
+
+    ```typescript
+    // Start the server
+    async function main() {
+      const transport = new StdioServerTransport();
+      await server.connect(transport);
+      console.error("Weather MCP Server running on stdio");
+    }
+
+    main().catch((error) => {
+      console.error("Fatal error in main():", error);
+      process.exit(1);
+    });
+    ```
+
+    Make sure to run `npm run build` to build your server! This is a very important step in getting your server to connect.
+
+    Let's now test your server from an existing MCP host, Claude for Desktop.
+
+    ## Testing your server with Claude for Desktop
+
+    <Note>
+      Claude for Desktop is not yet available on Linux. Linux users can proceed to the [Building a client](/quickstart/client) tutorial to build an MCP client that connects to the server we just built.
+    </Note>
+
+    First, make sure you have Claude for Desktop installed. [You can install the latest version
+    here.](https://claude.ai/download) If you already have Claude for Desktop, **make sure it's updated to the latest version.**
+
+    We'll need to configure Claude for Desktop for whichever MCP servers you want to use. To do this, open your Claude for Desktop App configuration at `~/Library/Application Support/Claude/claude_desktop_config.json` in a text editor. Make sure to create the file if it doesn't exist.
+
+    For example, if you have [VS Code](https://code.visualstudio.com/) installed:
+
+    <Tabs>
+      <Tab title="MacOS/Linux">
+        ```bash
+        code ~/Library/Application\ Support/Claude/claude_desktop_config.json
+        ```
+      </Tab>
+
+      <Tab title="Windows">
+        ```powershell
+        code $env:AppData\Claude\claude_desktop_config.json
+        ```
+      </Tab>
+    </Tabs>
+
+    You'll then add your servers in the `mcpServers` key. The MCP UI elements will only show up in Claude for Desktop if at least one server is properly configured.
+
+    In this case, we'll add our single weather server like so:
+
+    <Tabs>
+      <Tab title="MacOS/Linux">
+        <CodeGroup>
+          ```json Node
+          {
+              "mcpServers": {
+                  "weather": {
+                      "command": "node",
+                      "args": [
+                          "/ABSOLUTE/PATH/TO/PARENT/FOLDER/weather/build/index.js"
+                      ]
+                  }
+              }
+          }
+          ```
+        </CodeGroup>
+      </Tab>
+
+      <Tab title="Windows">
+        <CodeGroup>
+          ```json Node
+          {
+              "mcpServers": {
+                  "weather": {
+                      "command": "node",
+                      "args": [
+                          "C:\\PATH\\TO\\PARENT\\FOLDER\\weather\\build\\index.js"
+                      ]
+                  }
+              }
+          }
+          ```
+        </CodeGroup>
+      </Tab>
+    </Tabs>
+
+    This tells Claude for Desktop:
+
+    1.  There's an MCP server named "weather"
+    2.  Launch it by running `node /ABSOLUTE/PATH/TO/PARENT/FOLDER/weather/build/index.js`
+
+    Save the file, and restart **Claude for Desktop**.
+  </Tab>
+</Tabs>
+
+### Test with commands
+
+Let's make sure Claude for Desktop is picking up the two tools we've exposed in our `weather` server. You can do this by looking for the hammer <img src="https://mintlify.s3.us-west-1.amazonaws.com/mcp/images/claude-desktop-mcp-hammer-icon.svg" style={{display: 'inline', margin: 0, height: '1.3em'}} /> icon:
+
+<Frame>
+  <img src="https://mintlify.s3.us-west-1.amazonaws.com/mcp/images/visual-indicator-mcp-tools.png" />
+</Frame>
+
+After clicking on the hammer icon, you should see two tools listed:
+
+<Frame>
+  <img src="https://mintlify.s3.us-west-1.amazonaws.com/mcp/images/available-mcp-tools.png" />
+</Frame>
+
+If your server isn't being picked up by Claude for Desktop, proceed to the [Troubleshooting](#troubleshooting) section for debugging tips.
+
+If the hammer icon has shown up, you can now test your server by running the following commands in Claude for Desktop:
+
+*   What's the weather in Sacramento?
+*   What are the active weather alerts in Texas?
+
+<Frame>
+  <img src="https://mintlify.s3.us-west-1.amazonaws.com/mcp/images/current-weather.png" />
+</Frame>
+
+<Frame>
+  <img src="https://mintlify.s3.us-west-1.amazonaws.com/mcp/images/weather-alerts.png" />
+</Frame>
+
+<Note>
+  Since this is the US National Weather service, the queries will only work for US locations.
+</Note>
+
+## What's happening under the hood
+
+When you ask a question:
+
+1.  The client sends your question to Claude
+2.  Claude analyzes the available tools and decides which one(s) to use
+3.  The client executes the chosen tool(s) through the MCP server
+4.  The results are sent back to Claude
+5.  Claude formulates a natural language response
+6.  The response is displayed to you!
 
 ## Troubleshooting
 
 <AccordionGroup>
-  <Accordion title="Nothing showing up in Claude Desktop?">
-    1.  Check if MCP is enabled:
-        *   Click the 🔌 icon in Claude Desktop, next to the chat box
-        *   Expand "Installed MCP Servers"
-        *   You should see your configured servers
+  <Accordion title="Claude for Desktop Integration Issues">
+    **Getting logs from Claude for Desktop**
 
-    2.  Verify your config:
-        *   From Claude Desktop, go to Claude > Settings…
-        *   Open the "Developer" tab to see your configuration
+    Claude.app logging related to MCP is written to log files in `~/Library/Logs/Claude`:
 
-    3.  Restart Claude Desktop completely:
-        *   Quit the app (not just close the window)
-        *   Start it again
+    *   `mcp.log` will contain general logging about MCP connections and connection failures.
+    *   Files named `mcp-server-SERVERNAME.log` will contain error (stderr) logging from the named server.
+
+    You can run the following command to list recent logs and follow along with any new ones:
+
+    ```bash
+    # Check Claude's logs for errors
+    tail -n 20 -f ~/Library/Logs/Claude/mcp*.log
+    ```
+
+    **Server not showing up in Claude**
+
+    1.  Check your `claude_desktop_config.json` file syntax
+    2.  Make sure the path to your project is absolute and not relative
+    3.  Restart Claude for Desktop completely
+
+    **Tool calls failing silently**
+
+    If Claude attempts to use the tools but they fail:
+
+    1.  Check Claude's logs for errors
+    2.  Verify your server builds and runs without errors
+    3.  Try restarting Claude for Desktop
+
+    **None of this is working. What do I do?**
+
+    Please refer to our [debugging guide](/docs/tools/debugging) for better debugging tools and more detailed guidance.
   </Accordion>
 
-  <Accordion title="MCP or database errors?">
-    1.  Check Claude Desktop's logs:
+  <Accordion title="Weather API Issues">
+    **Error: Failed to retrieve grid point data**
+
+    This usually means either:
+
+    1.  The coordinates are outside the US
+    2.  The NWS API is having issues
+    3.  You're being rate limited
+
+    Fix:
+
+    *   Verify you're using US coordinates
+    *   Add a small delay between requests
+    *   Check the NWS API status page
+
+    **Error: No active alerts for \[STATE]**
+
+    This isn't an error - it just means there are no current weather alerts for that state. Try a different state or check during severe weather.
+  </Accordion>
+</AccordionGroup>
+
+<Note>
+  For more advanced troubleshooting, check out our guide on [Debugging MCP](/docs/tools/debugging)
+</Note>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Building a client" icon="outlet" href="/quickstart/client">
+    Learn how to build your own MCP client that can connect to your server
+  </Card>
+
+  <Card title="Example servers" icon="grid" href="/examples">
+    Check out our gallery of official MCP servers and implementations
+  </Card>
+
+  <Card title="Debugging Guide" icon="bug" href="/docs/tools/debugging">
+    Learn how to effectively debug MCP servers and integrations
+  </Card>
+
+  <Card title="Building MCP with LLMs" icon="comments" href="/building-mcp-with-llms">
+    Learn how to use LLMs like Claude to speed up your MCP development
+  </Card>
+</CardGroup>
+
+
+# For Claude Desktop Users
+
+Get started using pre-built servers in Claude for Desktop.
+
+In this tutorial, you will extend [Claude for Desktop](https://claude.ai/download) so that it can read from your computer's file system, write new files, move files, and even search files.
+
+<Frame>
+  <img src="https://mintlify.s3.us-west-1.amazonaws.com/mcp/images/quickstart-filesystem.png" />
+</Frame>
+
+Don't worry — it will ask you for your permission before executing these actions!
+
+## 1. Download Claude for Desktop
+
+Start by downloading [Claude for Desktop](https://claude.ai/download), choosing either macOS or Windows. (Linux is not yet supported for Claude for Desktop.)
+
+Follow the installation instructions.
+
+If you already have Claude for Desktop, make sure it's on the latest version by clicking on the Claude menu on your computer and selecting "Check for Updates..."
+
+<Accordion title="Why Claude for Desktop and not Claude.ai?">
+  Because servers are locally run, MCP currently only supports desktop hosts. Remote hosts are in active development.
+</Accordion>
+
+## 2. Add the Filesystem MCP Server
+
+To add this filesystem functionality, we will be installing a pre-built [Filesystem MCP Server](https://github.com/modelcontextprotocol/servers/tree/main/src/filesystem) to Claude for Desktop. This is one of dozens of [servers](https://github.com/modelcontextprotocol/servers/tree/main) created by Anthropic and the community.
+
+Get started by opening up the Claude menu on your computer and select "Settings..." Please note that these are not the Claude Account Settings found in the app window itself.
+
+This is what it should look like on a Mac:
+
+<Frame style={{ textAlign: 'center' }}>
+  <img src="https://mintlify.s3.us-west-1.amazonaws.com/mcp/images/quickstart-menu.png" width="400" />
+</Frame>
+
+Click on "Developer" in the lefthand bar of the Settings pane, and then click on "Edit Config":
+
+<Frame>
+  <img src="https://mintlify.s3.us-west-1.amazonaws.com/mcp/images/quickstart-developer.png" />
+</Frame>
+
+This will create a configuration file at:
+
+*   macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+*   Windows: `%APPDATA%\Claude\claude_desktop_config.json`
+
+if you don't already have one, and will display the file in your file system.
+
+Open up the configuration file in any text editor. Replace the file contents with this:
+
+<Tabs>
+  <Tab title="MacOS/Linux">
+    ```json
+    {
+      "mcpServers": {
+        "filesystem": {
+          "command": "npx",
+          "args": [
+            "-y",
+            "@modelcontextprotocol/server-filesystem",
+            "/Users/username/Desktop",
+            "/Users/username/Downloads"
+          ]
+        }
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab title="Windows">
+    ```json
+    {
+      "mcpServers": {
+        "filesystem": {
+          "command": "npx",
+          "args": [
+            "-y",
+            "@modelcontextprotocol/server-filesystem",
+            "C:\\Users\\username\\Desktop",
+            "C:\\Users\\username\\Downloads"
+          ]
+        }
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+Make sure to replace `username` with your computer's username. The paths should point to valid directories that you want Claude to be able to access and modify. It's set up to work for Desktop and Downloads, but you can add more paths as well.
+
+You will also need [Node.js](https://nodejs.org) on your computer for this to run properly. To verify you have Node installed, open the command line on your computer.
+
+*   On macOS, open the Terminal from your Applications folder
+*   On Windows, press Windows + R, type "cmd", and press Enter
+
+Once in the command line, verify you have Node installed by entering in the following command:
+
+```bash
+node --version
+```
+
+If you get an error saying "command not found" or "node is not recognized", download Node from [nodejs.org](https://nodejs.org/).
+
+<Tip>
+  **How does the configuration file work?**
+
+  This configuration file tells Claude for Dekstop which MCP servers to start up every time you start the application. In this case, we have added one server called "filesystem" that will use the Node `npx` command to install and run `@modelcontextprotocol/server-filesystem`. This server, described [here](https://github.com/modelcontextprotocol/servers/tree/main/src/filesystem), will let you access your file system in Claude for Desktop.
+</Tip>
+
+## 3. Restart Claude
+
+After updating your configuration file, you need to restart Claude for Desktop.
+
+Upon restarting, you should see a hammer <img src="https://mintlify.s3.us-west-1.amazonaws.com/mcp/images/claude-desktop-mcp-hammer-icon.svg" style={{display: 'inline', margin: 0, height: '1.3em'}} /> icon in the bottom right corner of the input box:
+
+<Frame>
+  <img src="https://mintlify.s3.us-west-1.amazonaws.com/mcp/images/quickstart-hammer.png" />
+</Frame>
+
+After clicking on the hammer icon, you should see the tools that come with the Filesystem MCP Server:
+
+<Frame style={{ textAlign: 'center' }}>
+  <img src="https://mintlify.s3.us-west-1.amazonaws.com/mcp/images/quickstart-tools.png" width="400" />
+</Frame>
+
+If your server isn't being picked up by Claude for Desktop, proceed to the [Troubleshooting](#troubleshooting) section for debugging tips.
+
+## 4. Try it out!
+
+You can now talk to Claude and ask it about your filesystem. It should know when to call the relevant tools.
+
+Things you might try asking Claude:
+
+*   Can you write a poem and save it to my desktop?
+*   What are some work-related files in my downloads folder?
+*   Can you take all the images on my desktop and move them to a new folder called "Images"?
+
+As needed, Claude will call the relevant tools and seek your approval before taking an action:
+
+<Frame style={{ textAlign: 'center' }}>
+  <img src="https://mintlify.s3.us-west-1.amazonaws.com/mcp/images/quickstart-approve.png" width="500" />
+</Frame>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Server not showing up in Claude / hammer icon missing">
+    1.  Restart Claude for Desktop completely
+    2.  Check your `claude_desktop_config.json` file syntax
+    3.  Make sure the file paths included in `claude_desktop_config.json` are valid and that they are absolute and not relative
+    4.  Look at [logs](#getting-logs-from-claude-for-desktop) to see why the server is not connecting
+    5.  In your command line, try manually running the server (replacing `username` as you did in `claude_desktop_config.json`) to see if you get any errors:
+
+    <Tabs>
+      <Tab title="MacOS/Linux">
         ```bash
+        npx -y @modelcontextprotocol/server-filesystem /Users/username/Desktop /Users/username/Downloads`
+        ```
+      </Tab>
+
+      <Tab title="Windows">
+        ```bash
+        npx -y @modelcontextprotocol/server-filesystem C:\Users\username\Desktop C:\Users\username\Downloads
+        ```
+      </Tab>
+    </Tabs>
+  </Accordion>
+
+  <Accordion title="Getting logs from Claude for Desktop">
+    Claude.app logging related to MCP is written to log files in:
+
+    *   macOS: `~/Library/Logs/Claude`
+
+    *   Windows: `%APPDATA%\Claude\logs`
+
+    *   `mcp.log` will contain general logging about MCP connections and connection failures.
+
+    *   Files named `mcp-server-SERVERNAME.log` will contain error (stderr) logging from the named server.
+
+    You can run the following command to list recent logs and follow along with any new ones (on Windows, it will only show recent logs):
+
+    <Tabs>
+      <Tab title="MacOS/Linux">
+        ```bash
+        # Check Claude's logs for errors
         tail -n 20 -f ~/Library/Logs/Claude/mcp*.log
         ```
+      </Tab>
 
-    2.  Verify database access:
+      <Tab title="Windows">
         ```bash
-        # Test database connection
-        sqlite3 ~/test.db ".tables"
+        type "%APPDATA%\Claude\logs\mcp*.log"
         ```
+      </Tab>
+    </Tabs>
+  </Accordion>
 
-    3.  Common fixes:
-        *   Check file paths in your config
-        *   Verify database file permissions
-        *   Ensure SQLite is installed properly
+  <Accordion title="Tool calls failing silently">
+    If Claude attempts to use the tools but they fail:
+
+    1.  Check Claude's logs for errors
+    2.  Verify your server builds and runs without errors
+    3.  Try restarting Claude for Desktop
+  </Accordion>
+
+  <Accordion title="None of this is working. What do I do?">
+    Please refer to our [debugging guide](/docs/tools/debugging) for better debugging tools and more detailed guidance.
   </Accordion>
 </AccordionGroup>
 
 ## Next steps
 
 <CardGroup cols={2}>
-  <Card title="Build your first MCP server" icon="code" href="/docs/first-server/python">
-    Create your own MCP servers to give your LLM clients new capabilities.
+  <Card title="Explore other servers" icon="grid" href="/examples">
+    Check out our gallery of official MCP servers and implementations
   </Card>
 
-  <Card title="Explore examples" icon="github" href="https://github.com/modelcontextprotocol/servers">
-    Browse our collection of example servers to see what's possible.
+  <Card title="Build your own server" icon="code" href="/quickstart/server">
+    Now build your own custom server to use in Claude for Desktop and other clients
   </Card>
 </CardGroup>
 
-## Development
 
-### Building and Publishing
+# Building MCP with LLMs
 
-To prepare the package for distribution:
+Speed up your MCP development using LLMs such as Claude!
 
-1. Sync dependencies and update lockfile:
-```bash
-uv sync
+This guide will help you use LLMs to help you build custom Model Context Protocol (MCP) servers and clients. We'll be focusing on Claude for this tutorial, but you can do this with any frontier LLM.
+
+## Preparing the documentation
+
+Before starting, gather the necessary documentation to help Claude understand MCP:
+
+1.  Visit [https://modelcontextprotocol.io/llms-full.txt](https://modelcontextprotocol.io/llms-full.txt) and copy the full documentation text
+2.  Navigate to either the [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk) or [Python SDK repository](https://github.com/modelcontextprotocol/python-sdk)
+3.  Copy the README files and other relevant documentation
+4.  Paste these documents into your conversation with Claude
+
+## Describing your server
+
+Once you've provided the documentation, clearly describe to Claude what kind of server you want to build. Be specific about:
+
+*   What resources your server will expose
+*   What tools it will provide
+*   Any prompts it should offer
+*   What external systems it needs to interact with
+
+For example:
+
+```
+Build an MCP server that:
+- Connects to my company's PostgreSQL database
+- Exposes table schemas as resources
+- Provides tools for running read-only SQL queries
+- Includes prompts for common data analysis tasks
 ```
 
-2. Build package distributions:
-```bash
-uv build
-```
+## Working with Claude
 
-This will create source and wheel distributions in the `dist/` directory.
+When working with Claude on MCP servers:
 
-3. Publish to PyPI:
-```bash
-uv publish
-```
+1.  Start with the core functionality first, then iterate to add more features
+2.  Ask Claude to explain any parts of the code you don't understand
+3.  Request modifications or improvements as needed
+4.  Have Claude help you test the server and handle edge cases
 
-Note: You'll need to set PyPI credentials via environment variables or command flags:
-- Token: `--token` or `UV_PUBLISH_TOKEN`
-- Or username/password: `--username`/`UV_PUBLISH_USERNAME` and `--password`/`UV_PUBLISH_PASSWORD`
+Claude can help implement all the key MCP features:
+
+*   Resource management and exposure
+*   Tool definitions and implementations
+*   Prompt templates and handlers
+*   Error handling and logging
+*   Connection and transport setup
+
+## Best practices
+
+When building MCP servers with Claude:
+
+*   Break down complex servers into smaller pieces
+*   Test each component thoroughly before moving on
+*   Keep security in mind - validate inputs and limit access appropriately
+*   Document your code well for future maintenance
+*   Follow MCP protocol specifications carefully
+
+## Next steps
+
+After Claude helps you build your server:
+
+1.  Review the generated code carefully
+2.  Test the server with the MCP Inspector tool
+3.  Connect it to Claude.app or other MCP clients
+4.  Iterate based on real usage and feedback
+
+Remember that Claude can help you modify and improve your server as requirements change over time.
+
+Need more guidance? Just ask Claude specific questions about implementing MCP features or troubleshooting issues that arise.
