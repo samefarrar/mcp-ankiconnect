@@ -55,7 +55,7 @@ The server implements three tools:
      "mcpServers": {
        "mcp-ankiconnect": {
          "command": "uv",
-         "args": ["run", "--with", "mcp-ankiconnect==0.3.1", "--with", "mcp[cli]==1.2.0rc1", "mcp-ankiconnect"]
+         "args": ["run", "--with", "mcp-ankiconnect", "mcp-ankiconnect"]
        }
      }
    }
@@ -80,4 +80,4 @@ You can launch the MCP Inspector via the mcp CLI:
 uv run mcp dev mcp_ankiconnect/server.py
 ```
 
-Upon launching, the Inspector will display a URL that you can access in your browser to begin debugging.
+Upon launching, the Inspector will display a URL you can access in your browser to begin debugging.
