@@ -146,6 +146,5 @@ class AnkiConnectClient:
         except Exception as e:
             raise RuntimeError(f"Error getting notes info: {str(e)}") from e
 
-
     async def close(self):
         await self.client.aclose()

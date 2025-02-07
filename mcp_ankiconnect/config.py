@@ -30,5 +30,7 @@ RATING_TO_EASE = {
 }
 
 EXCLUDE_STRINGS = [
-    "AnKing"
+    "AnKing",
+    "#AK_",
+    "!AK_"
 ]

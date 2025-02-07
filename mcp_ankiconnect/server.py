@@ -91,7 +91,12 @@ async def get_examples(
             - best_performance: Notes with less than 3 lapses
             - mature: Notes with interval greater than 21 days
             - young: Notes with interval less than 7 days
-            """
+
+        Args:
+            deck: Optional[str] - Filter by specific deck
+            limit: int - Maximum number of examples to return
+            sample: str - Sampling technique to use
+        """
         anki = AnkiConnectClient()
 
         query = "-is:suspended " + " ".join([f"-note:*{exclude_string}*" for exclude_string in EXCLUDE_STRINGS]) + " "
@@ -225,12 +230,28 @@ async def add_note(
     fields: dict[str, str],
     tags: List[str] = Field(default_factory = list)) -> str:
     """Add a flashcard to Anki. Ensure you have looked at examples before you do this, and that you have got approval from the user to add the flashcard.
+
+    For code examples, use the xml tags <pre><code> and </code></pre> to format your code.
+    e.g. <pre><code>def fibonacci(n):
+    if n <= 1:
+        return n
+    return fibonacci(n-1) + fibonacci(n-2)</code></pre>
+
+    For MathJax, use the <math> tag to format your math equations. This will automatically render the math equations in Anki.
+    # e.g. <math>\frac{d}{dx}[3\sin(5x)] = 15\cos(5x)</math>
+
     Args:
         deckName: str - The name of the deck to add the flashcard to.
         modelName: str - The name of the note type to use.
         fields: dict - The fields of the flashcard to add.
         tags: List[str] - The tags to add to the flashcard."""
     anki = AnkiConnectClient()
+
+    # Replace <math> tags with \( and \) in fields
+    for field_name, field_value in fields.items():
+        if isinstance(field_value, str):
+            fields[field_name] = field_value.replace("<math>", "\\(").replace("</math>", "\\)")
+
     note = {
         "deckName": deckName,
         "modelName": modelName,
