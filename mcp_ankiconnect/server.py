@@ -1,5 +1,6 @@
 from typing import List, Optional, Literal, Dict, Union
 import json
+import re
 import random
 import logging
 from contextlib import asynccontextmanager
@@ -231,11 +232,11 @@ async def add_note(
     tags: List[str] = Field(default_factory = list)) -> str:
     """Add a flashcard to Anki. Ensure you have looked at examples before you do this, and that you have got approval from the user to add the flashcard.
 
-    For code examples, use the xml tags <pre><code> and </code></pre> to format your code.
-    e.g. <pre><code>def fibonacci(n):
+    For code examples, use <code> tags to format your code.
+    e.g. <code>def fibonacci(n):
     if n <= 1:
         return n
-    return fibonacci(n-1) + fibonacci(n-2)</code></pre>
+    return fibonacci(n-1) + fibonacci(n-2)</code>
 
     For MathJax, use the <math> tag to format your math equations. This will automatically render the math equations in Anki.
     # e.g. <math>\frac{d}{dx}[3\sin(5x)] = 15\cos(5x)</math>
@@ -251,6 +252,10 @@ async def add_note(
     for field_name, field_value in fields.items():
         if isinstance(field_value, str):
             fields[field_name] = field_value.replace("<math>", "\\(").replace("</math>", "\\)")
+            # Replace <code> tags with <pre><code> and </code> with </code></pre>
+            fields[field_name] = field_value.replace("<code>", "<pre><code>").replace("</code>", "</code></pre>")
+            # Replace `code` tags with <pre><code> and </code></pre>
+            fields[field_name] = re.sub(r'`([^`]+)`', r'<pre><code>\1</code></pre>', fields[field_name])
 
     note = {
         "deckName": deckName,
