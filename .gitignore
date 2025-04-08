@@ -10,3 +10,6 @@ wheels/
 .venv
 .aider*
 .env
+
+# DS Store
+.DS_Store

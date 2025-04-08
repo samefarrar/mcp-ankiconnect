@@ -130,10 +130,20 @@ async def get_examples(
         notes = await anki.notes_info(note_ids)
         examples = []
         for note in notes:
+            # Process field values to replace <pre><code> tags with just <code> tags
+            # This is because we want the LLM to use the easier <code> tag instead of <pre><code> because we process it into <pre><code> in add_note ourselves, so the examples should fit that.
+            processed_fields = {}
+            for name, value in note["fields"].items():
+                field_value = {k: v for k, v in value.items() if k != "order"}
+                if "value" in field_value:
+                    # Replace <pre><code> with <code> and </code></pre> with </code>
+                    field_value["value"] = field_value["value"].replace("<pre><code>", "<code>").replace("</code></pre>", "</code>")
+                processed_fields[name] = field_value
+
             example = {
                 "tags": note["tags"],
                 "modelName": note["modelName"],
-                "fields": {name: {k: v for k, v in value.items() if k != "order"} for name, value in note["fields"].items()}
+                "fields": processed_fields
             }
             examples.append(example)
 
@@ -255,7 +265,10 @@ async def add_note(
             # Replace <code> tags with <pre><code> and </code> with </code></pre>
             fields[field_name] = field_value.replace("<code>", "<pre><code>").replace("</code>", "</code></pre>")
             # Replace `code` tags with <pre><code> and </code></pre>
+            fields[field_name] = re.sub(r'```(\w+)?\s*\n?(.*?)```', r'<pre><code language=\1>\2</code></pre>', fields[field_name], flags=re.DOTALL)
             fields[field_name] = re.sub(r'`([^`]+)`', r'<pre><code>\1</code></pre>', fields[field_name])
+            # Replace ```language code``` with <pre><code> and </code></pre>
+
 
     note = {
         "deckName": deckName,
