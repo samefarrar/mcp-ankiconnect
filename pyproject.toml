@@ -1,6 +1,6 @@
 [project]
 name = "mcp_ankiconnect"
-version = "0.4.2"
+version = "0.5.0"
 description = "Connect Claude conversations with AnkiConnect via MCP to make spaced repetition as easy as \"Help me remember this\""
 readme = "README.md"
 requires-python = ">=3.11"
