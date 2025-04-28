@@ -34,9 +34,9 @@ async def test_retry_on_timeout():
         mock_client_class.return_value = mock_client
 
         # Configure mock to fail twice with timeout then succeed
-        # The successful response needs an awaitable json()
+        # The successful response needs a synchronous json()
         successful_response = MagicMock(spec=httpx.Response)
-        successful_response.json = AsyncMock(return_value={"result": ["Default"], "error": None})
+        successful_response.json = MagicMock(return_value={"result": ["Default"], "error": None}) # Use MagicMock for sync method
         successful_response.raise_for_status = MagicMock() # Sync method
 
         mock_client.post.side_effect = [

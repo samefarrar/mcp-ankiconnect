@@ -153,12 +153,20 @@ class AnkiConnectClient:
 
         # --- Process successful response ---
         try:
-            # Await the json() call as it's likely an async method in httpx
-            response_json = await response.json()
-            anki_response = AnkiConnectResponse.model_validate(response_json) # Use model_validate for Pydantic v2+
+            # Decode the JSON response (synchronous in httpx)
+            response_data = response.json()
+
+            # Check if the response is the expected dictionary format or just the result
+            if isinstance(response_data, dict) and 'result' in response_data and 'error' in response_data:
+                # Standard format, validate directly
+                anki_response = AnkiConnectResponse.model_validate(response_data)
+            else:
+                # Assume response_data is the result itself (e.g., a list for deckNames)
+                logger.debug(f"Received direct result payload for action {action.value}. Wrapping in AnkiConnectResponse.")
+                anki_response = AnkiConnectResponse(result=response_data, error=None)
 
             if anki_response.error:
-                logger.error(f"AnkiConnect returned error for action {action.value}: {anki_response.error}")
+                logger.error(f"AnkiConnect API returned error for action {action.value}: {anki_response.error}")
                 # This is an error reported by the AnkiConnect API itself
                 raise ValueError(f"AnkiConnect error: {anki_response.error}")
 

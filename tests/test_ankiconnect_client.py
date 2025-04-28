@@ -34,7 +34,7 @@ def mock_response(): # Keep if used
             self._data = data
             self.status_code = status_code
 
-        async def json(self): # Make json async
+        def json(self): # Make json synchronous
             return self._data
 
         def raise_for_status(self): # Keep raise_for_status sync
@@ -138,8 +138,8 @@ async def test_invoke_success_after_retry(mock_sleep, client: AnkiConnectClient,
         AsyncMock( # Mock successful response object for second try
             spec=httpx.Response,
             status_code=200,
-            # Make json() an async method returning the data
-            json=AsyncMock(return_value=mock_response_data),
+            # Make json() a sync method returning the data
+            json=MagicMock(return_value=mock_response_data),
             # raise_for_status is sync
             raise_for_status=MagicMock()
         )
@@ -172,11 +172,11 @@ async def test_invoke_http_status_error_raises_runtimeerror(client: AnkiConnectC
     """Test that invoke raises RuntimeError for non-connection HTTP errors."""
     # Create a mock request object needed for HTTPStatusError
     mock_request = mocker.Mock(spec=httpx.Request)
-    # Configure json() to be an async method returning the expected dict structure
-    async def mock_json():
+    # Configure json() to be a sync method returning the expected dict structure
+    def mock_json():
         return {"result": None, "error": "Server error occurred"}
 
-    mock_response = AsyncMock(spec=httpx.Response, status_code=500, text="Internal Server Error", request=mock_request)
+    mock_response = MagicMock(spec=httpx.Response, status_code=500, text="Internal Server Error", request=mock_request)
     # Configure the mock response to raise HTTPStatusError when raise_for_status is called
     # raise_for_status is synchronous, so use MagicMock or configure directly
     http_error = httpx.HTTPStatusError(
@@ -184,6 +184,7 @@ async def test_invoke_http_status_error_raises_runtimeerror(client: AnkiConnectC
     )
     # Configure raise_for_status directly on the mock_response instance
     mock_response.raise_for_status = MagicMock(side_effect=http_error)
+    # Assign the synchronous mock_json function
     mock_response.json = mock_json
 
 
@@ -205,11 +206,11 @@ async def test_invoke_http_status_error_raises_runtimeerror(client: AnkiConnectC
 async def test_invoke_anki_api_error_raises_valueerror(client: AnkiConnectClient, mocker):
     """Test that invoke raises ValueError for errors reported by the AnkiConnect API."""
     mock_response_data = {"result": None, "error": "Deck not found"}
-    # Make json awaitable
-    mock_response = AsyncMock(
+    # Make json synchronous
+    mock_response = MagicMock(
         spec=httpx.Response,
         status_code=200,
-        json=AsyncMock(return_value=mock_response_data)
+        json=MagicMock(return_value=mock_response_data)
     )
     mock_response.raise_for_status = MagicMock() # No HTTP error, sync method
 

@@ -103,37 +103,6 @@ async def _find_due_card_ids(
     logger.info(f"Found {len(card_ids)} cards for query: {query}")
     return card_ids
 
-# --- Helper Functions ---
-
-# Helper for find_due_card_ids remains unchanged...
-async def _find_due_card_ids(
-    client: AnkiConnectClient,
-    deck: Optional[str] = None,
-    day: Optional[int] = 0
-) -> List[int]:
-    """Finds card IDs due on a specific day relative to today (0=today)."""
-    if day < 0:
-        raise ValueError("Day must be non-negative.")
-
-    # Construct the search query
-    # prop:due=0 means due today
-    # prop:due=1 means due tomorrow (relative to review time)
-    # prop:due<=N finds cards due today up to N days in the future.
-    if day == 0:
-        prop = "prop:due=0" # Due exactly today
-    else:
-        prop = f"prop:due<={day}"
-
-    query = f"is:due -is:suspended {prop}"
-    if deck:
-        # Add deck to query, ensuring proper quoting for spaces
-        query += f' "deck:{deck}"'
-
-    logger.debug(f"Executing Anki card search query: {query}")
-    card_ids = await client.find_cards(query=query)
-    logger.info(f"Found {len(card_ids)} cards for query: {query}")
-    return card_ids
-
 
 def _build_example_query(deck: Optional[str], sample: str) -> str:
     """Builds the Anki query string for finding example notes."""
