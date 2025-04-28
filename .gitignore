@@ -10,6 +10,7 @@ wheels/
 .venv
 .aider*
 .env
+.asana/
 
 # DS Store
 .DS_Store
