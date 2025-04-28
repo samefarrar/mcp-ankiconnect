@@ -18,12 +18,12 @@ from mcp_ankiconnect.ankiconnect_client import (
 
 # Fixture for the client (can be reused)
 @pytest.fixture
-def client():
-    # Provide a dummy URL for testing and ensure it's closed
-    # Using a context manager approach within the test might be cleaner
-    # Or ensure close is called in tests that use it.
-    # For simplicity, we'll instantiate directly here.
-    return AnkiConnectClient(base_url="http://testhost:8765")
+async def client(): # Make the fixture async
+    # Setup: Create the client instance
+    instance = AnkiConnectClient(base_url="http://testhost:8765")
+    yield instance
+    # Teardown: Close the client's session after the test using it has finished
+    await instance.close()
 
 # Keep mock_response fixture if it's still used by older tests, otherwise remove.
 # It seems less necessary with AsyncMock for httpx.post
@@ -80,7 +80,6 @@ async def test_cards_info(client: AnkiConnectClient, mocker: MockerFixture, mock
     call_args = mock_post.call_args[1]
     assert call_args["json"]["action"] == AnkiAction.CARDS_INFO
     assert call_args["json"]["params"]["cards"] == card_ids
-    await client.close() # Close client
 
 # Note: test_error_handling is replaced by test_invoke_anki_api_error_raises_valueerror
 # Note: test_connection_error is replaced by test_invoke_connect_error_raises_custom_exception etc.
@@ -108,7 +107,6 @@ async def test_invoke_connect_error_raises_custom_exception(mock_sleep, client: 
     # Check sleep calls with exponential backoff (0 -> 1s, 1 -> 2s)
     assert mock_sleep.call_args_list == [call(1), call(2)] # 2**0, 2**1
 
-    await client.close() # Close client after test
 
 @pytest.mark.asyncio
 @patch('asyncio.sleep', return_value=None) # Mock sleep
@@ -128,7 +126,6 @@ async def test_invoke_timeout_error_raises_custom_exception(mock_sleep, client: 
     assert mock_post.call_count == 3
     assert mock_sleep.call_args_list == [call(1), call(2)]
 
-    await client.close()
 
 @pytest.mark.asyncio
 @patch('asyncio.sleep', return_value=None)
@@ -169,8 +166,6 @@ async def test_invoke_success_after_retry(mock_sleep, client: AnkiConnectClient,
     assert mock_sleep.call_count == 1 # Slept after the first failure
     assert mock_sleep.call_args == call(1) # 2**0
 
-    await client.close()
-
 
 @pytest.mark.asyncio
 async def test_invoke_http_status_error_raises_runtimeerror(client: AnkiConnectClient, mocker):
@@ -205,7 +200,6 @@ async def test_invoke_http_status_error_raises_runtimeerror(client: AnkiConnectC
     assert "Internal Server Error" in str(excinfo.value)
     assert mock_post.call_count == 1 # No retries for HTTP status errors
 
-    await client.close()
 
 @pytest.mark.asyncio
 async def test_invoke_anki_api_error_raises_valueerror(client: AnkiConnectClient, mocker):
@@ -231,7 +225,6 @@ async def test_invoke_anki_api_error_raises_valueerror(client: AnkiConnectClient
     assert "AnkiConnect error: Deck not found" in str(excinfo.value)
     assert mock_post.call_count == 1
 
-    await client.close()
 
 # --- Keep existing tests for client methods (like test_deck_names, test_add_note)
 # They implicitly test the success path of invoke. Ensure they close the client. ---
@@ -260,4 +253,3 @@ async def test_add_note(client: AnkiConnectClient, mocker: MockerFixture, mock_r
     call_args = mock_post.call_args[1]
     assert call_args["json"]["action"] == AnkiAction.ADD_NOTE
     assert call_args["json"]["params"]["note"] == note
-    await client.close() # Close client

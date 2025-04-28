@@ -103,6 +103,148 @@ async def _find_due_card_ids(
     logger.info(f"Found {len(card_ids)} cards for query: {query}")
     return card_ids
 
+# --- Helper Functions ---
+
+# Helper for find_due_card_ids remains unchanged...
+async def _find_due_card_ids(
+    client: AnkiConnectClient,
+    deck: Optional[str] = None,
+    day: Optional[int] = 0
+) -> List[int]:
+    """Finds card IDs due on a specific day relative to today (0=today)."""
+    if day < 0:
+        raise ValueError("Day must be non-negative.")
+
+    # Construct the search query
+    # prop:due=0 means due today
+    # prop:due=1 means due tomorrow (relative to review time)
+    # prop:due<=N finds cards due today up to N days in the future.
+    if day == 0:
+        prop = "prop:due=0" # Due exactly today
+    else:
+        prop = f"prop:due<={day}"
+
+    query = f"is:due -is:suspended {prop}"
+    if deck:
+        # Add deck to query, ensuring proper quoting for spaces
+        query += f' "deck:{deck}"'
+
+    logger.debug(f"Executing Anki card search query: {query}")
+    card_ids = await client.find_cards(query=query)
+    logger.info(f"Found {len(card_ids)} cards for query: {query}")
+    return card_ids
+
+
+def _build_example_query(deck: Optional[str], sample: str) -> str:
+    """Builds the Anki query string for finding example notes."""
+    query_parts = ["-is:suspended"]
+    query_parts.extend([f"-note:*{ex}*" for ex in EXCLUDE_STRINGS])
+
+    if deck:
+        query_parts.append(f'"deck:{deck}"')
+
+    sort_order = ""
+    match sample:
+        case "recent":
+            query_parts.append("added:7")
+            sort_order = "sort:added rev"
+        case "most_reviewed":
+            query_parts.append("prop:reps>10")
+            sort_order = "sort:reps rev"
+        case "best_performance":
+            query_parts.append("prop:lapses<3 is:review")
+            sort_order = "sort:lapses"
+        case "mature":
+            query_parts.append("prop:ivl>=21 -is:learn")
+            sort_order = "sort:ivl rev"
+        case "young":
+            query_parts.append("is:review prop:ivl<=7 -is:learn")
+            sort_order = "sort:ivl"
+        case "random":
+            query_parts.append("is:review") # Default filter for random
+
+    query = " ".join(query_parts)
+    if sort_order:
+        query += f" {sort_order}"
+    return query
+
+
+def _format_example_notes(notes_info: List[dict]) -> List[dict]:
+    """Formats note information into simplified dictionaries for examples."""
+    examples = []
+    for note in notes_info:
+        processed_fields = {}
+        for name, field_data in note.get("fields", {}).items():
+            value = field_data.get("value", "")
+            processed_value = value.replace("<pre><code>", "<code>").replace("</code></pre>", "</code>")
+            processed_fields[name] = processed_value
+
+        example = {
+            "modelName": note.get("modelName", "UnknownModel"),
+            "fields": processed_fields,
+            "tags": note.get("tags", [])
+        }
+        examples.append(example)
+    return examples
+
+
+def _format_cards_for_llm(cards_info: List[dict]) -> str:
+    """Formats card information into an XML-like string for the LLM."""
+    formatted_cards = []
+    for card in cards_info:
+        card_id = card.get('cardId', 'UNKNOWN_ID')
+        fields = card.get('fields', {})
+        question_field_order = card.get('fieldOrder', 0)
+
+        question_parts = []
+        answer_parts = []
+        sorted_field_items = sorted(fields.items(), key=lambda item: item[1].get('order', 0))
+
+        for name, field_data in sorted_field_items:
+            field_value = field_data.get('value', '')
+            field_order = field_data.get('order', -1)
+            tag_name = name.lower().replace(" ", "_")
+
+            if field_order == question_field_order:
+                question_parts.append(f"<{tag_name}>{field_value}</{tag_name}>")
+            else:
+                answer_parts.append(f"<{tag_name}>{field_value}</{tag_name}>")
+
+        question_str = "".join(question_parts) if question_parts else "<error>Question field not found</error>"
+        answer_str = " ".join(answer_parts) if answer_parts else "<error>Answer fields not found</error>"
+
+        formatted_cards.append(
+            f"<card id=\"{card_id}\">\n"
+            f"  <question>{question_str}</question>\n"
+            f"  <answer>{answer_str}</answer>\n"
+            f"</card>"
+        )
+    return "\n\n".join(formatted_cards)
+
+
+def _process_field_content(content: str) -> str:
+    """Processes field content for MathJax and code blocks before sending to Anki."""
+    if not isinstance(content, str):
+        logger.warning(f"Field content is not a string (type: {type(content)}). Returning as-is.")
+        return content # Return non-strings unmodified
+
+    # 1. MathJax: <math>...</math> -> \(...\)
+    processed_value = content.replace("<math>", "\\(").replace("</math>", "\\)")
+
+    # 2. Code Blocks: ```lang\n...\n``` -> <pre><code class="language-lang">...</code></pre>
+    processed_value = re.sub(
+        r'```(\w+)?\s*\n?(.*?)```',
+        lambda m: f'<pre><code class="language-{m.group(1)}">{m.group(2)}</code></pre>' if m.group(1) else f'<pre><code>{m.group(2)}</code></pre>',
+        processed_value,
+        flags=re.DOTALL
+    )
+
+    # 3. Inline Code: `...` -> <code>...</code>
+    processed_value = re.sub(r'`([^`]+)`', r'<code>\1</code>', processed_value)
+
+    return processed_value
+
+
 # --- Tool Definitions ---
 
 @mcp.tool()
@@ -180,44 +322,11 @@ async def get_examples(
             sample: str - Sampling technique (random, recent, most_reviewed, best_performance, mature, young).
         """
         async with get_anki_client() as anki:
-            # Base query excluding suspended cards and excluded strings in notes
-            query_parts = ["-is:suspended"]
-            query_parts.extend([f"-note:*{ex}*" for ex in EXCLUDE_STRINGS])
-
-            if deck:
-                # Ensure deck name is quoted if it contains spaces or special chars
-                query_parts.append(f'"deck:{deck}"')
-
-            # Add criteria based on sampling technique
-            sort_order = "" # Default sort order
-            match sample:
-                case "recent":
-                    query_parts.append("added:7")
-                    sort_order = "sort:added rev" # Sort by most recently added first
-                case "most_reviewed":
-                    query_parts.append("prop:reps>10")
-                    sort_order = "sort:reps rev" # Sort by most reviews first
-                case "best_performance":
-                    query_parts.append("prop:lapses<3 is:review") # Only review cards
-                    sort_order = "sort:lapses" # Sort by fewest lapses first
-                case "mature":
-                    query_parts.append("prop:ivl>=21 -is:learn") # Exclude learning cards
-                    sort_order = "sort:ivl rev" # Sort by longest interval first
-                case "young":
-                    query_parts.append("is:review prop:ivl<=7 -is:learn") # Review cards, short interval
-                    sort_order = "sort:ivl" # Sort by shortest interval first
-                case "random":
-                    # For random, we find notes and then sample from the IDs later
-                    # A broad query is needed. Maybe limit by review status or add date?
-                    query_parts.append("is:review") # Example: Limit to review cards for random sample
-
-            query = " ".join(query_parts)
-            if sort_order:
-                 query += f" {sort_order}" # Append sorting if specified
-
+            # Build the query using the helper function
+            query = _build_example_query(deck, sample)
             logger.debug(f"Finding example notes with query: {query}")
-            note_ids = await anki.find_notes(query=query)
 
+            note_ids = await anki.find_notes(query=query)
             if not note_ids:
                 return f"No example notes found matching criteria (Sample: {sample}, Deck: {deck or 'Any'})."
 
@@ -235,28 +344,12 @@ async def get_examples(
             logger.debug(f"Fetching info for note IDs: {sampled_note_ids}")
             notes_info = await anki.notes_info(sampled_note_ids)
 
-            examples = []
-            for note in notes_info:
-                # Process fields: Replace <pre><code> with <code> etc. for LLM examples
-                processed_fields = {}
-                for name, field_data in note.get("fields", {}).items():
-                    # field_data is like {"value": "...", "order": 0}
-                    value = field_data.get("value", "")
-                    # Simplify code blocks for the example output
-                    processed_value = value.replace("<pre><code>", "<code>").replace("</code></pre>", "</code>")
-                    # Keep only the value for the example output
-                    processed_fields[name] = processed_value # Store only the processed value string
-
-                example = {
-                    "modelName": note.get("modelName", "UnknownModel"),
-                    "fields": processed_fields,
-                    "tags": note.get("tags", [])
-                }
-                examples.append(example)
+            # Format notes using the helper function
+            formatted_examples = _format_example_notes(notes_info)
 
             # Combine guidelines with the JSON examples
             # Use json.dumps for clean formatting
-            examples_json = json.dumps(examples, indent=2, ensure_ascii=False)
+            examples_json = json.dumps(formatted_examples, indent=2, ensure_ascii=False)
             result = f"{flashcard_guidelines}\n\nHere are some examples based on your criteria:\n{examples_json}"
 
             return result
@@ -295,48 +388,8 @@ async def fetch_due_cards_for_review(
         logger.debug(f"Fetching info for card IDs: {card_ids_to_fetch}")
         cards_info_list = await anki.cards_info(card_ids=card_ids_to_fetch)
 
-        # Format the card information into the desired XML-like structure
-        formatted_cards = []
-        for card in cards_info_list:
-            card_id = card.get('cardId', 'UNKNOWN_ID')
-            fields = card.get('fields', {})
-            question_field_order = card.get('fieldOrder', 0) # This is the index of the field used as the primary "question" for this card template
-
-            # Extract Question: The field whose 'order' matches the card's 'fieldOrder'
-            question_parts = []
-            # Extract Answer: All other fields (up to a reasonable limit, e.g., 5?)
-            answer_parts = []
-
-            # Sort fields by their 'order' to ensure consistent output
-            sorted_field_items = sorted(fields.items(), key=lambda item: item[1].get('order', 0))
-
-            for name, field_data in sorted_field_items:
-                 field_value = field_data.get('value', '')
-                 field_order = field_data.get('order', -1)
-                 # Use lowercase tag names as requested
-                 tag_name = name.lower().replace(" ", "_") # Basic sanitization for tag names
-
-                 if field_order == question_field_order:
-                     question_parts.append(f"<{tag_name}>{field_value}</{tag_name}>")
-                 else:
-                      # Include other fields in the answer part
-                      answer_parts.append(f"<{tag_name}>{field_value}</{tag_name}>")
-
-
-            # Handle cases where question/answer might be empty if logic fails
-            question_str = "".join(question_parts) if question_parts else "<error>Question field not found</error>"
-            # Join answer parts with a separator like a space or newline if needed
-            answer_str = " ".join(answer_parts) if answer_parts else "<error>Answer fields not found</error>"
-
-
-            formatted_cards.append(
-                f"<card id=\"{card_id}\">\n"
-                f"  <question>{question_str}</question>\n"
-                f"  <answer>{answer_str}</answer>\n"
-                f"</card>"
-            )
-
-        cards_text = "\n\n".join(formatted_cards)
+        # Format cards using the helper function
+        cards_text = _format_cards_for_llm(cards_info_list)
 
         # Inject the formatted cards into the review instructions prompt
         review_prompt = claude_review_instructions.replace("{{flashcards}}", cards_text)
@@ -445,48 +498,18 @@ async def add_note(
         fields: dict - Dictionary of field names and their string content.
         tags: List[str] - Optional list of tags.
     """
-    # --- Field Processing ---
-    processed_fields = {}
-    for field_name, field_value in fields.items():
-        if isinstance(field_value, str):
-            # 1. MathJax: <math>...</math> -> \(...\)
-            processed_value = field_value.replace("<math>", "\\(").replace("</math>", "\\)")
-
-            # 2. Code Blocks: ```lang\n...\n``` -> <pre><code class="language-lang">...</code></pre>
-            # Use re.sub with a function for more control if needed, but basic regex works for simple cases
-            # This regex captures optional language and the code content
-            processed_value = re.sub(
-                # Match ``` optionally followed by language, newline, content, and ```
-                r'```(\w+)?\s*\n?(.*?)```', # Use raw string for regex pattern
-                # Replacement function: use language in class if present
-                lambda m: f'<pre><code class="language-{m.group(1)}">{m.group(2)}</code></pre>' if m.group(1) else f'<pre><code>{m.group(2)}</code></pre>',
-                processed_value,
-                flags=re.DOTALL # Allow '.' to match newlines within the code block
-            )
-
-
-            # 3. Inline Code: `...` or <code>...</code> -> <code>...</code>
-            # Anki typically uses just <code> for inline. Let's ensure both inputs map to <code>.
-            # Replace `` first
-            processed_value = re.sub(r'`([^`]+)`', r'<code>\1</code>', processed_value)
-            # Ensure existing <code> tags are kept as is (no change needed if target is <code>)
-            # processed_value = processed_value.replace("<code>", "<code>").replace("</code>", "</code>") # This line is redundant if target is <code>
-
-            processed_fields[field_name] = processed_value
-        else:
-            # Keep non-string fields as-is (though Anki fields are typically strings)
-            processed_fields[field_name] = field_value
-            logger.warning(f"Field '{field_name}' has non-string type: {type(field_value)}. Passing as-is.")
-    # --- End Field Processing ---
-
+    # Process fields using the helper function
+    processed_fields = {
+        name: _process_field_content(value) for name, value in fields.items()
+    }
 
     note_payload = {
         "deckName": deckName,
         "modelName": modelName,
         "fields": processed_fields, # Use processed fields
-        "tags": tags if tags is not None else [], # Use tags if provided, else empty list
+        "tags": tags if tags is not None else [],
         "options": {
-            "allowDuplicate": False, # Default: prevent duplicates in the same deck
+            "allowDuplicate": False,
             "duplicateScope": "deck",
             # "checkClobber": True # Optional: check if adding would overwrite based on first field
         }

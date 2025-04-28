@@ -367,4 +367,147 @@ async def test_add_note_api_error(mock_anki_client):
     assert "SYSTEM_ERROR: An error occurred communicating with Anki:" in result
     assert error_message in result
 
+
+# --- Tests for Helper Functions ---
+
+# Test _process_field_content
+@pytest.mark.parametrize("input_content, expected_output", [
+    # Basic text
+    ("Hello world", "Hello world"),
+    # MathJax
+    ("Equation: <math>e=mc^2</math>", "Equation: \\(e=mc^2\\)"),
+    # Inline code
+    ("Use `variable_name` here.", "Use <code>variable_name</code> here."),
+    # Code block without language
+    ("```\ncode line 1\ncode line 2\n```", "<pre><code>code line 1\ncode line 2\n</code></pre>"),
+    # Code block with language
+    ("```python\ndef test():\n  pass\n```", '<pre><code class="language-python">def test():\n  pass\n</code></pre>'),
+    # Mixed content
+    ("Text `code` and <math>math</math> and ```js\nconsole.log('hi');\n```", 'Text <code>code</code> and \\(math\\) and <pre><code class="language-js">console.log(\'hi\');\n</code></pre>'),
+    # Non-string input (should return as-is)
+    (123, 123),
+    (None, None),
+    (["list"], ["list"]),
+])
+def test__process_field_content(input_content, expected_output):
+    """Test the _process_field_content helper for various transformations."""
+    from mcp_ankiconnect.server import _process_field_content # Import locally for clarity
+    assert _process_field_content(input_content) == expected_output
+
+# Test _build_example_query
+@pytest.mark.parametrize("deck, sample, expected_query_parts", [
+    (None, "random", ["-is:suspended", "-note:*AnKing*", "-note:*#AK_*", "-note:*!AK_*", "is:review"]),
+    ("MyDeck", "random", ["-is:suspended", "-note:*AnKing*", '-note:*#AK_*', '-note:*!AK_*', '"deck:MyDeck"', "is:review"]),
+    (None, "recent", ["-is:suspended", "-note:*AnKing*", "-note:*#AK_*", "-note:*!AK_*", "added:7", "sort:added rev"]),
+    ("Another Deck", "mature", ['-is:suspended', '-note:*AnKing*', '-note:*#AK_*', '-note:*!AK_*', '"deck:Another Deck"', 'prop:ivl>=21', '-is:learn', 'sort:ivl rev']),
+    (None, "most_reviewed", ['-is:suspended', '-note:*AnKing*', '-note:*#AK_*', '-note:*!AK_*', 'prop:reps>10', 'sort:reps rev']),
+    (None, "best_performance", ['-is:suspended', '-note:*AnKing*', '-note:*#AK_*', '-note:*!AK_*', 'prop:lapses<3', 'is:review', 'sort:lapses']),
+    (None, "young", ['-is:suspended', '-note:*AnKing*', '-note:*#AK_*', '-note:*!AK_*', 'is:review', 'prop:ivl<=7', '-is:learn', 'sort:ivl']),
+])
+def test__build_example_query(deck, sample, expected_query_parts):
+    """Test the _build_example_query helper for different inputs."""
+    from mcp_ankiconnect.server import _build_example_query # Import locally
+    # Check if all expected parts are present in the generated query
+    # Order might vary slightly depending on implementation details, so check presence
+    generated_query = _build_example_query(deck, sample)
+    for part in expected_query_parts:
+        assert part in generated_query
+    # Check exclusion strings are present
+    assert "-note:*AnKing*" in generated_query
+    assert "-note:*#AK_*" in generated_query
+    assert "-note:*!AK_*" in generated_query
+
+
+# Test _format_example_notes
+def test__format_example_notes():
+    """Test the _format_example_notes helper."""
+    from mcp_ankiconnect.server import _format_example_notes # Import locally
+    notes_info = [
+        {
+            "noteId": 101, "modelName": "Basic", "tags": ["tag1"],
+            "fields": {"Front": {"value": "Q1 <pre><code>code</code></pre>", "order": 0}, "Back": {"value": "A1", "order": 1}}
+        },
+        {
+            "noteId": 102, "modelName": "Cloze", "tags": [],
+            "fields": {"Text": {"value": "Cloze {{c1::text}}", "order": 0}, "Extra": {"value": "Extra info", "order": 1}}
+        },
+        { # Note with missing fields/modelName
+            "noteId": 103, "tags": ["minimal"],
+        }
+    ]
+    expected_output = [
+        {
+            "modelName": "Basic",
+            "fields": {"Front": "Q1 <code>code</code>", "Back": "A1"}, # Check code simplification
+            "tags": ["tag1"]
+        },
+        {
+            "modelName": "Cloze",
+            "fields": {"Text": "Cloze {{c1::text}}", "Extra": "Extra info"},
+            "tags": []
+        },
+        {
+            "modelName": "UnknownModel", # Default model name
+            "fields": {}, # Empty fields dict
+            "tags": ["minimal"]
+        }
+    ]
+    assert _format_example_notes(notes_info) == expected_output
+
+# Test _format_cards_for_llm
+def test__format_cards_for_llm():
+    """Test the _format_cards_for_llm helper."""
+    from mcp_ankiconnect.server import _format_cards_for_llm # Import locally
+    cards_info = [
+        { # Basic card
+            "cardId": 201, "note": 101, "deckName": "Default", "fieldOrder": 0, # Question is field 0 ('Front')
+            "fields": {
+                "Front": {"value": "Question 1", "order": 0},
+                "Back": {"value": "Answer 1", "order": 1},
+                "Source": {"value": "Book A", "order": 2}
+            }
+        },
+        { # Cloze card (Question is field 0 - 'Text')
+            "cardId": 202, "note": 102, "deckName": "Default", "fieldOrder": 0,
+            "fields": {
+                "Text": {"value": "Cloze {{c1::deletion}} here", "order": 0},
+                "Extra": {"value": "Extra info", "order": 1}
+            }
+        },
+        { # Card with different field order for question
+            "cardId": 203, "note": 103, "deckName": "Default", "fieldOrder": 1, # Question is field 1 ('Back')
+            "fields": {
+                "Front": {"value": "Context", "order": 0},
+                "Back": {"value": "Term", "order": 1},
+                "Definition": {"value": "The definition", "order": 2}
+            }
+        },
+        { # Card with missing fields
+            "cardId": 204, "note": 104, "deckName": "Default", "fieldOrder": 0,
+            "fields": {}
+        }
+    ]
+
+    expected_output = (
+        '<card id="201">\n'
+        '  <question><front>Question 1</front></question>\n'
+        '  <answer><back>Answer 1</back> <source>Book A</source></answer>\n'
+        '</card>\n\n'
+        '<card id="202">\n'
+        '  <question><text>Cloze {{c1::deletion}} here</text></question>\n'
+        '  <answer><extra>Extra info</extra></answer>\n'
+        '</card>\n\n'
+        '<card id="203">\n'
+        '  <question><back>Term</back></question>\n'
+        '  <answer><front>Context</front> <definition>The definition</definition></answer>\n' # Note order based on field 'order'
+        '</card>\n\n'
+        '<card id="204">\n'
+        '  <question><error>Question field not found</error></question>\n'
+        '  <answer><error>Answer fields not found</error></answer>\n'
+        '</card>'
+    )
+
+    assert _format_cards_for_llm(cards_info) == expected_output
+
+
 # --- End Tests ---
