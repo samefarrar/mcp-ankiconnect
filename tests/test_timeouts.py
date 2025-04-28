@@ -2,7 +2,7 @@ import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
 import httpx
 import asyncio
-from mcp_ankiconnect.ankiconnect_client import AnkiConnectClient
+from mcp_ankiconnect.ankiconnect_client import AnkiConnectClient, AnkiConnectionError # Import AnkiConnectionError
 from mcp_ankiconnect.config import TIMEOUTS
 
 @pytest.mark.asyncio
@@ -34,14 +34,15 @@ async def test_retry_on_timeout():
         mock_client_class.return_value = mock_client
 
         # Configure mock to fail twice with timeout then succeed
-        mock_response = MagicMock()
-        mock_response.json.return_value = {"result": ["Default"], "error": None}
-        mock_response.raise_for_status = MagicMock()
+        # The successful response needs an awaitable json()
+        successful_response = MagicMock(spec=httpx.Response)
+        successful_response.json = AsyncMock(return_value={"result": ["Default"], "error": None})
+        successful_response.raise_for_status = MagicMock() # Sync method
 
         mock_client.post.side_effect = [
             httpx.TimeoutException("Connection timed out"),
             httpx.TimeoutException("Connection timed out"),
-            mock_response
+            successful_response # Use the configured successful response mock
         ]
 
         client = AnkiConnectClient()
@@ -64,12 +65,16 @@ async def test_retry_exhaustion():
         mock_client.post.side_effect = httpx.TimeoutException("Connection timed out")
 
         client = AnkiConnectClient()
-        with pytest.raises(RuntimeError) as exc_info:
+        # Expect AnkiConnectionError after retries fail
+        with pytest.raises(AnkiConnectionError) as exc_info:
             await client.deck_names()
 
         # Verify it was called max_retries times
         assert mock_client.post.call_count == 3
-        assert "Unable to connect to Anki after 3 attempts" in str(exc_info.value)
+        # Update assertion to match the actual error message format
+        assert "Unable to connect to AnkiConnect at http://localhost:8765 after 3 attempts" in str(exc_info.value)
+        assert "Last error: Connection timed out" in str(exc_info.value)
+
 
         await client.close()
 
@@ -86,7 +91,8 @@ async def test_retry_backoff():
         client = AnkiConnectClient()
         start_time = asyncio.get_event_loop().time()
 
-        with pytest.raises(RuntimeError):
+        # Expect AnkiConnectionError after retries fail
+        with pytest.raises(AnkiConnectionError):
             await client.deck_names()
 
         end_time = asyncio.get_event_loop().time()
@@ -108,12 +114,13 @@ async def test_timeout_error_message():
         mock_client.post.side_effect = httpx.TimeoutException("Connection timed out")
 
         client = AnkiConnectClient()
-        with pytest.raises(RuntimeError) as exc_info:
+        # Expect AnkiConnectionError after retries fail
+        with pytest.raises(AnkiConnectionError) as exc_info:
             await client.deck_names()
 
         error_msg = str(exc_info.value)
-        assert "Unable to connect to Anki" in error_msg
+        assert "Unable to connect to AnkiConnect" in error_msg # Check for "AnkiConnect"
         assert "ensure Anki is running" in error_msg
-        assert "AnkiConnect plugin is installed" in error_msg
+        assert "add-on is installed" in error_msg # Check for "add-on is installed"
 
         await client.close()
