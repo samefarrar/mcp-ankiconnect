@@ -444,6 +444,36 @@ async def submit_reviews(
 
 
 @mcp.tool()
+@handle_anki_connection_error
+async def create_deck(deck_name: str) -> str:
+    """Create a new deck in Anki.
+
+    Args:
+        deck_name: Name of the deck to create. Can include '::' for nested decks (e.g., 'Parent::Child').
+    """
+    async with get_anki_client() as anki:
+        logger.info(f"Attempting to create deck: '{deck_name}'")
+
+        # Check if deck already exists
+        existing_decks = await anki.deck_names()
+        if deck_name in existing_decks:
+            logger.info(f"Deck '{deck_name}' already exists.")
+            return f"Deck '{deck_name}' already exists. No need to create it."
+
+        # Create the deck
+        deck_id = await anki.create_deck(deck_name)
+
+        if deck_id:
+            success_message = f"Successfully created deck '{deck_name}' with ID: {deck_id}."
+            logger.info(success_message)
+            return success_message
+        else:
+            fail_message = f"Failed to create deck '{deck_name}'. AnkiConnect did not return a deck ID."
+            logger.error(fail_message)
+            return f"SYSTEM_ERROR: {fail_message}"
+
+
+@mcp.tool()
 @handle_anki_connection_error # Apply decorator
 async def add_note(
     deckName: str,

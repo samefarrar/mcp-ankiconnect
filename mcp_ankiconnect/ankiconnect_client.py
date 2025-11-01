@@ -42,6 +42,7 @@ class AnkiConnectionError(Exception):
 
 class AnkiAction(str, Enum):
     DECK_NAMES = "deckNames"
+    CREATE_DECK = "createDeck"
     FIND_CARDS = "findCards"
     CARDS_INFO = "cardsInfo"
     ANSWER_CARDS = "answerCards"
@@ -215,6 +216,17 @@ class AnkiConnectClient:
 
     async def notes_info(self, note_ids: List[int]) -> List[dict]:
         return await self.invoke(AnkiAction.NOTES_INFO, notes=note_ids)
+
+    async def create_deck(self, deck_name: str) -> int:
+        """Create a new deck in Anki.
+
+        Args:
+            deck_name: Name of the deck to create. Can include '::' for nested decks.
+
+        Returns:
+            The deck ID of the created (or existing) deck.
+        """
+        return await self.invoke(AnkiAction.CREATE_DECK, deck=deck_name)
 
     async def close(self):
         await self.client.aclose()

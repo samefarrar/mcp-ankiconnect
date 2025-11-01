@@ -254,3 +254,43 @@ async def test_add_note(client: AnkiConnectClient, mocker: MockerFixture, mock_r
     call_args = mock_post.call_args[1]
     assert call_args["json"]["action"] == AnkiAction.ADD_NOTE
     assert call_args["json"]["params"]["note"] == note
+
+
+@pytest.mark.asyncio
+async def test_create_deck(client: AnkiConnectClient, mocker: MockerFixture, mock_response):
+    """Test creating a new deck."""
+    deck_name = "統計学"
+    expected_deck_id = 5678
+    mock_post = mocker.patch.object(
+        client.client,
+        "post",
+        return_value=mock_response({"result": expected_deck_id, "error": None})
+    )
+
+    result = await client.create_deck(deck_name)
+
+    assert result == expected_deck_id
+    mock_post.assert_called_once()
+    call_args = mock_post.call_args[1]
+    assert call_args["json"]["action"] == AnkiAction.CREATE_DECK
+    assert call_args["json"]["params"]["deck"] == deck_name
+
+
+@pytest.mark.asyncio
+async def test_create_nested_deck(client: AnkiConnectClient, mocker: MockerFixture, mock_response):
+    """Test creating a nested deck using '::' separator."""
+    deck_name = "Math::Statistics"
+    expected_deck_id = 9999
+    mock_post = mocker.patch.object(
+        client.client,
+        "post",
+        return_value=mock_response({"result": expected_deck_id, "error": None})
+    )
+
+    result = await client.create_deck(deck_name)
+
+    assert result == expected_deck_id
+    mock_post.assert_called_once()
+    call_args = mock_post.call_args[1]
+    assert call_args["json"]["action"] == AnkiAction.CREATE_DECK
+    assert call_args["json"]["params"]["deck"] == deck_name

@@ -10,6 +10,7 @@ from mcp_ankiconnect.server import (
     fetch_due_cards_for_review,
     submit_reviews,
     add_note, # Import add_note
+    create_deck, # Import create_deck
     mcp # Import the MCP instance if needed for registration checks
 )
 # Import the custom exception and the client (for spec)
@@ -31,6 +32,7 @@ def mock_anki_client():
     mock_client.notes_info = AsyncMock()
     mock_client.add_note = AsyncMock()
     mock_client.answer_cards = AsyncMock()
+    mock_client.create_deck = AsyncMock()
     mock_client.close = AsyncMock() # Mock close as well
     return mock_client
 
@@ -508,6 +510,86 @@ def test__format_cards_for_llm():
     )
 
     assert _format_cards_for_llm(cards_info) == expected_output
+
+
+# --- create_deck ---
+@pytest.mark.asyncio
+async def test_create_deck_success(mock_anki_client):
+    """Test create_deck success path when deck doesn't exist."""
+    mock_anki_client.deck_names.return_value = ["Default", "Existing Deck"]
+    mock_anki_client.create_deck.return_value = 1234567890
+
+    deck_name = "統計学"
+    result = await create_deck(deck_name=deck_name)
+
+    # Check that deck_names was called to check for existing decks
+    mock_anki_client.deck_names.assert_called_once()
+    # Check that create_deck was called with the new deck name
+    mock_anki_client.create_deck.assert_called_once_with(deck_name)
+
+    assert f"Successfully created deck '{deck_name}' with ID: 1234567890." in result
+
+
+@pytest.mark.asyncio
+async def test_create_deck_already_exists(mock_anki_client):
+    """Test create_deck when deck already exists."""
+    existing_deck = "統計学"
+    mock_anki_client.deck_names.return_value = ["Default", existing_deck]
+
+    result = await create_deck(deck_name=existing_deck)
+
+    # Check that deck_names was called
+    mock_anki_client.deck_names.assert_called_once()
+    # Check that create_deck was NOT called since deck exists
+    mock_anki_client.create_deck.assert_not_called()
+
+    assert f"Deck '{existing_deck}' already exists. No need to create it." in result
+
+
+@pytest.mark.asyncio
+async def test_create_nested_deck_success(mock_anki_client):
+    """Test creating a nested deck using '::' separator."""
+    mock_anki_client.deck_names.return_value = ["Default"]
+    mock_anki_client.create_deck.return_value = 9999
+
+    nested_deck_name = "Math::Statistics"
+    result = await create_deck(deck_name=nested_deck_name)
+
+    mock_anki_client.deck_names.assert_called_once()
+    mock_anki_client.create_deck.assert_called_once_with(nested_deck_name)
+
+    assert f"Successfully created deck '{nested_deck_name}' with ID: 9999." in result
+
+
+@pytest.mark.asyncio
+async def test_create_deck_connection_error(mock_anki_client):
+    """Test create_deck handles AnkiConnectionError."""
+    error_message = "Connection failed"
+    mock_anki_client.deck_names.side_effect = AnkiConnectionError(error_message)
+
+    result = await create_deck(deck_name="TestDeck")
+
+    mock_anki_client.deck_names.assert_called_once()
+    mock_anki_client.create_deck.assert_not_called()
+
+    assert "SYSTEM_ERROR: Cannot connect to Anki." in result
+    assert error_message in result
+
+
+@pytest.mark.asyncio
+async def test_create_deck_api_error(mock_anki_client):
+    """Test create_deck handles Anki API errors."""
+    mock_anki_client.deck_names.return_value = ["Default"]
+    error_message = "AnkiConnect error: Invalid deck name"
+    mock_anki_client.create_deck.side_effect = ValueError(error_message)
+
+    result = await create_deck(deck_name="Invalid:::")
+
+    mock_anki_client.deck_names.assert_called_once()
+    mock_anki_client.create_deck.assert_called_once()
+
+    assert "SYSTEM_ERROR: An error occurred communicating with Anki:" in result
+    assert error_message in result
 
 
 # --- End Tests ---
