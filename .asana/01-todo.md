@@ -11,6 +11,15 @@
     - [x] Extract field processing from `add_note` into `_process_field_content`.
     - [x] Extract formatting from `fetch_due_cards_for_review` into `_format_cards_for_llm`.
     - [x] Extract query building/formatting from `get_examples` into helpers (`_build_example_query`, `_format_example_notes`).
-- [ ] **`tests/` Updates:**
-    - [ ] Add specific tests for new helper functions in `server.py`.
+- [x] **`tests/` Updates:**
+    - [x] Add specific tests for new helper functions in `server.py`.
     - [ ] Consider using fixtures or `async with` for client cleanup in tests.
+
+## Add search_notes Tool
+
+- [x] **`server.py`:**
+    - [x] Add `_format_search_results` helper function.
+    - [x] Add `search_notes` tool with comprehensive docstring documenting Anki search syntax.
+- [x] **`tests/test_server.py`:**
+    - [x] Add tests for `search_notes` tool (success, no results, limit, connection error, complex query).
+    - [x] Add tests for `_format_search_results` helper.
