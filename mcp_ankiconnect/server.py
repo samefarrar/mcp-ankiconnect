@@ -1,5 +1,4 @@
-from typing import List, Optional, Literal, Dict, Union
-from typing import List, Optional, Literal, Dict, Union, AsyncGenerator # Added AsyncGenerator
+from typing import List, Optional, Literal, Dict, Union, AsyncGenerator
 import json
 import re
 import random
@@ -155,6 +154,30 @@ def _format_example_notes(notes_info: List[dict]) -> List[dict]:
         }
         examples.append(example)
     return examples
+
+
+def _format_search_results(notes_info: List[dict]) -> List[dict]:
+    """Formats note search results for LLM consumption.
+
+    Includes note IDs to enable follow-up actions like editing or deletion.
+    """
+    results = []
+    for note in notes_info:
+        processed_fields = {}
+        for name, field_data in note.get("fields", {}).items():
+            value = field_data.get("value", "")
+            # Clean up code formatting for readability
+            processed_value = value.replace("<pre><code>", "<code>").replace("</code></pre>", "</code>")
+            processed_fields[name] = processed_value
+
+        result = {
+            "noteId": note.get("noteId"),
+            "modelName": note.get("modelName", "UnknownModel"),
+            "fields": processed_fields,
+            "tags": note.get("tags", []),
+        }
+        results.append(result)
+    return results
 
 
 def _format_cards_for_llm(cards_info: List[dict]) -> str:
@@ -504,3 +527,108 @@ async def add_note(
             logger.error(fail_message)
             # Return an error message for the LLM
             return f"SYSTEM_ERROR: {fail_message}"
+
+
+@mcp.tool()
+@handle_anki_connection_error
+async def search_notes(
+    query: str = Field(description="Anki search query string"),
+    limit: int = Field(default=20, ge=1, le=100, description="Maximum number of notes to return"),
+) -> str:
+    """Search for notes in Anki using the powerful built-in search syntax.
+
+    This tool allows you to find existing notes/flashcards using Anki's query language.
+    Results include note IDs which can be used for follow-up actions.
+
+    ## Common Search Patterns
+
+    **Simple text search:**
+    - `dog` - notes containing "dog" (matches "doggy", "underdog")
+    - `dog cat` - notes with both "dog" AND "cat"
+    - `dog or cat` - notes with "dog" OR "cat"
+    - `-cat` - notes WITHOUT "cat"
+    - `"a dog"` - exact phrase match
+    - `w:dog` - whole word match only
+
+    **Field-specific search:**
+    - `front:dog` - Front field exactly equals "dog"
+    - `front:*dog*` - Front field contains "dog"
+    - `front:` - Front field is empty
+    - `front:_*` - Front field is non-empty
+
+    **Deck and tag filters:**
+    - `deck:French` - cards in French deck (including subdecks)
+    - `deck:French -deck:French::*` - only top-level French deck
+    - `tag:vocab` - notes with "vocab" tag
+    - `tag:none` - notes without any tags
+    - `note:Basic` - notes using "Basic" note type
+
+    **Card state:**
+    - `is:due` - cards due for review
+    - `is:new` - new cards not yet studied
+    - `is:learn` - cards in learning phase
+    - `is:review` - review cards
+    - `is:suspended` - suspended cards
+    - `is:buried` - buried cards
+
+    **Card properties:**
+    - `prop:ivl>=10` - interval >= 10 days
+    - `prop:due=0` - due today
+    - `prop:due=1` - due tomorrow
+    - `prop:lapses>3` - lapsed more than 3 times
+    - `prop:ease<2.5` - easier than default
+    - `prop:reps<10` - reviewed fewer than 10 times
+
+    **Recent activity:**
+    - `added:7` - added in last 7 days
+    - `edited:3` - edited in last 3 days
+    - `rated:1` - answered today
+    - `rated:7:1` - answered "Again" in last 7 days
+    - `introduced:30` - first answered in last 30 days
+
+    **Combining searches:**
+    - `deck:Spanish tag:verb is:due` - due Spanish verbs
+    - `added:7 -is:review` - new cards added this week
+    - `(dog or cat) deck:Animals` - dog or cat in Animals deck
+
+    Args:
+        query: The Anki search query string.
+        limit: Maximum notes to return (1-100, default 20).
+
+    Returns:
+        JSON array of matching notes with their fields, tags, and note IDs.
+    """
+    async with get_anki_client() as anki:
+        logger.debug(f"Searching notes with query: {query}")
+
+        note_ids = await anki.find_notes(query=query)
+        logger.info(f"Found {len(note_ids)} notes for query: {query}")
+
+        if not note_ids:
+            return json.dumps({
+                "query": query,
+                "total_found": 0,
+                "notes": [],
+                "message": "No notes found matching the query."
+            }, indent=2)
+
+        # Limit results
+        limited_note_ids = note_ids[:limit]
+
+        # Fetch note details
+        notes_info = await anki.notes_info(limited_note_ids)
+
+        # Format results
+        formatted_results = _format_search_results(notes_info)
+
+        result = {
+            "query": query,
+            "total_found": len(note_ids),
+            "returned": len(formatted_results),
+            "notes": formatted_results,
+        }
+
+        if len(note_ids) > limit:
+            result["message"] = f"Showing {limit} of {len(note_ids)} matching notes. Refine your query or increase limit for more results."
+
+        return json.dumps(result, indent=2, ensure_ascii=False)

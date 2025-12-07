@@ -9,7 +9,8 @@ from mcp_ankiconnect.server import (
     get_examples,
     fetch_due_cards_for_review,
     submit_reviews,
-    add_note, # Import add_note
+    add_note,
+    search_notes,
     mcp # Import the MCP instance if needed for registration checks
 )
 # Import the custom exception and the client (for spec)
@@ -508,6 +509,176 @@ def test__format_cards_for_llm():
     )
 
     assert _format_cards_for_llm(cards_info) == expected_output
+
+
+# --- search_notes ---
+@pytest.mark.asyncio
+async def test_search_notes_success(mock_anki_client):
+    """Test search_notes success path with results."""
+    mock_anki_client.find_notes.return_value = [101, 102, 103]
+    mock_anki_client.notes_info.return_value = [
+        {
+            "noteId": 101, "modelName": "Basic", "tags": ["spanish", "vocab"],
+            "fields": {"Front": {"value": "hola", "order": 0}, "Back": {"value": "hello", "order": 1}}
+        },
+        {
+            "noteId": 102, "modelName": "Basic", "tags": ["spanish"],
+            "fields": {"Front": {"value": "adios", "order": 0}, "Back": {"value": "goodbye", "order": 1}}
+        },
+        {
+            "noteId": 103, "modelName": "Cloze", "tags": [],
+            "fields": {"Text": {"value": "{{c1::gracias}} means thanks", "order": 0}}
+        }
+    ]
+
+    result = await search_notes(query="deck:Spanish", limit=10)
+
+    mock_anki_client.find_notes.assert_called_once_with(query="deck:Spanish")
+    mock_anki_client.notes_info.assert_called_once_with([101, 102, 103])
+
+    # Check the JSON response structure
+    import json
+    result_data = json.loads(result)
+    assert result_data["query"] == "deck:Spanish"
+    assert result_data["total_found"] == 3
+    assert result_data["returned"] == 3
+    assert len(result_data["notes"]) == 3
+
+    # Check first note structure
+    first_note = result_data["notes"][0]
+    assert first_note["noteId"] == 101
+    assert first_note["modelName"] == "Basic"
+    assert first_note["tags"] == ["spanish", "vocab"]
+    assert first_note["fields"]["Front"] == "hola"
+    assert first_note["fields"]["Back"] == "hello"
+
+
+@pytest.mark.asyncio
+async def test_search_notes_no_results(mock_anki_client):
+    """Test search_notes when no notes match the query."""
+    mock_anki_client.find_notes.return_value = []
+
+    result = await search_notes(query="nonexistent:query")
+
+    mock_anki_client.find_notes.assert_called_once_with(query="nonexistent:query")
+    mock_anki_client.notes_info.assert_not_called()
+
+    import json
+    result_data = json.loads(result)
+    assert result_data["query"] == "nonexistent:query"
+    assert result_data["total_found"] == 0
+    assert result_data["notes"] == []
+    assert "No notes found" in result_data["message"]
+
+
+@pytest.mark.asyncio
+async def test_search_notes_with_limit(mock_anki_client):
+    """Test search_notes respects the limit parameter."""
+    # Return more notes than the limit
+    mock_anki_client.find_notes.return_value = [101, 102, 103, 104, 105]
+    mock_anki_client.notes_info.return_value = [
+        {"noteId": 101, "modelName": "Basic", "tags": [], "fields": {"Front": {"value": "Q1"}, "Back": {"value": "A1"}}},
+        {"noteId": 102, "modelName": "Basic", "tags": [], "fields": {"Front": {"value": "Q2"}, "Back": {"value": "A2"}}},
+    ]
+
+    result = await search_notes(query="is:review", limit=2)
+
+    mock_anki_client.find_notes.assert_called_once_with(query="is:review")
+    # Should only fetch info for limited note IDs
+    mock_anki_client.notes_info.assert_called_once_with([101, 102])
+
+    import json
+    result_data = json.loads(result)
+    assert result_data["total_found"] == 5
+    assert result_data["returned"] == 2
+    assert len(result_data["notes"]) == 2
+    assert "Showing 2 of 5" in result_data["message"]
+
+
+@pytest.mark.asyncio
+async def test_search_notes_connection_error(mock_anki_client):
+    """Test search_notes handles AnkiConnectionError via decorator."""
+    error_message = "Connection refused"
+    mock_anki_client.find_notes.side_effect = AnkiConnectionError(error_message)
+
+    result = await search_notes(query="deck:Test")
+
+    mock_anki_client.find_notes.assert_called_once()
+    mock_anki_client.notes_info.assert_not_called()
+
+    assert "SYSTEM_ERROR: Cannot connect to Anki." in result
+    assert error_message in result
+
+
+@pytest.mark.asyncio
+async def test_search_notes_complex_query(mock_anki_client):
+    """Test search_notes with complex Anki query syntax."""
+    mock_anki_client.find_notes.return_value = [101]
+    mock_anki_client.notes_info.return_value = [
+        {"noteId": 101, "modelName": "Basic", "tags": ["verb"], "fields": {"Front": {"value": "correr"}, "Back": {"value": "to run"}}}
+    ]
+
+    # Complex query with multiple filters
+    complex_query = 'deck:Spanish tag:verb is:due prop:ivl>=7 -is:suspended'
+    result = await search_notes(query=complex_query, limit=20)
+
+    mock_anki_client.find_notes.assert_called_once_with(query=complex_query)
+    mock_anki_client.notes_info.assert_called_once_with([101])
+
+    import json
+    result_data = json.loads(result)
+    assert result_data["query"] == complex_query
+    assert result_data["total_found"] == 1
+
+
+# Test _format_search_results
+def test__format_search_results():
+    """Test the _format_search_results helper."""
+    from mcp_ankiconnect.server import _format_search_results
+    notes_info = [
+        {
+            "noteId": 101, "modelName": "Basic", "tags": ["tag1", "tag2"],
+            "fields": {"Front": {"value": "Q1 <pre><code>code</code></pre>", "order": 0}, "Back": {"value": "A1", "order": 1}}
+        },
+        {
+            "noteId": 102, "modelName": "Cloze", "tags": [],
+            "fields": {"Text": {"value": "Cloze {{c1::text}}", "order": 0}}
+        },
+        {  # Note with missing fields/modelName
+            "noteId": 103, "tags": ["minimal"],
+        }
+    ]
+    expected_output = [
+        {
+            "noteId": 101,
+            "modelName": "Basic",
+            "fields": {"Front": "Q1 <code>code</code>", "Back": "A1"},  # Check code simplification
+            "tags": ["tag1", "tag2"]
+        },
+        {
+            "noteId": 102,
+            "modelName": "Cloze",
+            "fields": {"Text": "Cloze {{c1::text}}"},
+            "tags": []
+        },
+        {
+            "noteId": 103,
+            "modelName": "UnknownModel",  # Default model name
+            "fields": {},  # Empty fields dict
+            "tags": ["minimal"]
+        }
+    ]
+    assert _format_search_results(notes_info) == expected_output
+
+
+def test__format_search_results_includes_note_ids():
+    """Test that _format_search_results includes noteId for follow-up actions."""
+    from mcp_ankiconnect.server import _format_search_results
+    notes_info = [
+        {"noteId": 12345, "modelName": "Basic", "tags": [], "fields": {"Front": {"value": "Q"}}}
+    ]
+    result = _format_search_results(notes_info)
+    assert result[0]["noteId"] == 12345
 
 
 # --- End Tests ---
