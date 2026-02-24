@@ -23,3 +23,18 @@
 - [x] **`tests/test_server.py`:**
     - [x] Add tests for `search_notes` tool (success, no results, limit, connection error, complex query).
     - [x] Add tests for `_format_search_results` helper.
+
+## Update MCP SDK and Add Image Support
+
+- [x] **Update MCP SDK:** Bumped `mcp[cli]` from `>=1.2.0` to `>=1.26.0` (resolved 1.6.0 → 1.26.0).
+- [x] **`ankiconnect_client.py`:**
+    - [x] Add `STORE_MEDIA_FILE` action to `AnkiAction` enum.
+    - [x] Add `store_media_file` wrapper method with support for data, url, and path sources.
+- [x] **`server.py`:**
+    - [x] Add `picture` parameter to `add_note` tool for inline image attachments via AnkiConnect's native addNote picture support.
+    - [x] Add standalone `store_media_file` tool for storing images independently.
+- [x] **`tests/test_server.py`:**
+    - [x] Add tests for `add_note` with picture URL, base64, multiple pictures, and no picture.
+    - [x] Add tests for `store_media_file` with URL, base64, no source, and connection error.
+- [x] **`tests/test_ankiconnect_client.py`:**
+    - [x] Add tests for `store_media_file` client wrapper (URL and data sources).

@@ -10,6 +10,7 @@ from mcp_ankiconnect.server import (
     fetch_due_cards_for_review,
     submit_reviews,
     add_note,
+    store_media_file,
     search_notes,
     mcp # Import the MCP instance if needed for registration checks
 )
@@ -32,6 +33,7 @@ def mock_anki_client():
     mock_client.notes_info = AsyncMock()
     mock_client.add_note = AsyncMock()
     mock_client.answer_cards = AsyncMock()
+    mock_client.store_media_file = AsyncMock()
     mock_client.close = AsyncMock() # Mock close as well
     return mock_client
 
@@ -366,6 +368,167 @@ async def test_add_note_api_error(mock_anki_client):
     mock_anki_client.add_note.assert_called_once()
     # Assert the decorator caught the ValueError and returned the specific SYSTEM_ERROR message
     assert "SYSTEM_ERROR: An error occurred communicating with Anki:" in result
+    assert error_message in result
+
+
+@pytest.mark.asyncio
+async def test_add_note_with_picture_url(mock_anki_client):
+    """Test add_note with a picture attachment via URL."""
+    mock_anki_client.add_note.return_value = 9876543210
+
+    deck = "MyDeck"
+    model = "Basic"
+    fields = {"Front": "What animal is this?", "Back": "A cat"}
+    tags = ["animals"]
+    pictures = [
+        {
+            "url": "https://example.com/cat.jpg",
+            "filename": "cat.jpg",
+            "fields": ["Back"],
+        }
+    ]
+
+    result = await add_note(
+        deckName=deck, modelName=model, fields=fields, tags=tags, picture=pictures
+    )
+
+    # Verify the note payload includes the picture
+    call_kwargs = mock_anki_client.add_note.call_args[1]
+    note_payload = call_kwargs["note"]
+    assert note_payload["picture"] == pictures
+    assert note_payload["deckName"] == deck
+    assert note_payload["fields"]["Front"] == "What animal is this?"
+
+    assert "Successfully created note with ID: 9876543210" in result
+    assert "1 image(s) attached" in result
+
+
+@pytest.mark.asyncio
+async def test_add_note_with_picture_base64(mock_anki_client):
+    """Test add_note with a picture attachment via base64 data."""
+    mock_anki_client.add_note.return_value = 1111111111
+
+    deck = "Science"
+    model = "Basic"
+    fields = {"Front": "What does this diagram show?", "Back": "Cell division"}
+    pictures = [
+        {
+            "data": "iVBORw0KGgoAAAANSUhEUg==",
+            "filename": "cell_division.png",
+            "fields": ["Front"],
+        }
+    ]
+
+    result = await add_note(
+        deckName=deck, modelName=model, fields=fields, picture=pictures
+    )
+
+    call_kwargs = mock_anki_client.add_note.call_args[1]
+    note_payload = call_kwargs["note"]
+    assert note_payload["picture"] == pictures
+    assert note_payload["tags"] == []  # No tags provided, should default to []
+
+    assert "Successfully created note with ID: 1111111111" in result
+    assert "1 image(s) attached" in result
+
+
+@pytest.mark.asyncio
+async def test_add_note_with_multiple_pictures(mock_anki_client):
+    """Test add_note with multiple picture attachments."""
+    mock_anki_client.add_note.return_value = 2222222222
+
+    pictures = [
+        {"url": "https://example.com/img1.jpg", "filename": "img1.jpg", "fields": ["Front"]},
+        {"url": "https://example.com/img2.jpg", "filename": "img2.jpg", "fields": ["Back"]},
+    ]
+
+    result = await add_note(
+        deckName="Deck", modelName="Basic",
+        fields={"Front": "Q", "Back": "A"},
+        picture=pictures,
+    )
+
+    call_kwargs = mock_anki_client.add_note.call_args[1]
+    assert len(call_kwargs["note"]["picture"]) == 2
+    assert "2 image(s) attached" in result
+
+
+@pytest.mark.asyncio
+async def test_add_note_without_picture(mock_anki_client):
+    """Test add_note without picture parameter does not include picture key."""
+    mock_anki_client.add_note.return_value = 3333333333
+
+    result = await add_note(
+        deckName="Deck", modelName="Basic",
+        fields={"Front": "Q", "Back": "A"},
+    )
+
+    call_kwargs = mock_anki_client.add_note.call_args[1]
+    assert "picture" not in call_kwargs["note"]
+    assert "image(s) attached" not in result
+    assert "Successfully created note" in result
+
+
+# --- store_media_file ---
+@pytest.mark.asyncio
+async def test_store_media_file_with_url(mock_anki_client):
+    """Test store_media_file with a URL source."""
+    mock_anki_client.store_media_file.return_value = "cat_photo.jpg"
+
+    result = await store_media_file(
+        filename="cat_photo.jpg",
+        url="https://example.com/cat.jpg",
+    )
+
+    mock_anki_client.store_media_file.assert_called_once_with(
+        filename="cat_photo.jpg",
+        url="https://example.com/cat.jpg",
+        data=None,
+    )
+    assert "Successfully stored media file as 'cat_photo.jpg'" in result
+    assert '<img src="cat_photo.jpg">' in result
+
+
+@pytest.mark.asyncio
+async def test_store_media_file_with_base64(mock_anki_client):
+    """Test store_media_file with base64 data."""
+    mock_anki_client.store_media_file.return_value = "diagram.png"
+
+    result = await store_media_file(
+        filename="diagram.png",
+        data="iVBORw0KGgoAAAANSUhEUg==",
+    )
+
+    mock_anki_client.store_media_file.assert_called_once_with(
+        filename="diagram.png",
+        url=None,
+        data="iVBORw0KGgoAAAANSUhEUg==",
+    )
+    assert "Successfully stored media file as 'diagram.png'" in result
+
+
+@pytest.mark.asyncio
+async def test_store_media_file_no_source(mock_anki_client):
+    """Test store_media_file returns error when no source is provided."""
+    result = await store_media_file(filename="orphan.jpg")
+
+    mock_anki_client.store_media_file.assert_not_called()
+    assert "SYSTEM_ERROR: Must provide either 'url' or 'data'" in result
+
+
+@pytest.mark.asyncio
+async def test_store_media_file_connection_error(mock_anki_client):
+    """Test store_media_file handles AnkiConnectionError via decorator."""
+    error_message = "Connection refused"
+    mock_anki_client.store_media_file.side_effect = AnkiConnectionError(error_message)
+
+    result = await store_media_file(
+        filename="test.jpg",
+        url="https://example.com/test.jpg",
+    )
+
+    mock_anki_client.store_media_file.assert_called_once()
+    assert "SYSTEM_ERROR: Cannot connect to Anki." in result
     assert error_message in result
 
 

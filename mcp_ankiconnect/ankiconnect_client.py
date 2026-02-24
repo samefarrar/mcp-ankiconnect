@@ -50,6 +50,7 @@ class AnkiAction(str, Enum):
     ADD_NOTE = "addNote"
     FIND_NOTES = "findNotes"
     NOTES_INFO = "notesInfo"
+    STORE_MEDIA_FILE = "storeMediaFile"
 
 class AnkiConnectResponse(BaseModel):
     result: Any
@@ -215,6 +216,29 @@ class AnkiConnectClient:
 
     async def notes_info(self, note_ids: List[int]) -> List[dict]:
         return await self.invoke(AnkiAction.NOTES_INFO, notes=note_ids)
+
+    async def store_media_file(
+        self,
+        filename: str,
+        data: Optional[str] = None,
+        url: Optional[str] = None,
+        path: Optional[str] = None,
+    ) -> str:
+        """Store a media file in Anki's media folder.
+
+        Provide exactly one of data, url, or path. If multiple are provided,
+        AnkiConnect prioritizes: data > path > url.
+
+        Returns the filename as stored by Anki.
+        """
+        params: dict[str, Any] = {"filename": filename}
+        if data is not None:
+            params["data"] = data
+        if url is not None:
+            params["url"] = url
+        if path is not None:
+            params["path"] = path
+        return await self.invoke(AnkiAction.STORE_MEDIA_FILE, **params)
 
     async def close(self):
         await self.client.aclose()

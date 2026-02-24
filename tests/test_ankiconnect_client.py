@@ -254,3 +254,45 @@ async def test_add_note(client: AnkiConnectClient, mocker: MockerFixture, mock_r
     call_args = mock_post.call_args[1]
     assert call_args["json"]["action"] == AnkiAction.ADD_NOTE
     assert call_args["json"]["params"]["note"] == note
+
+
+@pytest.mark.asyncio
+async def test_store_media_file_with_url(client: AnkiConnectClient, mocker: MockerFixture, mock_response):
+    """Test store_media_file sends correct action and params for URL source."""
+    expected_filename = "cat.jpg"
+    mock_post = mocker.patch.object(
+        client.client,
+        "post",
+        return_value=mock_response({"result": expected_filename, "error": None})
+    )
+
+    result = await client.store_media_file(filename="cat.jpg", url="https://example.com/cat.jpg")
+
+    assert result == expected_filename
+    mock_post.assert_called_once()
+    call_args = mock_post.call_args[1]
+    assert call_args["json"]["action"] == AnkiAction.STORE_MEDIA_FILE
+    assert call_args["json"]["params"]["filename"] == "cat.jpg"
+    assert call_args["json"]["params"]["url"] == "https://example.com/cat.jpg"
+    assert "data" not in call_args["json"]["params"]
+
+
+@pytest.mark.asyncio
+async def test_store_media_file_with_data(client: AnkiConnectClient, mocker: MockerFixture, mock_response):
+    """Test store_media_file sends correct action and params for base64 data."""
+    expected_filename = "image.png"
+    mock_post = mocker.patch.object(
+        client.client,
+        "post",
+        return_value=mock_response({"result": expected_filename, "error": None})
+    )
+
+    result = await client.store_media_file(filename="image.png", data="iVBORw0KGgo=")
+
+    assert result == expected_filename
+    mock_post.assert_called_once()
+    call_args = mock_post.call_args[1]
+    assert call_args["json"]["action"] == AnkiAction.STORE_MEDIA_FILE
+    assert call_args["json"]["params"]["filename"] == "image.png"
+    assert call_args["json"]["params"]["data"] == "iVBORw0KGgo="
+    assert "url" not in call_args["json"]["params"]
