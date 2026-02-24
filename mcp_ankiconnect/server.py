@@ -487,13 +487,22 @@ async def add_note(
     # e.g. <math>\\frac{d}{dx}[3\\sin(5x)] = 15\\cos(5x)</math>
 
     To attach images to a card, use the picture parameter. Each picture object must have a filename
-    and exactly one source (url or data). The fields list specifies which card fields get the <img> tag inserted.
+    and exactly one source (url, data, or path). The fields list specifies which card fields get the <img> tag inserted.
 
-    Example picture parameter:
+    ## How to attach images based on the source:
+
+    **User provides a URL:**
     [{"url": "https://example.com/photo.jpg", "filename": "photo.jpg", "fields": ["Back"]}]
 
-    Or with base64-encoded data:
+    **User provides a local file (e.g. screenshot, downloaded image):**
+    [{"path": "/absolute/path/to/image.png", "filename": "image.png", "fields": ["Back"]}]
+
+    **Base64-encoded data (for small images only):**
     [{"data": "iVBORw0KGgo...", "filename": "diagram.png", "fields": ["Back"]}]
+
+    IMPORTANT: When a user shares an image file or screenshot, prefer using "path" with the absolute
+    file path rather than trying to base64-encode the image contents. AnkiConnect reads the file directly
+    from disk which is faster and more reliable.
 
     Args:
         deckName: str - The target deck name.
@@ -503,6 +512,7 @@ async def add_note(
         picture: List[dict] - Optional list of picture attachments. Each dict should have:
             - filename (str): Name for the stored image file.
             - url (str, optional): URL to download the image from.
+            - path (str, optional): Absolute file path to a local image. Preferred for user-shared files.
             - data (str, optional): Base64-encoded image data.
             - fields (List[str]): Card field names where the <img> tag will be inserted.
             - skipHash (str, optional): MD5 hash to skip if file matches.
@@ -555,6 +565,7 @@ async def store_media_file(
     filename: str,
     url: Optional[str] = None,
     data: Optional[str] = None,
+    path: Optional[str] = None,
 ) -> str:
     """Store an image or media file in Anki's media folder.
 
@@ -565,25 +576,33 @@ async def store_media_file(
     - Store an image before creating a note (e.g. to reference it in multiple notes)
     - Add an image to an existing card's field
 
-    Provide exactly one of url or data:
+    Provide exactly one of url, data, or path:
+    - path: Absolute path to a local file. PREFERRED when the user shares an image file or screenshot.
     - url: A URL to download the image from (e.g. "https://example.com/photo.jpg")
-    - data: Base64-encoded file content
+    - data: Base64-encoded file content (for small images only)
+
+    IMPORTANT: When a user shares an image file or screenshot, prefer using "path" with the absolute
+    file path. AnkiConnect reads the file directly from disk, which avoids needing to base64-encode
+    large image files.
 
     Args:
         filename: str - The filename to store the media as (e.g. "diagram.png").
         url: str - Optional URL to download the image from.
         data: str - Optional base64-encoded image data.
+        path: str - Optional absolute path to a local file. Preferred for user-shared files.
     """
-    if not url and not data:
-        return "SYSTEM_ERROR: Must provide either 'url' or 'data' for the media file."
+    if not url and not data and not path:
+        return "SYSTEM_ERROR: Must provide either 'url', 'data', or 'path' for the media file."
 
+    source = "path" if path else ("url" if url else "base64 data")
     async with get_anki_client() as anki:
-        logger.info(f"Storing media file '{filename}' via {'url' if url else 'base64 data'}.")
+        logger.info(f"Storing media file '{filename}' via {source}.")
 
         stored_filename = await anki.store_media_file(
             filename=filename,
             url=url,
             data=data,
+            path=path,
         )
 
         if stored_filename:

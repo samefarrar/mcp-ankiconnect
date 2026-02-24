@@ -454,6 +454,34 @@ async def test_add_note_with_multiple_pictures(mock_anki_client):
 
 
 @pytest.mark.asyncio
+async def test_add_note_with_picture_path(mock_anki_client):
+    """Test add_note with a picture attachment via local file path."""
+    mock_anki_client.add_note.return_value = 4444444444
+
+    pictures = [
+        {
+            "path": "/home/user/screenshots/diagram.png",
+            "filename": "diagram.png",
+            "fields": ["Back"],
+        }
+    ]
+
+    result = await add_note(
+        deckName="Science", modelName="Basic",
+        fields={"Front": "What is this?", "Back": "A diagram"},
+        picture=pictures,
+    )
+
+    call_kwargs = mock_anki_client.add_note.call_args[1]
+    note_payload = call_kwargs["note"]
+    assert note_payload["picture"] == pictures
+    assert note_payload["picture"][0]["path"] == "/home/user/screenshots/diagram.png"
+
+    assert "Successfully created note with ID: 4444444444" in result
+    assert "1 image(s) attached" in result
+
+
+@pytest.mark.asyncio
 async def test_add_note_without_picture(mock_anki_client):
     """Test add_note without picture parameter does not include picture key."""
     mock_anki_client.add_note.return_value = 3333333333
@@ -484,6 +512,7 @@ async def test_store_media_file_with_url(mock_anki_client):
         filename="cat_photo.jpg",
         url="https://example.com/cat.jpg",
         data=None,
+        path=None,
     )
     assert "Successfully stored media file as 'cat_photo.jpg'" in result
     assert '<img src="cat_photo.jpg">' in result
@@ -503,8 +532,29 @@ async def test_store_media_file_with_base64(mock_anki_client):
         filename="diagram.png",
         url=None,
         data="iVBORw0KGgoAAAANSUhEUg==",
+        path=None,
     )
     assert "Successfully stored media file as 'diagram.png'" in result
+
+
+@pytest.mark.asyncio
+async def test_store_media_file_with_path(mock_anki_client):
+    """Test store_media_file with a local file path."""
+    mock_anki_client.store_media_file.return_value = "screenshot.png"
+
+    result = await store_media_file(
+        filename="screenshot.png",
+        path="/home/user/screenshots/screenshot.png",
+    )
+
+    mock_anki_client.store_media_file.assert_called_once_with(
+        filename="screenshot.png",
+        url=None,
+        data=None,
+        path="/home/user/screenshots/screenshot.png",
+    )
+    assert "Successfully stored media file as 'screenshot.png'" in result
+    assert '<img src="screenshot.png">' in result
 
 
 @pytest.mark.asyncio
@@ -513,7 +563,7 @@ async def test_store_media_file_no_source(mock_anki_client):
     result = await store_media_file(filename="orphan.jpg")
 
     mock_anki_client.store_media_file.assert_not_called()
-    assert "SYSTEM_ERROR: Must provide either 'url' or 'data'" in result
+    assert "SYSTEM_ERROR: Must provide either 'url', 'data', or 'path'" in result
 
 
 @pytest.mark.asyncio
