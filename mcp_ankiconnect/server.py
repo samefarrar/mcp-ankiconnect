@@ -1,18 +1,27 @@
-from typing import Any, List, Optional, Literal, Dict, Union, AsyncGenerator
+import functools  # Import functools
 import json
-import re
-import random
 import logging
-import functools # Import functools
+import random
+import re
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from typing import Any, Literal
+
 from mcp.server.fastmcp import FastMCP
+from pydantic import Field
 
 # Use relative imports within the package
-from .ankiconnect_client import AnkiConnectClient, AnkiConnectionError # Import custom exception
-from .config import EXCLUDE_STRINGS, RATING_TO_EASE, ANKI_CONNECT_URL, MAX_FUTURE_DAYS # Import necessary configs
-from .server_prompts import flashcard_guidelines, claude_review_instructions
-
-from pydantic import Field
+from .ankiconnect_client import (  # Import custom exception
+    AnkiConnectClient,
+    AnkiConnectionError,
+)
+from .config import (  # Import necessary configs
+    ANKI_CONNECT_URL,
+    EXCLUDE_STRINGS,
+    MAX_FUTURE_DAYS,
+    RATING_TO_EASE,
+)
+from .server_prompts import claude_review_instructions, flashcard_guidelines
 
 logger = logging.getLogger(__name__)
 
@@ -20,23 +29,28 @@ logger.info("Initializing MCP-AnkiConnect server")
 mcp = FastMCP("mcp-ankiconnect")
 logger.debug("Created FastMCP instance")
 
+
 # --- Context Manager for Client ---
 @asynccontextmanager
-async def get_anki_client() -> AsyncGenerator[AnkiConnectClient, None]: # Added type hint
+async def get_anki_client() -> AsyncGenerator[
+    AnkiConnectClient, None
+]:  # Added type hint
     # Pass the configured URL to the client constructor
     client = AnkiConnectClient(base_url=ANKI_CONNECT_URL)
     try:
         yield client
-    except Exception: # Log exceptions during client usage if needed
+    except Exception:  # Log exceptions during client usage if needed
         logger.exception("Error occurred while using AnkiConnect client")
-        raise # Re-raise the exception
+        raise  # Re-raise the exception
     finally:
         logger.debug("Closing AnkiConnect client")
         await client.close()
 
+
 # --- Decorator for Connection Error Handling ---
 def handle_anki_connection_error(func):
     """Decorator to catch AnkiConnectionError and return a user-friendly message."""
+
     @functools.wraps(func)
     async def wrapper(*args, **kwargs):
         try:
@@ -50,24 +64,29 @@ def handle_anki_connection_error(func):
                 "SYSTEM_ERROR: Cannot connect to Anki. "
                 "Please inform the user that they need to start their Anki application "
                 "and ensure the AnkiConnect add-on is installed and enabled before proceeding. "
-                f"Details: {e}" # Include the error detail from the exception
+                f"Details: {e}"  # Include the error detail from the exception
             )
         except ValueError as e:
-             # Catch Anki API errors (raised as ValueError from invoke)
-             logger.error(f"Caught Anki API error in tool '{func.__name__}': {e}")
-             return (
-                 f"SYSTEM_ERROR: An error occurred communicating with Anki: {e}. "
-                 "Please inform the user about the error."
-             )
+            # Catch Anki API errors (raised as ValueError from invoke)
+            logger.error(f"Caught Anki API error in tool '{func.__name__}': {e}")
+            return (
+                f"SYSTEM_ERROR: An error occurred communicating with Anki: {e}. "
+                "Please inform the user about the error."
+            )
         except Exception as e:
             # Catch any other unexpected errors within the tool
-            logger.exception(f"An unexpected error occurred in tool '{func.__name__}': {e}")
+            logger.exception(
+                f"An unexpected error occurred in tool '{func.__name__}': {e}"
+            )
             # Provide a generic error message for the LLM
             return (
                 f"SYSTEM_ERROR: An unexpected error occurred while executing the Anki tool '{func.__name__}'. "
                 f"Details: {e}"
             )
+
     return wrapper
+
+
 # --- End Decorator ---
 
 
@@ -75,10 +94,8 @@ def handle_anki_connection_error(func):
 # This helper now requires the client to be passed in, making it testable
 # and ensuring it runs within the context managed by the tool.
 async def _find_due_card_ids(
-    client: AnkiConnectClient,
-    deck: Optional[str] = None,
-    day: Optional[int] = 0
-) -> List[int]:
+    client: AnkiConnectClient, deck: str | None = None, day: int | None = 0
+) -> list[int]:
     """Finds card IDs due on a specific day relative to today (0=today)."""
     if day < 0:
         raise ValueError("Day must be non-negative.")
@@ -88,7 +105,7 @@ async def _find_due_card_ids(
     # prop:due=1 means due tomorrow (relative to review time)
     # prop:due<=N finds cards due today up to N days in the future.
     if day == 0:
-        prop = "prop:due=0" # Due exactly today
+        prop = "prop:due=0"  # Due exactly today
     else:
         prop = f"prop:due<={day}"
 
@@ -103,60 +120,58 @@ async def _find_due_card_ids(
     return card_ids
 
 
-def _build_example_query(deck: Optional[str], sample: str) -> str:
-    """Builds the Anki query string for finding example notes."""
+def _build_example_query(deck: str | None, sample: str) -> str:
+    """Builds the Anki query string for finding example notes.
+
+    Note: AnkiConnect's findNotes does not support sort: directives — those are
+    a browser UI feature only. Ordering/selection is handled in Python after
+    the results are returned.
+    """
     query_parts = ["-is:suspended"]
     query_parts.extend([f"-note:*{ex}*" for ex in EXCLUDE_STRINGS])
 
     if deck:
         query_parts.append(f'"deck:{deck}"')
 
-    sort_order = ""
     match sample:
         case "recent":
             query_parts.append("added:7")
-            sort_order = "sort:added rev"
         case "most_reviewed":
             query_parts.append("prop:reps>10")
-            sort_order = "sort:reps rev"
         case "best_performance":
             query_parts.append("prop:lapses<3 is:review")
-            sort_order = "sort:lapses"
         case "mature":
             query_parts.append("prop:ivl>=21 -is:learn")
-            sort_order = "sort:ivl rev"
         case "young":
             query_parts.append("is:review prop:ivl<=7 -is:learn")
-            sort_order = "sort:ivl"
         case "random":
-            query_parts.append("is:review") # Default filter for random
+            query_parts.append("is:review")
 
-    query = " ".join(query_parts)
-    if sort_order:
-        query += f" {sort_order}"
-    return query
+    return " ".join(query_parts)
 
 
-def _format_example_notes(notes_info: List[dict]) -> List[dict]:
+def _format_example_notes(notes_info: list[dict]) -> list[dict]:
     """Formats note information into simplified dictionaries for examples."""
     examples = []
     for note in notes_info:
         processed_fields = {}
         for name, field_data in note.get("fields", {}).items():
             value = field_data.get("value", "")
-            processed_value = value.replace("<pre><code>", "<code>").replace("</code></pre>", "</code>")
+            processed_value = value.replace("<pre><code>", "<code>").replace(
+                "</code></pre>", "</code>"
+            )
             processed_fields[name] = processed_value
 
         example = {
             "modelName": note.get("modelName", "UnknownModel"),
             "fields": processed_fields,
-            "tags": note.get("tags", [])
+            "tags": note.get("tags", []),
         }
         examples.append(example)
     return examples
 
 
-def _format_search_results(notes_info: List[dict]) -> List[dict]:
+def _format_search_results(notes_info: list[dict]) -> list[dict]:
     """Formats note search results for LLM consumption.
 
     Includes note IDs to enable follow-up actions like editing or deletion.
@@ -167,7 +182,9 @@ def _format_search_results(notes_info: List[dict]) -> List[dict]:
         for name, field_data in note.get("fields", {}).items():
             value = field_data.get("value", "")
             # Clean up code formatting for readability
-            processed_value = value.replace("<pre><code>", "<code>").replace("</code></pre>", "</code>")
+            processed_value = value.replace("<pre><code>", "<code>").replace(
+                "</code></pre>", "</code>"
+            )
             processed_fields[name] = processed_value
 
         result = {
@@ -180,21 +197,23 @@ def _format_search_results(notes_info: List[dict]) -> List[dict]:
     return results
 
 
-def _format_cards_for_llm(cards_info: List[dict]) -> str:
+def _format_cards_for_llm(cards_info: list[dict]) -> str:
     """Formats card information into an XML-like string for the LLM."""
     formatted_cards = []
     for card in cards_info:
-        card_id = card.get('cardId', 'UNKNOWN_ID')
-        fields = card.get('fields', {})
-        question_field_order = card.get('fieldOrder', 0)
+        card_id = card.get("cardId", "UNKNOWN_ID")
+        fields = card.get("fields", {})
+        question_field_order = card.get("fieldOrder", 0)
 
         question_parts = []
         answer_parts = []
-        sorted_field_items = sorted(fields.items(), key=lambda item: item[1].get('order', 0))
+        sorted_field_items = sorted(
+            fields.items(), key=lambda item: item[1].get("order", 0)
+        )
 
         for name, field_data in sorted_field_items:
-            field_value = field_data.get('value', '')
-            field_order = field_data.get('order', -1)
+            field_value = field_data.get("value", "")
+            field_order = field_data.get("order", -1)
             tag_name = name.lower().replace(" ", "_")
 
             if field_order == question_field_order:
@@ -202,11 +221,19 @@ def _format_cards_for_llm(cards_info: List[dict]) -> str:
             else:
                 answer_parts.append(f"<{tag_name}>{field_value}</{tag_name}>")
 
-        question_str = "".join(question_parts) if question_parts else "<error>Question field not found</error>"
-        answer_str = " ".join(answer_parts) if answer_parts else "<error>Answer fields not found</error>"
+        question_str = (
+            "".join(question_parts)
+            if question_parts
+            else "<error>Question field not found</error>"
+        )
+        answer_str = (
+            " ".join(answer_parts)
+            if answer_parts
+            else "<error>Answer fields not found</error>"
+        )
 
         formatted_cards.append(
-            f"<card id=\"{card_id}\">\n"
+            f'<card id="{card_id}">\n'
             f"  <question>{question_str}</question>\n"
             f"  <answer>{answer_str}</answer>\n"
             f"</card>"
@@ -217,31 +244,36 @@ def _format_cards_for_llm(cards_info: List[dict]) -> str:
 def _process_field_content(content: str) -> str:
     """Processes field content for MathJax and code blocks before sending to Anki."""
     if not isinstance(content, str):
-        logger.warning(f"Field content is not a string (type: {type(content)}). Returning as-is.")
-        return content # Return non-strings unmodified
+        logger.warning(
+            f"Field content is not a string (type: {type(content)}). Returning as-is."
+        )
+        return content  # Return non-strings unmodified
 
     # 1. MathJax: <math>...</math> -> \(...\)
     processed_value = content.replace("<math>", "\\(").replace("</math>", "\\)")
 
     # 2. Code Blocks: ```lang\n...\n``` -> <pre><code class="language-lang">...</code></pre>
     processed_value = re.sub(
-        r'```(\w+)?\s*\n?(.*?)```',
-        lambda m: f'<pre><code class="language-{m.group(1)}">{m.group(2)}</code></pre>' if m.group(1) else f'<pre><code>{m.group(2)}</code></pre>',
+        r"```(\w+)?\s*\n?(.*?)```",
+        lambda m: f'<pre><code class="language-{m.group(1)}">{m.group(2)}</code></pre>'
+        if m.group(1)
+        else f"<pre><code>{m.group(2)}</code></pre>",
         processed_value,
-        flags=re.DOTALL
+        flags=re.DOTALL,
     )
 
     # 3. Inline Code: `...` -> <code>...</code>
-    processed_value = re.sub(r'`([^`]+)`', r'<code>\1</code>', processed_value)
+    processed_value = re.sub(r"`([^`]+)`", r"<code>\1</code>", processed_value)
 
     return processed_value
 
 
 # --- Tool Definitions ---
 
+
 @mcp.tool()
-@handle_anki_connection_error # Apply decorator
-async def num_cards_due_today(deck: Optional[str] = None) -> str:
+@handle_anki_connection_error  # Apply decorator
+async def num_cards_due_today(deck: str | None = None) -> str:
     """Get the number of cards due exactly today, with an optional deck filter."""
     async with get_anki_client() as anki:
         # Use the helper, specifying day=0 for today
@@ -250,14 +282,19 @@ async def num_cards_due_today(deck: Optional[str] = None) -> str:
         deck_msg = f" in deck '{deck}'" if deck else " across all decks"
         return f"There are {count} cards due today{deck_msg}."
 
+
 @mcp.tool()
-@handle_anki_connection_error # Apply decorator
+@handle_anki_connection_error  # Apply decorator
 async def list_decks_and_notes() -> str:
     """Get all decks (excluding specified patterns) and note types with their fields."""
     async with get_anki_client() as anki:
         all_decks = await anki.deck_names()
         # Filter decks based on EXCLUDE_STRINGS
-        decks = [d for d in all_decks if not any(ex.lower() in d.lower() for ex in EXCLUDE_STRINGS)]
+        decks = [
+            d
+            for d in all_decks
+            if not any(ex.lower() in d.lower() for ex in EXCLUDE_STRINGS)
+        ]
         logger.info(f"Filtered decks: {decks}")
 
         all_model_names = await anki.model_names()
@@ -269,90 +306,102 @@ async def list_decks_and_notes() -> str:
                 fields = await anki.model_field_names(model)
                 note_types.append({"name": model, "fields": fields})
             except Exception as e:
-                 logger.warning(f"Could not get fields for model '{model}': {e}. Skipping this model.")
-
+                logger.warning(
+                    f"Could not get fields for model '{model}': {e}. Skipping this model."
+                )
 
         # Format the output string
-        deck_list_str = f"You have {len(decks)} filtered decks: {', '.join(decks)}" if decks else "No filtered decks found."
+        deck_list_str = (
+            f"You have {len(decks)} filtered decks: {', '.join(decks)}"
+            if decks
+            else "No filtered decks found."
+        )
 
         note_type_list = []
         if note_types:
-             for note in note_types:
-                 # Format fields as "FieldName": "type" (assuming string for simplicity)
-                 field_str = ', '.join([f'"{field}": "string"' for field in note['fields']])
-                 note_type_list.append(f"- {note['name']}: {{ {field_str} }}")
-             note_types_str = f"Your filtered note types and their fields are:\n" + "\n".join(note_type_list)
+            for note in note_types:
+                # Format fields as "FieldName": "type" (assuming string for simplicity)
+                field_str = ", ".join(
+                    [f'"{field}": "string"' for field in note["fields"]]
+                )
+                note_type_list.append(f"- {note['name']}: {{ {field_str} }}")
+            note_types_str = (
+                "Your filtered note types and their fields are:\n"
+                + "\n".join(note_type_list)
+            )
         else:
-             note_types_str = "No filtered note types found."
+            note_types_str = "No filtered note types found."
 
         return f"{deck_list_str}\n\n{note_types_str}"
 
 
 @mcp.tool()
-@handle_anki_connection_error # Apply decorator
+@handle_anki_connection_error  # Apply decorator
 async def get_examples(
-    deck: Optional[str] = None,
-    limit: int = Field(default = 5, ge = 1),
+    deck: str | None = None,
+    limit: int = Field(default=5, ge=1),
     sample: str = Field(
-        default = "random",
+        default="random",
         description="Sampling technique: random, recent (added last 7d), most_reviewed (>10 reps), best_performance (<3 lapses), mature (ivl>=21d), young (ivl<=7d)",
-        pattern="^(random|recent|most_reviewed|best_performance|mature|young)$" # Keep pattern for validation
-    ), # Close Field()
-) -> str: # Close parameters list
-        """Get example notes from Anki to guide your flashcard making. Limit the number of examples returned and provide a sampling technique:
+        pattern="^(random|recent|most_reviewed|best_performance|mature|young)$",  # Keep pattern for validation
+    ),  # Close Field()
+) -> str:  # Close parameters list
+    """Get example notes from Anki to guide your flashcard making. Limit the number of examples returned and provide a sampling technique:
 
-            - random: Randomly sample notes
-            - recent: Notes added in the last week
-            - most_reviewed: Notes with more than 10 reviews
-            - best_performance: Notes with less than 3 lapses
-            - mature: Notes with interval greater than 21 days
-            - young: Notes with interval less than 7 days
+        - random: Randomly sample notes
+        - recent: Notes added in the last week
+        - most_reviewed: Notes with more than 10 reviews
+        - best_performance: Notes with less than 3 lapses
+        - mature: Notes with interval greater than 21 days
+        - young: Notes with interval less than 7 days
 
-        Args:
-            deck: Optional[str] - Filter by specific deck (use exact name).
-            limit: int - Maximum number of examples to return (default 5).
-            sample: str - Sampling technique (random, recent, most_reviewed, best_performance, mature, young).
-        """
-        async with get_anki_client() as anki:
-            # Build the query using the helper function
-            query = _build_example_query(deck, sample)
-            logger.debug(f"Finding example notes with query: {query}")
+    Args:
+        deck: Optional[str] - Filter by specific deck (use exact name).
+        limit: int - Maximum number of examples to return (default 5).
+        sample: str - Sampling technique (random, recent, most_reviewed, best_performance, mature, young).
+    """
+    async with get_anki_client() as anki:
+        # Build the query using the helper function
+        query = _build_example_query(deck, sample)
+        logger.debug(f"Finding example notes with query: {query}")
 
-            note_ids = await anki.find_notes(query=query)
-            if not note_ids:
-                return f"No example notes found matching criteria (Sample: {sample}, Deck: {deck or 'Any'})."
+        note_ids = await anki.find_notes(query=query)
+        if not note_ids:
+            return f"No example notes found matching criteria (Sample: {sample}, Deck: {deck or 'Any'})."
 
-            # Apply sampling and limit
-            if sample == "random" and len(note_ids) > limit:
-                sampled_note_ids = random.sample(note_ids, limit)
-            else:
-                # For sorted queries, take the top results up to the limit
-                sampled_note_ids = note_ids[:limit]
+        # Apply sampling and limit
+        if sample == "random" and len(note_ids) > limit:
+            sampled_note_ids = random.sample(note_ids, limit)
+        else:
+            # For sorted queries, take the top results up to the limit
+            sampled_note_ids = note_ids[:limit]
 
-            if not sampled_note_ids:
-                 return f"No example notes found after sampling/limiting (Sample: {sample}, Deck: {deck or 'Any'})."
+        if not sampled_note_ids:
+            return f"No example notes found after sampling/limiting (Sample: {sample}, Deck: {deck or 'Any'})."
 
+        logger.debug(f"Fetching info for note IDs: {sampled_note_ids}")
+        notes_info = await anki.notes_info(sampled_note_ids)
 
-            logger.debug(f"Fetching info for note IDs: {sampled_note_ids}")
-            notes_info = await anki.notes_info(sampled_note_ids)
+        # Format notes using the helper function
+        formatted_examples = _format_example_notes(notes_info)
 
-            # Format notes using the helper function
-            formatted_examples = _format_example_notes(notes_info)
+        # Combine guidelines with the JSON examples
+        # Use json.dumps for clean formatting
+        examples_json = json.dumps(formatted_examples, indent=2, ensure_ascii=False)
+        result = f"{flashcard_guidelines}\n\nHere are some examples based on your criteria:\n{examples_json}"
 
-            # Combine guidelines with the JSON examples
-            # Use json.dumps for clean formatting
-            examples_json = json.dumps(formatted_examples, indent=2, ensure_ascii=False)
-            result = f"{flashcard_guidelines}\n\nHere are some examples based on your criteria:\n{examples_json}"
-
-            return result
+        return result
 
 
 @mcp.tool()
-@handle_anki_connection_error # Apply decorator
+@handle_anki_connection_error  # Apply decorator
 async def fetch_due_cards_for_review(
-    deck: Optional[str] = None,
+    deck: str | None = None,
     limit: int = Field(default=5, ge=1, description="Max cards to fetch."),
-    today_only: bool = Field(default=True, description="True=only today's cards, False=cards due up to MAX_FUTURE_DAYS ahead."),
+    today_only: bool = Field(
+        default=True,
+        description="True=only today's cards, False=cards due up to MAX_FUTURE_DAYS ahead.",
+    ),
 ) -> str:
     """Fetch cards due for review, formatted for an LLM to present.
 
@@ -374,7 +423,9 @@ async def fetch_due_cards_for_review(
 
         if not card_ids_to_fetch:
             deck_msg = f" in deck '{deck}'" if deck else ""
-            when_msg = "today" if today_only else f"within the next {max_day_to_check} days"
+            when_msg = (
+                "today" if today_only else f"within the next {max_day_to_check} days"
+            )
             return f"No cards found due {when_msg}{deck_msg}."
 
         logger.debug(f"Fetching info for card IDs: {card_ids_to_fetch}")
@@ -390,10 +441,14 @@ async def fetch_due_cards_for_review(
 
 
 @mcp.tool()
-@handle_anki_connection_error # Apply decorator
+@handle_anki_connection_error  # Apply decorator
 async def submit_reviews(
-    reviews: List[Dict[Literal["card_id", "rating"], Union[int, Literal["wrong", "hard", "good", "easy"]]]]
-    ) -> str:
+    reviews: list[
+        dict[
+            Literal["card_id", "rating"], int | Literal["wrong", "hard", "good", "easy"]
+        ]
+    ],
+) -> str:
     """Submit multiple card reviews to Anki using ratings ('wrong', 'hard', 'good', 'easy').
 
     Args:
@@ -409,17 +464,21 @@ async def submit_reviews(
     validation_errors = []
     for review in reviews:
         card_id = review.get("card_id")
-        rating = str(review.get("rating", "")).lower() # Ensure lowercase string
+        rating = str(review.get("rating", "")).lower()  # Ensure lowercase string
 
         if not isinstance(card_id, int):
-            validation_errors.append(f"Invalid card_id '{card_id}' in review: {review}. Must be an integer.")
-            continue # Skip this invalid review
+            validation_errors.append(
+                f"Invalid card_id '{card_id}' in review: {review}. Must be an integer."
+            )
+            continue  # Skip this invalid review
 
         ease = RATING_TO_EASE.get(rating)
         if ease is None:
             valid_ratings = list(RATING_TO_EASE.keys())
-            validation_errors.append(f"Invalid rating '{rating}' for card_id {card_id}. Must be one of: {valid_ratings}.")
-            continue # Skip this invalid review
+            validation_errors.append(
+                f"Invalid rating '{rating}' for card_id {card_id}. Must be one of: {valid_ratings}."
+            )
+            continue  # Skip this invalid review
 
         answers_to_submit.append({"cardId": card_id, "ease": ease})
 
@@ -429,8 +488,7 @@ async def submit_reviews(
         return f"SYSTEM_ERROR: Could not submit reviews due to validation errors:\n{errors_str}"
 
     if not answers_to_submit:
-         return "No valid reviews found to submit after validation."
-
+        return "No valid reviews found to submit after validation."
 
     async with get_anki_client() as anki:
         logger.info(f"Submitting {len(answers_to_submit)} reviews to Anki.")
@@ -440,25 +498,31 @@ async def submit_reviews(
 
         # Check if the result length matches the input length
         if len(results) != len(answers_to_submit):
-             logger.warning(f"Anki response length mismatch: Expected {len(answers_to_submit)}, Got {len(results)}")
-             # Handle potential mismatch - maybe return a generic success/fail message
-             # For now, assume results correspond to input order if length matches
+            logger.warning(
+                f"Anki response length mismatch: Expected {len(answers_to_submit)}, Got {len(results)}"
+            )
+            # Handle potential mismatch - maybe return a generic success/fail message
+            # For now, assume results correspond to input order if length matches
 
         # Generate response messages based on results (assuming True means success)
         messages = []
         success_count = 0
         fail_count = 0
-        for i, review in enumerate(reviews): # Iterate original reviews to get card_id/rating
-             card_id = review['card_id']
-             rating = review['rating']
-             # Check corresponding result if lengths match, otherwise assume failure?
-             success = results[i] if i < len(results) else False # Default to False if mismatch
-             if success:
-                 messages.append(f"Card {card_id}: Marked as '{rating}' successfully.")
-                 success_count += 1
-             else:
-                 messages.append(f"Card {card_id}: Failed to mark as '{rating}'.")
-                 fail_count += 1
+        for i, review in enumerate(
+            reviews
+        ):  # Iterate original reviews to get card_id/rating
+            card_id = review["card_id"]
+            rating = review["rating"]
+            # Check corresponding result if lengths match, otherwise assume failure?
+            success = (
+                results[i] if i < len(results) else False
+            )  # Default to False if mismatch
+            if success:
+                messages.append(f"Card {card_id}: Marked as '{rating}' successfully.")
+                success_count += 1
+            else:
+                messages.append(f"Card {card_id}: Failed to mark as '{rating}'.")
+                fail_count += 1
 
         summary = f"Review submission summary: {success_count} successful, {fail_count} failed."
         full_response = summary + "\n" + "\n".join(messages)
@@ -467,13 +531,13 @@ async def submit_reviews(
 
 
 @mcp.tool()
-@handle_anki_connection_error # Apply decorator
+@handle_anki_connection_error  # Apply decorator
 async def add_note(
     deckName: str,
     modelName: str,
     fields: dict[str, str],
-    tags: Optional[List[str]] = None,
-    picture: Optional[List[Dict[str, Union[str, List[str]]]]] = None,
+    tags: list[str] | None = None,
+    picture: list[dict[str, str | list[str]]] | None = None,
 ) -> str:
     """Add a flashcard to Anki. Ensure you have looked at examples before you do this, and that you have got approval from the user to add the flashcard.
 
@@ -525,22 +589,26 @@ async def add_note(
     note_payload: dict[str, Any] = {
         "deckName": deckName,
         "modelName": modelName,
-        "fields": processed_fields, # Use processed fields
+        "fields": processed_fields,  # Use processed fields
         "tags": tags if tags is not None else [],
         "options": {
             "allowDuplicate": False,
             "duplicateScope": "deck",
-        }
+        },
     }
 
     if picture:
         note_payload["picture"] = picture
 
     async with get_anki_client() as anki:
-        logger.info(f"Attempting to add note to deck '{deckName}' with model '{modelName}'.")
+        logger.info(
+            f"Attempting to add note to deck '{deckName}' with model '{modelName}'."
+        )
         if picture:
             logger.info(f"Note includes {len(picture)} picture attachment(s).")
-        logger.debug(f"Note Payload: {json.dumps(note_payload, indent=2)}") # Log the payload for debugging
+        logger.debug(
+            f"Note Payload: {json.dumps(note_payload, indent=2)}"
+        )  # Log the payload for debugging
 
         # Invoke addNote - errors (like duplicate, missing fields) will be caught
         # by the ValueError check in invoke or the decorator
@@ -548,7 +616,9 @@ async def add_note(
 
         # add_note returns the new note ID on success, or raises error/returns None/0 on failure
         if note_id:
-            success_message = f"Successfully created note with ID: {note_id} in deck '{deckName}'."
+            success_message = (
+                f"Successfully created note with ID: {note_id} in deck '{deckName}'."
+            )
             if picture:
                 success_message += f" ({len(picture)} image(s) attached)"
             logger.info(success_message)
@@ -563,9 +633,9 @@ async def add_note(
 @handle_anki_connection_error
 async def store_media_file(
     filename: str,
-    url: Optional[str] = None,
-    data: Optional[str] = None,
-    path: Optional[str] = None,
+    url: str | None = None,
+    data: str | None = None,
+    path: str | None = None,
 ) -> str:
     """Store an image or media file in Anki's media folder.
 
@@ -608,7 +678,7 @@ async def store_media_file(
         if stored_filename:
             return (
                 f"Successfully stored media file as '{stored_filename}'. "
-                f"Reference it in card fields with: <img src=\"{stored_filename}\">"
+                f'Reference it in card fields with: <img src="{stored_filename}">'
             )
         else:
             return f"SYSTEM_ERROR: Failed to store media file '{filename}'."
@@ -618,7 +688,9 @@ async def store_media_file(
 @handle_anki_connection_error
 async def search_notes(
     query: str = Field(description="Anki search query string"),
-    limit: int = Field(default=20, ge=1, le=100, description="Maximum number of notes to return"),
+    limit: int = Field(
+        default=20, ge=1, le=100, description="Maximum number of notes to return"
+    ),
 ) -> str:
     """Search for notes in Anki using the powerful built-in search syntax.
 
@@ -690,12 +762,15 @@ async def search_notes(
         logger.info(f"Found {len(note_ids)} notes for query: {query}")
 
         if not note_ids:
-            return json.dumps({
-                "query": query,
-                "total_found": 0,
-                "notes": [],
-                "message": "No notes found matching the query."
-            }, indent=2)
+            return json.dumps(
+                {
+                    "query": query,
+                    "total_found": 0,
+                    "notes": [],
+                    "message": "No notes found matching the query.",
+                },
+                indent=2,
+            )
 
         # Limit results
         limited_note_ids = note_ids[:limit]
@@ -714,6 +789,8 @@ async def search_notes(
         }
 
         if len(note_ids) > limit:
-            result["message"] = f"Showing {limit} of {len(note_ids)} matching notes. Refine your query or increase limit for more results."
+            result["message"] = (
+                f"Showing {limit} of {len(note_ids)} matching notes. Refine your query or increase limit for more results."
+            )
 
         return json.dumps(result, indent=2, ensure_ascii=False)
