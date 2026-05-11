@@ -29,6 +29,8 @@ Anki must be running with the AnkiConnect add-on (id `2055492159`) listening on 
 - **AnkiConnect `findNotes` does NOT support `sort:` directives** — they are a browser-UI feature only. Do ordering/sampling in Python after the result returns. See `_build_example_query` in `server.py`.
 - **Image attachments**: prefer the `path` parameter (absolute file path) over `data` (base64) when the user shares a local file — AnkiConnect reads from disk faster and avoids large payloads. Source priority in AnkiConnect: `data > path > url`.
 - **macOS AppSleep** can slow AnkiConnect dramatically; the workaround is in `README.md`.
+- **Reference docs stay online.** Do not commit standalone Anki-Connect API or MCP spec dumps to the repo — link out instead.
+- **If `.venv` looks broken** (e.g. `uv run` complains about a missing Python executable), delete it and let `uv` recreate it on the next command rather than reinstalling piecemeal.
 
 ## Project Management
 - Use `uv` for Python package management and running tools (NEVER pip)
