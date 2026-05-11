@@ -6,7 +6,7 @@ Connect Claude conversations with AnkiConnect via MCP to make spaced repetition 
 
 ### Tools
 
-The server implements three tools:
+The server implements the following tools:
 
 - `num_cards_due_today`: Get the number of cards due today
   - Optional `deck` argument to filter by specific deck
@@ -22,6 +22,13 @@ The server implements three tools:
   - Takes list of `reviews` with `card_id` and `rating`
   - Ratings: "wrong", "hard", "good", "easy"
   - Returns confirmation of submitted reviews
+
+- `inspect_cards`: View per-card state (suspension, ease, interval, scheduling, optional review history) for given card IDs or note IDs.
+- `update_note_fields`: Modify the text content of one note's fields. Uses the same MathJax/code conversions as `add_note`.
+- `update_note_tags`: Add and/or remove tags on one or more notes.
+- `set_suspended`: Suspend or unsuspend one or more cards.
+- `change_deck`: Move cards (by card ID) into a different deck.
+- `reschedule_cards`: Set due date, forget, or relearn one or more cards.
 
 ## Configuration
 
