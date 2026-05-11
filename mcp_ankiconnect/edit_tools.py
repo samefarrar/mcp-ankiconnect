@@ -217,8 +217,23 @@ async def update_note_tags(
 @mcp.tool()
 @handle_anki_connection_error
 async def set_suspended(card_ids: list[int], suspended: bool) -> str:
-    """Stub — implemented in a later task."""
-    return "SYSTEM_ERROR: set_suspended not yet implemented."
+    """Suspend or unsuspend one or more cards.
+
+    Args:
+        card_ids: Card IDs to act on (not note IDs).
+        suspended: True to suspend, False to unsuspend.
+    """
+    if not card_ids:
+        return "SYSTEM_ERROR: `card_ids` must not be empty."
+
+    async with get_anki_client() as anki:
+        if suspended:
+            await anki.suspend(cards=list(card_ids))
+            verb = "Suspended"
+        else:
+            await anki.unsuspend(cards=list(card_ids))
+            verb = "Unsuspended"
+    return f"{verb} {len(card_ids)} card(s)."
 
 
 @mcp.tool()

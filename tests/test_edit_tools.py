@@ -322,3 +322,36 @@ async def test_update_note_tags_add_and_remove(mock_anki_client):
         notes=[1, 2, 3], tags="draft todo"
     )
     assert "3 notes" in result
+
+
+# --- set_suspended ---
+
+from mcp_ankiconnect.edit_tools import set_suspended  # noqa: E402
+
+
+async def test_set_suspended_empty_card_ids(mock_anki_client):
+    result = await set_suspended(card_ids=[], suspended=True)
+    assert result.startswith("SYSTEM_ERROR:")
+    mock_anki_client.suspend.assert_not_awaited()
+
+
+async def test_set_suspended_true_calls_suspend(mock_anki_client):
+    mock_anki_client.suspend.return_value = True
+    result = await set_suspended(card_ids=[10, 11, 12], suspended=True)
+    mock_anki_client.suspend.assert_awaited_once_with(cards=[10, 11, 12])
+    mock_anki_client.unsuspend.assert_not_awaited()
+    assert "Suspended 3" in result
+
+
+async def test_set_suspended_false_calls_unsuspend(mock_anki_client):
+    mock_anki_client.unsuspend.return_value = True
+    result = await set_suspended(card_ids=[10], suspended=False)
+    mock_anki_client.unsuspend.assert_awaited_once_with(cards=[10])
+    mock_anki_client.suspend.assert_not_awaited()
+    assert "Unsuspended 1" in result
+
+
+async def test_set_suspended_connection_error(mock_anki_client):
+    mock_anki_client.suspend.side_effect = AnkiConnectionError("nope")
+    result = await set_suspended(card_ids=[10], suspended=True)
+    assert result.startswith("SYSTEM_ERROR: Cannot connect to Anki")
