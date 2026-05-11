@@ -5,12 +5,11 @@ build/
 dist/
 wheels/
 *.egg-info
+.pytest_cache/
 
 # Virtual environments
 .venv
-.aider*
 .env
-.asana/
 
 # DS Store
 .DS_Store
