@@ -355,3 +355,30 @@ async def test_set_suspended_connection_error(mock_anki_client):
     mock_anki_client.suspend.side_effect = AnkiConnectionError("nope")
     result = await set_suspended(card_ids=[10], suspended=True)
     assert result.startswith("SYSTEM_ERROR: Cannot connect to Anki")
+
+
+# --- change_deck ---
+
+from mcp_ankiconnect.edit_tools import change_deck  # noqa: E402
+
+
+async def test_change_deck_empty_card_ids(mock_anki_client):
+    result = await change_deck(card_ids=[], deck="Spanish")
+    assert result.startswith("SYSTEM_ERROR:")
+    mock_anki_client.change_deck.assert_not_awaited()
+
+
+async def test_change_deck_empty_deck_name(mock_anki_client):
+    result = await change_deck(card_ids=[10], deck="")
+    assert result.startswith("SYSTEM_ERROR:")
+    mock_anki_client.change_deck.assert_not_awaited()
+
+
+async def test_change_deck_happy_path(mock_anki_client):
+    mock_anki_client.change_deck.return_value = None
+    result = await change_deck(card_ids=[10, 11], deck="Spanish::Verbs")
+    mock_anki_client.change_deck.assert_awaited_once_with(
+        cards=[10, 11], deck="Spanish::Verbs"
+    )
+    assert "2" in result
+    assert "Spanish::Verbs" in result

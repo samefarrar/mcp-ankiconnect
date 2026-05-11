@@ -239,8 +239,25 @@ async def set_suspended(card_ids: list[int], suspended: bool) -> str:
 @mcp.tool()
 @handle_anki_connection_error
 async def change_deck(card_ids: list[int], deck: str) -> str:
-    """Stub — implemented in a later task."""
-    return "SYSTEM_ERROR: change_deck not yet implemented."
+    """Move cards into a different deck.
+
+    Operates on card IDs (AnkiConnect's `changeDeck` is card-scoped). If you only
+    have note IDs, call `inspect_cards(note_ids=...)` first — a single note's cards
+    can legitimately live in different decks, so this tool never silently expands
+    notes into cards.
+
+    Args:
+        card_ids: Card IDs to move.
+        deck: Target deck name (e.g. "Spanish::Verbs").
+    """
+    if not card_ids:
+        return "SYSTEM_ERROR: `card_ids` must not be empty."
+    if not deck:
+        return "SYSTEM_ERROR: `deck` must not be empty."
+
+    async with get_anki_client() as anki:
+        await anki.change_deck(cards=list(card_ids), deck=deck)
+    return f"Moved {len(card_ids)} card(s) to deck '{deck}'."
 
 
 @mcp.tool()
