@@ -223,3 +223,42 @@ async def test_inspect_cards_connection_error(mock_anki_client):
     mock_anki_client.cards_info.side_effect = AnkiConnectionError("nope")
     result = await inspect_cards(card_ids=[100])
     assert result.startswith("SYSTEM_ERROR: Cannot connect to Anki")
+
+
+# --- update_note_fields ---
+
+from mcp_ankiconnect.edit_tools import update_note_fields  # noqa: E402
+
+
+async def test_update_note_fields_empty_fields_dict_returns_error(mock_anki_client):
+    result = await update_note_fields(note_id=200, fields={})
+    assert result.startswith("SYSTEM_ERROR:")
+    assert "fields" in result.lower()
+    mock_anki_client.update_note_fields.assert_not_awaited()
+
+
+async def test_update_note_fields_processes_content_and_invokes_client(
+    mock_anki_client,
+):
+    mock_anki_client.update_note_fields.return_value = None
+    result = await update_note_fields(
+        note_id=200,
+        fields={"Front": "What is `x`?", "Back": "<math>x = 1</math>"},
+    )
+    mock_anki_client.update_note_fields.assert_awaited_once()
+    call_kwargs = mock_anki_client.update_note_fields.await_args.kwargs
+    note = call_kwargs["note"]
+    assert note["id"] == 200
+    assert note["fields"]["Front"] == "What is <code>x</code>?"
+    assert note["fields"]["Back"] == "\\(x = 1\\)"
+    assert "200" in result
+    assert "Front" in result and "Back" in result
+
+
+async def test_update_note_fields_api_error(mock_anki_client):
+    mock_anki_client.update_note_fields.side_effect = ValueError(
+        "AnkiConnect error: note was not found"
+    )
+    result = await update_note_fields(note_id=999, fields={"Front": "hi"})
+    assert result.startswith("SYSTEM_ERROR:")
+    assert "note was not found" in result

@@ -12,6 +12,7 @@ from datetime import UTC, datetime
 from typing import Literal
 
 from mcp_ankiconnect.server import (
+    _process_field_content,
     get_anki_client,
     handle_anki_connection_error,
     mcp,
@@ -143,9 +144,30 @@ async def inspect_cards(
 
 @mcp.tool()
 @handle_anki_connection_error
-async def update_note_fields(note_id: int, fields: dict[str, str]) -> str:
-    """Stub — implemented in a later task."""
-    return "SYSTEM_ERROR: update_note_fields not yet implemented."
+async def update_note_fields(
+    note_id: int,
+    fields: dict[str, str],
+) -> str:
+    """Update the text content of one or more fields on an existing note.
+
+    Only fields you pass in are changed; omitted fields are left alone. MathJax
+    (`<math>...</math>`) and code blocks/inline code are auto-converted to the
+    same HTML representations used by `add_note`.
+
+    Args:
+        note_id: Anki note ID (not a card ID).
+        fields: Mapping of field name -> new value.
+    """
+    if not fields:
+        return "SYSTEM_ERROR: `fields` must contain at least one field to update."
+
+    processed = {name: _process_field_content(value) for name, value in fields.items()}
+    payload = {"id": note_id, "fields": processed}
+
+    async with get_anki_client() as anki:
+        await anki.update_note_fields(note=payload)
+        field_list = ", ".join(sorted(fields.keys()))
+        return f"Updated note {note_id}. Fields modified: {field_list}."
 
 
 @mcp.tool()
