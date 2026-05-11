@@ -1,18 +1,21 @@
-import pytest
-from pytest_mock import MockerFixture # Import MockerFixture
+from unittest.mock import (  # Ensure call and MagicMock are imported
+    AsyncMock,
+    MagicMock,
+    call,
+    patch,
+)
+
 import httpx
-import asyncio
-from unittest.mock import AsyncMock, patch, call, MagicMock # Ensure call and MagicMock are imported
-from typing import List # Keep List if used elsewhere, otherwise remove if unused
+import pytest
+from pytest_mock import MockerFixture  # Import MockerFixture
 
 # Use absolute import based on project structure for tests
 from mcp_ankiconnect.ankiconnect_client import (
-    AnkiConnectClient,
-    AnkiConnectionError, # Import custom exception
     AnkiAction,
-    AnkiConnectRequest, # Import if needed for direct testing
-    AnkiConnectResponse # Import if needed for direct testing
-)
+    AnkiConnectClient,
+    AnkiConnectionError,  # Import custom exception
+    )
+
 # Assuming TIMEOUTS config is accessible or mockable if needed by client init
 # from mcp_ankiconnect.config import TIMEOUTS # If needed
 
@@ -47,7 +50,7 @@ def mock_response(): # Keep if used
 async def test_deck_names(client: AnkiConnectClient, mocker: MockerFixture, mock_response):
     expected_decks = ["Default", "Test Deck"]
     mock_post = mocker.patch.object(
-        client.client, 
+        client.client,
         "post",
         return_value=mock_response({"result": expected_decks, "error": None})
     )
@@ -296,3 +299,104 @@ async def test_store_media_file_with_data(client: AnkiConnectClient, mocker: Moc
     assert call_args["json"]["params"]["filename"] == "image.png"
     assert call_args["json"]["params"]["data"] == "iVBORw0KGgo="
     assert "url" not in call_args["json"]["params"]
+
+
+# --- Edit / inspect wrapper tests ---
+
+
+@pytest.fixture
+def client_with_mocked_invoke():
+    inst = AnkiConnectClient(base_url="http://test")
+    inst.invoke = AsyncMock()
+    return inst
+
+
+async def test_update_note_fields_wrapper(client_with_mocked_invoke):
+    client_with_mocked_invoke.invoke.return_value = None
+    note = {"id": 1, "fields": {"Front": "Q"}}
+    await client_with_mocked_invoke.update_note_fields(note=note)
+    client_with_mocked_invoke.invoke.assert_awaited_once_with(
+        AnkiAction.UPDATE_NOTE_FIELDS, note=note
+    )
+
+
+async def test_add_tags_wrapper(client_with_mocked_invoke):
+    client_with_mocked_invoke.invoke.return_value = None
+    await client_with_mocked_invoke.add_tags(notes=[1, 2], tags="physics mechanics")
+    client_with_mocked_invoke.invoke.assert_awaited_once_with(
+        AnkiAction.ADD_TAGS, notes=[1, 2], tags="physics mechanics"
+    )
+
+
+async def test_remove_tags_wrapper(client_with_mocked_invoke):
+    client_with_mocked_invoke.invoke.return_value = None
+    await client_with_mocked_invoke.remove_tags(notes=[1, 2], tags="draft")
+    client_with_mocked_invoke.invoke.assert_awaited_once_with(
+        AnkiAction.REMOVE_TAGS, notes=[1, 2], tags="draft"
+    )
+
+
+async def test_suspend_wrapper(client_with_mocked_invoke):
+    client_with_mocked_invoke.invoke.return_value = True
+    await client_with_mocked_invoke.suspend(cards=[10, 11])
+    client_with_mocked_invoke.invoke.assert_awaited_once_with(
+        AnkiAction.SUSPEND, cards=[10, 11]
+    )
+
+
+async def test_unsuspend_wrapper(client_with_mocked_invoke):
+    client_with_mocked_invoke.invoke.return_value = True
+    await client_with_mocked_invoke.unsuspend(cards=[10, 11])
+    client_with_mocked_invoke.invoke.assert_awaited_once_with(
+        AnkiAction.UNSUSPEND, cards=[10, 11]
+    )
+
+
+async def test_are_suspended_wrapper(client_with_mocked_invoke):
+    client_with_mocked_invoke.invoke.return_value = [True, False]
+    result = await client_with_mocked_invoke.are_suspended(cards=[10, 11])
+    client_with_mocked_invoke.invoke.assert_awaited_once_with(
+        AnkiAction.ARE_SUSPENDED, cards=[10, 11]
+    )
+    assert result == [True, False]
+
+
+async def test_change_deck_wrapper(client_with_mocked_invoke):
+    client_with_mocked_invoke.invoke.return_value = None
+    await client_with_mocked_invoke.change_deck(cards=[10, 11], deck="Spanish::Verbs")
+    client_with_mocked_invoke.invoke.assert_awaited_once_with(
+        AnkiAction.CHANGE_DECK, cards=[10, 11], deck="Spanish::Verbs"
+    )
+
+
+async def test_set_due_date_wrapper(client_with_mocked_invoke):
+    client_with_mocked_invoke.invoke.return_value = True
+    await client_with_mocked_invoke.set_due_date(cards=[10], days="1-7")
+    client_with_mocked_invoke.invoke.assert_awaited_once_with(
+        AnkiAction.SET_DUE_DATE, cards=[10], days="1-7"
+    )
+
+
+async def test_forget_cards_wrapper(client_with_mocked_invoke):
+    client_with_mocked_invoke.invoke.return_value = None
+    await client_with_mocked_invoke.forget_cards(cards=[10])
+    client_with_mocked_invoke.invoke.assert_awaited_once_with(
+        AnkiAction.FORGET_CARDS, cards=[10]
+    )
+
+
+async def test_relearn_cards_wrapper(client_with_mocked_invoke):
+    client_with_mocked_invoke.invoke.return_value = None
+    await client_with_mocked_invoke.relearn_cards(cards=[10])
+    client_with_mocked_invoke.invoke.assert_awaited_once_with(
+        AnkiAction.RELEARN_CARDS, cards=[10]
+    )
+
+
+async def test_get_reviews_of_cards_wrapper(client_with_mocked_invoke):
+    client_with_mocked_invoke.invoke.return_value = {"10": []}
+    result = await client_with_mocked_invoke.get_reviews_of_cards(cards=[10])
+    client_with_mocked_invoke.invoke.assert_awaited_once_with(
+        AnkiAction.GET_REVIEWS_OF_CARDS, cards=[10]
+    )
+    assert result == {"10": []}

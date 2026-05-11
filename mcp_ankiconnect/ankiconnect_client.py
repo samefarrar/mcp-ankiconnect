@@ -1,15 +1,16 @@
-from typing import Any, List, Optional
-import logging
-import httpx
 import asyncio
+import logging
 from enum import Enum
+from typing import Any
+
+import httpx
 
 try:
     from mcp_ankiconnect.config import (
         ANKI_CONNECT_URL,
         ANKI_CONNECT_VERSION,
         TIMEOUTS,
-        TimeoutConfig, # Import TimeoutConfig
+        TimeoutConfig,  # Import TimeoutConfig
     )
 except ImportError:
     # Attempt to import TimeoutConfig from config if the primary import fails
@@ -18,7 +19,7 @@ except ImportError:
             ANKI_CONNECT_URL,
             ANKI_CONNECT_VERSION,
             TIMEOUTS,
-            TimeoutConfig, # Import TimeoutConfig
+            TimeoutConfig,  # Import TimeoutConfig
         )
     except ImportError:
         # Handle cases where config.py might not define TimeoutConfig directly
@@ -37,7 +38,6 @@ logger = logging.getLogger(__name__)
 # --- Custom Exception ---
 class AnkiConnectionError(Exception):
     """Raised when the client cannot connect to the AnkiConnect server after retries."""
-    pass
 # --- End Custom Exception ---
 
 class AnkiAction(str, Enum):
@@ -51,10 +51,22 @@ class AnkiAction(str, Enum):
     FIND_NOTES = "findNotes"
     NOTES_INFO = "notesInfo"
     STORE_MEDIA_FILE = "storeMediaFile"
+    # --- edit / inspect additions ---
+    UPDATE_NOTE_FIELDS = "updateNoteFields"
+    ADD_TAGS = "addTags"
+    REMOVE_TAGS = "removeTags"
+    SUSPEND = "suspend"
+    UNSUSPEND = "unsuspend"
+    ARE_SUSPENDED = "areSuspended"
+    CHANGE_DECK = "changeDeck"
+    SET_DUE_DATE = "setDueDate"
+    FORGET_CARDS = "forgetCards"
+    RELEARN_CARDS = "relearnCards"
+    GET_REVIEWS_OF_CARDS = "getReviewsOfCards"
 
 class AnkiConnectResponse(BaseModel):
     result: Any
-    error: Optional[str] = None
+    error: str | None = None
 
 class AnkiConnectRequest(BaseModel):
     action: AnkiAction
@@ -179,34 +191,34 @@ class AnkiConnectClient:
             logger.error(f"Error processing AnkiConnect response for action {action.value}: {e}")
             raise
         except Exception as e:
-            logger.exception(f"Unexpected error processing AnkiConnect response for {action.value}: {str(e)}")
-            raise RuntimeError(f"Unexpected error processing AnkiConnect response: {str(e)}") from e
+            logger.exception(f"Unexpected error processing AnkiConnect response for {action.value}: {e!s}")
+            raise RuntimeError(f"Unexpected error processing AnkiConnect response: {e!s}") from e
         # --- End response processing ---
 
 
     # --- Wrapper methods ---
     # Remove redundant try/except blocks, rely on invoke's error handling
-    async def cards_info(self, card_ids: List[int]) -> List[dict]:
+    async def cards_info(self, card_ids: list[int]) -> list[dict]:
         return await self.invoke(AnkiAction.CARDS_INFO, cards=card_ids)
 
-    async def deck_names(self) -> List[str]:
+    async def deck_names(self) -> list[str]:
         return await self.invoke(AnkiAction.DECK_NAMES)
 
-    async def find_cards(self, query: str) -> List[int]:
+    async def find_cards(self, query: str) -> list[int]:
         return await self.invoke(AnkiAction.FIND_CARDS, query=query)
 
-    async def answer_cards(self, answers: List[dict]) -> List[bool]:
+    async def answer_cards(self, answers: list[dict]) -> list[bool]:
         # AnkiConnect expects list of {"cardId": int, "ease": int}
         # Ensure the input format matches or convert here if needed
         return await self.invoke(AnkiAction.ANSWER_CARDS, answers=answers)
 
-    async def model_field_names(self, model_name: str) -> List[str]:
+    async def model_field_names(self, model_name: str) -> list[str]:
         return await self.invoke(AnkiAction.MODEL_FIELD_NAMES, modelName=model_name)
 
-    async def model_names(self) -> List[str]:
+    async def model_names(self) -> list[str]:
         return await self.invoke(AnkiAction.MODEL_NAMES)
 
-    async def find_notes(self, query: str) -> List[int]:
+    async def find_notes(self, query: str) -> list[int]:
         return await self.invoke(AnkiAction.FIND_NOTES, query=query)
 
     async def add_note(self, note: dict) -> int:
@@ -214,15 +226,15 @@ class AnkiConnectClient:
         # {"deckName": ..., "modelName": ..., "fields": {...}, "tags": [...], "options": {...}}
         return await self.invoke(AnkiAction.ADD_NOTE, note=note)
 
-    async def notes_info(self, note_ids: List[int]) -> List[dict]:
+    async def notes_info(self, note_ids: list[int]) -> list[dict]:
         return await self.invoke(AnkiAction.NOTES_INFO, notes=note_ids)
 
     async def store_media_file(
         self,
         filename: str,
-        data: Optional[str] = None,
-        url: Optional[str] = None,
-        path: Optional[str] = None,
+        data: str | None = None,
+        url: str | None = None,
+        path: str | None = None,
     ) -> str:
         """Store a media file in Anki's media folder.
 
@@ -239,6 +251,44 @@ class AnkiConnectClient:
         if path is not None:
             params["path"] = path
         return await self.invoke(AnkiAction.STORE_MEDIA_FILE, **params)
+
+    # --- Edit / inspect wrappers ---
+    async def update_note_fields(self, note: dict) -> None:
+        """note must be {"id": int, "fields": {field_name: value, ...}}."""
+        return await self.invoke(AnkiAction.UPDATE_NOTE_FIELDS, note=note)
+
+    async def add_tags(self, notes: list[int], tags: str) -> None:
+        """`tags` is a space-separated string (AnkiConnect's format)."""
+        return await self.invoke(AnkiAction.ADD_TAGS, notes=notes, tags=tags)
+
+    async def remove_tags(self, notes: list[int], tags: str) -> None:
+        return await self.invoke(AnkiAction.REMOVE_TAGS, notes=notes, tags=tags)
+
+    async def suspend(self, cards: list[int]) -> bool:
+        return await self.invoke(AnkiAction.SUSPEND, cards=cards)
+
+    async def unsuspend(self, cards: list[int]) -> bool:
+        return await self.invoke(AnkiAction.UNSUSPEND, cards=cards)
+
+    async def are_suspended(self, cards: list[int]) -> list[bool | None]:
+        return await self.invoke(AnkiAction.ARE_SUSPENDED, cards=cards)
+
+    async def change_deck(self, cards: list[int], deck: str) -> None:
+        return await self.invoke(AnkiAction.CHANGE_DECK, cards=cards, deck=deck)
+
+    async def set_due_date(self, cards: list[int], days: str) -> bool:
+        """`days` examples: "1" (1 day from now), "1-7" (random in range), "3!" (reset interval)."""
+        return await self.invoke(AnkiAction.SET_DUE_DATE, cards=cards, days=days)
+
+    async def forget_cards(self, cards: list[int]) -> None:
+        return await self.invoke(AnkiAction.FORGET_CARDS, cards=cards)
+
+    async def relearn_cards(self, cards: list[int]) -> None:
+        return await self.invoke(AnkiAction.RELEARN_CARDS, cards=cards)
+
+    async def get_reviews_of_cards(self, cards: list[int]) -> dict:
+        """Returns {card_id_str: [review_entry_dict, ...]}."""
+        return await self.invoke(AnkiAction.GET_REVIEWS_OF_CARDS, cards=cards)
 
     async def close(self):
         await self.client.aclose()
