@@ -262,3 +262,63 @@ async def test_update_note_fields_api_error(mock_anki_client):
     result = await update_note_fields(note_id=999, fields={"Front": "hi"})
     assert result.startswith("SYSTEM_ERROR:")
     assert "note was not found" in result
+
+
+# --- update_note_tags ---
+
+from mcp_ankiconnect.edit_tools import update_note_tags  # noqa: E402
+
+
+async def test_update_note_tags_requires_add_or_remove(mock_anki_client):
+    result = await update_note_tags(note_ids=[1, 2])
+    assert result.startswith("SYSTEM_ERROR:")
+    mock_anki_client.add_tags.assert_not_awaited()
+    mock_anki_client.remove_tags.assert_not_awaited()
+
+
+async def test_update_note_tags_empty_note_ids(mock_anki_client):
+    result = await update_note_tags(note_ids=[], add=["x"])
+    assert result.startswith("SYSTEM_ERROR:")
+    mock_anki_client.add_tags.assert_not_awaited()
+
+
+async def test_update_note_tags_rejects_overlap(mock_anki_client):
+    result = await update_note_tags(note_ids=[1], add=["draft"], remove=["draft"])
+    assert result.startswith("SYSTEM_ERROR:")
+    assert "draft" in result
+    mock_anki_client.add_tags.assert_not_awaited()
+    mock_anki_client.remove_tags.assert_not_awaited()
+
+
+async def test_update_note_tags_add_only(mock_anki_client):
+    mock_anki_client.add_tags.return_value = None
+    result = await update_note_tags(note_ids=[1, 2], add=["physics", "mechanics"])
+    mock_anki_client.add_tags.assert_awaited_once_with(
+        notes=[1, 2], tags="physics mechanics"
+    )
+    mock_anki_client.remove_tags.assert_not_awaited()
+    assert "2 notes" in result
+    assert "physics" in result and "mechanics" in result
+
+
+async def test_update_note_tags_remove_only(mock_anki_client):
+    mock_anki_client.remove_tags.return_value = None
+    result = await update_note_tags(note_ids=[1], remove=["draft"])
+    mock_anki_client.remove_tags.assert_awaited_once_with(notes=[1], tags="draft")
+    mock_anki_client.add_tags.assert_not_awaited()
+    assert "draft" in result
+
+
+async def test_update_note_tags_add_and_remove(mock_anki_client):
+    mock_anki_client.add_tags.return_value = None
+    mock_anki_client.remove_tags.return_value = None
+    result = await update_note_tags(
+        note_ids=[1, 2, 3],
+        add=["reviewed"],
+        remove=["draft", "todo"],
+    )
+    mock_anki_client.add_tags.assert_awaited_once_with(notes=[1, 2, 3], tags="reviewed")
+    mock_anki_client.remove_tags.assert_awaited_once_with(
+        notes=[1, 2, 3], tags="draft todo"
+    )
+    assert "3 notes" in result

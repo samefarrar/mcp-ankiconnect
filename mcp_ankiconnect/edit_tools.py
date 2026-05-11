@@ -177,8 +177,41 @@ async def update_note_tags(
     add: list[str] | None = None,
     remove: list[str] | None = None,
 ) -> str:
-    """Stub — implemented in a later task."""
-    return "SYSTEM_ERROR: update_note_tags not yet implemented."
+    """Add and/or remove tags on one or more notes.
+
+    Tags MUST NOT appear in both `add` and `remove`. At least one of the two lists
+    must be non-empty.
+
+    Args:
+        note_ids: Note IDs to modify.
+        add: Tags to add (each tag should not contain spaces).
+        remove: Tags to remove.
+    """
+    add = add or []
+    remove = remove or []
+
+    if not note_ids:
+        return "SYSTEM_ERROR: `note_ids` must not be empty."
+    if not add and not remove:
+        return "SYSTEM_ERROR: Provide at least one of `add` or `remove`."
+
+    overlap = set(add) & set(remove)
+    if overlap:
+        joined = ", ".join(sorted(overlap))
+        return f"SYSTEM_ERROR: Tags appear in both `add` and `remove`: {joined}."
+
+    async with get_anki_client() as anki:
+        if add:
+            await anki.add_tags(notes=list(note_ids), tags=" ".join(add))
+        if remove:
+            await anki.remove_tags(notes=list(note_ids), tags=" ".join(remove))
+
+    parts = [f"Updated tags on {len(note_ids)} notes"]
+    if add:
+        parts.append(f"added: [{', '.join(add)}]")
+    if remove:
+        parts.append(f"removed: [{', '.join(remove)}]")
+    return parts[0] + " — " + "; ".join(parts[1:]) + "."
 
 
 @mcp.tool()
