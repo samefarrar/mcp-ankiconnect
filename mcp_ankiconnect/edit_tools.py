@@ -267,5 +267,43 @@ async def reschedule_cards(
     mode: Literal["set_due", "forget", "relearn"],
     due: str | None = None,
 ) -> str:
-    """Stub — implemented in a later task."""
-    return "SYSTEM_ERROR: reschedule_cards not yet implemented."
+    """Manipulate the scheduling state of one or more cards.
+
+    Modes:
+    - `set_due`: Set the cards' due date. Requires `due`. Accepts AnkiConnect's
+      `setDueDate` spec:
+        * "1"   → due 1 day from now
+        * "1-7" → randomly due between 1 and 7 days from now
+        * "3!"  → due in 3 days AND reset interval to 3
+    - `forget`: Reset cards to the "new" queue (re-enters the learning pipeline).
+    - `relearn`: Move cards into the relearning queue.
+
+    Args:
+        card_ids: Card IDs to reschedule.
+        mode: One of "set_due", "forget", "relearn".
+        due: Required for `mode="set_due"`; ignored otherwise.
+    """
+    if not card_ids:
+        return "SYSTEM_ERROR: `card_ids` must not be empty."
+
+    cards = list(card_ids)
+    async with get_anki_client() as anki:
+        if mode == "set_due":
+            if not due:
+                return (
+                    "SYSTEM_ERROR: `due` is required when mode='set_due' "
+                    "(e.g. '1', '1-7', '3!')."
+                )
+            await anki.set_due_date(cards=cards, days=due)
+            return f"Set due date '{due}' on {len(cards)} card(s)."
+        if mode == "forget":
+            await anki.forget_cards(cards=cards)
+            return f"Forgot (reset to new) {len(cards)} card(s)."
+        if mode == "relearn":
+            await anki.relearn_cards(cards=cards)
+            return f"Moved {len(cards)} card(s) into the relearn queue."
+
+    return (
+        f"SYSTEM_ERROR: Unknown mode '{mode}'. "
+        "Expected one of: set_due, forget, relearn."
+    )

@@ -382,3 +382,54 @@ async def test_change_deck_happy_path(mock_anki_client):
     )
     assert "2" in result
     assert "Spanish::Verbs" in result
+
+
+# --- reschedule_cards ---
+
+from mcp_ankiconnect.edit_tools import reschedule_cards  # noqa: E402
+
+
+async def test_reschedule_empty_card_ids(mock_anki_client):
+    result = await reschedule_cards(card_ids=[], mode="forget")
+    assert result.startswith("SYSTEM_ERROR:")
+    mock_anki_client.forget_cards.assert_not_awaited()
+
+
+async def test_reschedule_set_due_requires_due_arg(mock_anki_client):
+    result = await reschedule_cards(card_ids=[10], mode="set_due")
+    assert result.startswith("SYSTEM_ERROR:")
+    assert "due" in result.lower()
+    mock_anki_client.set_due_date.assert_not_awaited()
+
+
+async def test_reschedule_set_due_happy_path(mock_anki_client):
+    mock_anki_client.set_due_date.return_value = True
+    result = await reschedule_cards(card_ids=[10, 11], mode="set_due", due="1-7")
+    mock_anki_client.set_due_date.assert_awaited_once_with(cards=[10, 11], days="1-7")
+    assert "1-7" in result
+    assert "2" in result
+
+
+async def test_reschedule_forget_happy_path(mock_anki_client):
+    mock_anki_client.forget_cards.return_value = None
+    result = await reschedule_cards(card_ids=[10], mode="forget")
+    mock_anki_client.forget_cards.assert_awaited_once_with(cards=[10])
+    mock_anki_client.set_due_date.assert_not_awaited()
+    mock_anki_client.relearn_cards.assert_not_awaited()
+    assert "Forgot" in result or "forget" in result.lower()
+
+
+async def test_reschedule_relearn_happy_path(mock_anki_client):
+    mock_anki_client.relearn_cards.return_value = None
+    result = await reschedule_cards(card_ids=[10], mode="relearn")
+    mock_anki_client.relearn_cards.assert_awaited_once_with(cards=[10])
+    mock_anki_client.forget_cards.assert_not_awaited()
+    assert "relearn" in result.lower()
+
+
+async def test_reschedule_ignores_due_for_non_set_due_mode(mock_anki_client):
+    mock_anki_client.forget_cards.return_value = None
+    result = await reschedule_cards(card_ids=[10], mode="forget", due="1")
+    mock_anki_client.forget_cards.assert_awaited_once_with(cards=[10])
+    mock_anki_client.set_due_date.assert_not_awaited()
+    assert not result.startswith("SYSTEM_ERROR:")
