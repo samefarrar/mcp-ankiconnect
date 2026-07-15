@@ -22,11 +22,17 @@ from .config import (  # Import necessary configs
     RATING_TO_EASE,
 )
 from .server_prompts import claude_review_instructions, flashcard_guidelines
+from .tool_metadata import (
+    DESTRUCTIVE_OPEN_WORLD_WRITE,
+    DESTRUCTIVE_WRITE,
+    READ_ONLY,
+    SERVER_INSTRUCTIONS,
+)
 
 logger = logging.getLogger(__name__)
 
 logger.info("Initializing MCP-AnkiConnect server")
-mcp = FastMCP("mcp-ankiconnect")
+mcp = FastMCP("mcp-ankiconnect", instructions=SERVER_INSTRUCTIONS)
 logger.debug("Created FastMCP instance")
 
 
@@ -416,7 +422,7 @@ def _process_field_content(content: str) -> str:
 # --- Tool Definitions ---
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 @handle_anki_connection_error  # Apply decorator
 async def num_cards_due_today(deck: str | None = None) -> str:
     """Get the number of cards due exactly today, with an optional deck filter."""
@@ -428,7 +434,7 @@ async def num_cards_due_today(deck: str | None = None) -> str:
         return f"There are {count} cards due today{deck_msg}."
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 @handle_anki_connection_error  # Apply decorator
 async def list_decks_and_notes() -> str:
     """Get all decks (excluding specified patterns) and note types with their fields."""
@@ -480,7 +486,7 @@ async def list_decks_and_notes() -> str:
         return f"{deck_list_str}\n\n{note_types_str}"
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 @handle_anki_connection_error  # Apply decorator
 async def get_examples(
     deck: str | None = None,
@@ -538,7 +544,7 @@ async def get_examples(
         return result
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 @handle_anki_connection_error  # Apply decorator
 async def fetch_due_cards_for_review(
     deck: str | None = None,
@@ -585,7 +591,7 @@ async def fetch_due_cards_for_review(
         return review_prompt
 
 
-@mcp.tool()
+@mcp.tool(annotations=DESTRUCTIVE_WRITE)
 @handle_anki_connection_error  # Apply decorator
 async def submit_reviews(
     reviews: list[
@@ -675,7 +681,7 @@ async def submit_reviews(
         return full_response
 
 
-@mcp.tool()
+@mcp.tool(annotations=DESTRUCTIVE_OPEN_WORLD_WRITE)
 @handle_anki_connection_error  # Apply decorator
 async def add_note(
     deckName: str,
@@ -774,7 +780,7 @@ async def add_note(
             return f"SYSTEM_ERROR: {fail_message}"
 
 
-@mcp.tool()
+@mcp.tool(annotations=DESTRUCTIVE_OPEN_WORLD_WRITE)
 @handle_anki_connection_error
 async def store_media_file(
     filename: str,
@@ -829,7 +835,7 @@ async def store_media_file(
             return f"SYSTEM_ERROR: Failed to store media file '{filename}'."
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 @handle_anki_connection_error
 async def search_notes(
     query: str = Field(description="Anki search query string"),

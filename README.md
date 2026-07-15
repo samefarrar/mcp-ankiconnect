@@ -85,7 +85,7 @@ uv sync
 You can launch the MCP Inspector via the mcp CLI:
 
 ```bash
-uv run mcp dev mcp_ankiconnect/server.py
+uv run mcp dev mcp_ankiconnect/main.py
 ```
 
 Upon launching, the Inspector will display a URL you can access in your browser to begin debugging.

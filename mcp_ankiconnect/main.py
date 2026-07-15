@@ -1,6 +1,5 @@
 import logging
 
-import mcp_ankiconnect.edit_tools  # noqa: F401  # registers edit/inspect tools
 from mcp_ankiconnect.server import mcp
 
 logger = logging.getLogger(__name__)

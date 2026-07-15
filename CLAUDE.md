@@ -14,12 +14,15 @@ Every `@mcp.tool` is wrapped in `@handle_anki_connection_error` which converts e
 
 ## Tools exposed
 
-`num_cards_due_today`, `list_decks_and_notes`, `get_examples`, `fetch_due_cards_for_review`, `submit_reviews`, `add_note`, `store_media_file`, `search_notes`.
+`num_cards_due_today`, `list_decks_and_notes`, `get_examples`,
+`fetch_due_cards_for_review`, `submit_reviews`, `add_note`, `store_media_file`,
+`search_notes`, `inspect_cards`, `update_note_fields`, `update_note_tags`,
+`set_suspended`, `change_deck`, `reschedule_cards`.
 
 ## Run / debug
 
 - Run server: `uv run mcp-ankiconnect`
-- MCP Inspector (preferred for dev): `uv run mcp dev mcp_ankiconnect/server.py`
+- MCP Inspector (preferred for dev): `uv run mcp dev mcp_ankiconnect/main.py`
 - Tests: `uv run pytest` (asyncio_mode=auto, see `pyproject.toml`)
 
 Anki must be running with the AnkiConnect add-on (id `2055492159`) listening on `localhost:8765` for any integration smoke test; unit tests mock the client.
