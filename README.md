@@ -76,6 +76,26 @@ on), so clients can auto-approve reads and gate destructive calls.
   defaults write org.qt-project.Qt.QtWebEngineCore NSAppSleepDisabled -bool true
   ```
 
+### Environment variables
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `ANKI_CONNECT_URL` | `http://localhost:8765` | Where AnkiConnect listens. |
+| `ANKI_AUTO_LAUNCH` | `true` | Open Anki in the background when a tool needs it and nothing is listening. `0`, `false`, `no` or `off` turn it off. |
+| `ANKI_APP_PATH` | `Anki` (macOS), `anki` (Linux) | App name, `.app` path or executable used to open Anki. |
+| `ANKI_LAUNCH_TIMEOUT` | `30` | Seconds to wait for AnkiConnect to answer after opening Anki. |
+| `ANKI_DAY_ROLLOVER_HOUR` | `4` | Hour at which Anki starts a new day. |
+
+**Opening Anki automatically.** When Anki is closed, the first tool call opens
+it without taking focus (`open -g -a Anki` on macOS, a detached `anki` on
+Linux; Windows tries `%LOCALAPPDATA%\Programs\Anki\anki.exe`), waits for
+AnkiConnect, and carries on. The result then starts with a line such as
+`NOTE: Anki was closed, so I opened it in the background (took 7 s).` Only a
+refused connection to a local AnkiConnect triggers this; a busy Anki that times
+out is never launched again. If AnkiConnect does not answer in time, Anki is
+usually waiting at the profile picker or the add-on is missing, and the server
+will not try again for 60 s.
+
 ### Installation
 
 ## Claude Code plugin
@@ -100,7 +120,9 @@ copy with `uv`, so tools and skills always match) plus three skills:
 
 You need [uv](https://docs.astral.sh/uv/) on your `PATH`, and Anki running with
 AnkiConnect. The plugin asks for the AnkiConnect URL (default
-`http://localhost:8765`).
+`http://localhost:8765`) and offers **Open Anki automatically** (default on),
+which opens Anki in the background when a tool needs it; turn it off to get an
+error instead.
 
 **Personal overlays.** The skills are generic on purpose. To teach them your own
 conventions (default deck, note types, tags, flag meanings) and your own

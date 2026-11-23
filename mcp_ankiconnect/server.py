@@ -11,6 +11,8 @@ from mcp.server.fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 from pydantic import Field
 
+from . import launcher
+
 # Use relative imports within the package
 from .ankiconnect_client import (  # Import custom exception
     AnkiConnectClient,
@@ -78,7 +80,8 @@ async def get_anki_client() -> AsyncGenerator[
     AnkiConnectClient, None
 ]:  # Added type hint
     # Pass the configured URL to the client constructor
-    client = AnkiConnectClient(base_url=ANKI_CONNECT_URL)
+    # Looked up per call so tests can swap the module-level launcher.
+    client = AnkiConnectClient(base_url=ANKI_CONNECT_URL, launcher=launcher.LAUNCHER)
     try:
         yield client
     except Exception:  # Log exceptions during client usage if needed
@@ -91,42 +94,56 @@ async def get_anki_client() -> AsyncGenerator[
 
 # --- Decorator for Connection Error Handling ---
 def handle_anki_connection_error(func):
-    """Decorator to catch AnkiConnectionError and return a user-friendly message."""
+    """Decorator to catch AnkiConnectionError and return a user-friendly message.
+
+    It also puts any launch NOTE (Anki was opened during this call) in front
+    of the result, so the user hears about it whatever the tool returned.
+    """
 
     @functools.wraps(func)
     async def wrapper(*args, **kwargs):
-        try:
-            # Call the original async tool function
-            return await func(*args, **kwargs)
-        except AnkiConnectionError as e:
-            logger.error(f"Caught Anki connection error in tool '{func.__name__}': {e}")
-            # Return the specific message intended for the LLM
-            # Ensure the message clearly indicates it's an error for the LLM to handle
-            return (
-                "SYSTEM_ERROR: Cannot connect to Anki. "
-                "Please inform the user that they need to start their Anki application "
-                "and ensure the AnkiConnect add-on is installed and enabled before proceeding. "
-                f"Details: {e}"  # Include the error detail from the exception
-            )
-        except ValueError as e:
-            # Catch Anki API errors (raised as ValueError from invoke)
-            logger.error(f"Caught Anki API error in tool '{func.__name__}': {e}")
-            return (
-                f"SYSTEM_ERROR: An error occurred communicating with Anki: {e}. "
-                "Please inform the user about the error."
-            )
-        except Exception as e:
-            # Catch any other unexpected errors within the tool
-            logger.exception(
-                f"An unexpected error occurred in tool '{func.__name__}': {e}"
-            )
-            # Provide a generic error message for the LLM
-            return (
-                f"SYSTEM_ERROR: An unexpected error occurred while executing the Anki tool '{func.__name__}'. "
-                f"Details: {e}"
-            )
+        with launcher.capture_notes() as notes:
+            result = await _run_tool(func, *args, **kwargs)
+        return launcher.with_notes(result, notes)
 
     return wrapper
+
+
+async def _run_tool(func, *args, **kwargs):
+    """Call a tool, turning every exception into a SYSTEM_ERROR string."""
+    try:
+        # Call the original async tool function
+        return await func(*args, **kwargs)
+    except launcher.AnkiLaunchError as e:
+        logger.error(f"Anki launch failed in tool '{func.__name__}': {e}")
+        return f"SYSTEM_ERROR: {e}"
+    except AnkiConnectionError as e:
+        logger.error(f"Caught Anki connection error in tool '{func.__name__}': {e}")
+        # Return the specific message intended for the LLM
+        # Ensure the message clearly indicates it's an error for the LLM to handle
+        return (
+            "SYSTEM_ERROR: Cannot connect to Anki. "
+            "Please inform the user that they need to start their Anki application "
+            "and ensure the AnkiConnect add-on is installed and enabled before proceeding. "
+            f"Details: {e}"  # Include the error detail from the exception
+        )
+    except ValueError as e:
+        # Catch Anki API errors (raised as ValueError from invoke)
+        logger.error(f"Caught Anki API error in tool '{func.__name__}': {e}")
+        return (
+            f"SYSTEM_ERROR: An error occurred communicating with Anki: {e}. "
+            "Please inform the user about the error."
+        )
+    except Exception as e:
+        # Catch any other unexpected errors within the tool
+        logger.exception(
+            f"An unexpected error occurred in tool '{func.__name__}': {e}"
+        )
+        # Provide a generic error message for the LLM
+        return (
+            f"SYSTEM_ERROR: An unexpected error occurred while executing the Anki tool '{func.__name__}'. "
+            f"Details: {e}"
+        )
 
 
 # --- End Decorator ---

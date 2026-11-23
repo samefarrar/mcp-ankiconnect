@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from enum import Enum
-from typing import Any
+from typing import Any, Protocol
 
 import httpx
 
@@ -109,9 +109,20 @@ class AnkiConnectRequest(BaseModel):
         return self.model_dump(exclude_unset=True)
 
 
+class Recoverer(Protocol):
+    """Something that can bring a refused AnkiConnect back (see launcher.py)."""
+
+    async def recover(self, base_url: str) -> bool: ...
+
+
 class AnkiConnectClient:
-    def __init__(self, base_url: str = ANKI_CONNECT_URL):
+    def __init__(
+        self, base_url: str = ANKI_CONNECT_URL, launcher: Recoverer | None = None
+    ):
         self.base_url = base_url
+        # Asked once per invoke when the connection is refused; None keeps the
+        # plain retry behaviour.
+        self._launcher = launcher
         # Ensure TIMEOUTS is correctly passed or use httpx.Timeout object
         # Assuming TIMEOUTS is a NamedTuple like TimeoutConfig(connect=5.0, read=120.0, write=30.0)
         # Check if TIMEOUTS is an instance of the specific TimeoutConfig NamedTuple
@@ -140,6 +151,7 @@ class AnkiConnectClient:
 
         retries = 3
         last_exception = None # Keep track of the last exception for the final error message
+        recovered = False
 
         for attempt in range(retries):
             try:
@@ -154,6 +166,9 @@ class AnkiConnectClient:
             # --- Catch specific connection errors ---
             except (httpx.ConnectError, httpx.TimeoutException, httpx.NetworkError) as e: # Added NetworkError
                 last_exception = e
+                if not recovered and await self._recover_refused(e):
+                    recovered = True
+                    continue  # Anki answers now: resend at once
                 logger.warning(f"Attempt {attempt + 1}/{retries} failed for action {action.value}: {e}")
                 if attempt == retries - 1:
                     # Raise custom error after all retries failed
@@ -226,6 +241,16 @@ class AnkiConnectClient:
             raise RuntimeError(f"Unexpected error processing AnkiConnect response: {e!s}") from e
         # --- End response processing ---
 
+
+    async def _recover_refused(self, error: httpx.HTTPError) -> bool:
+        """Let the launcher open Anki when nothing listens on the port.
+
+        Only ConnectError means "refused"; a timeout means Anki is running
+        but busy, and launching it again would not help.
+        """
+        if self._launcher is None or not isinstance(error, httpx.ConnectError):
+            return False
+        return await self._launcher.recover(self.base_url)
 
     # --- Wrapper methods ---
     # Remove redundant try/except blocks, rely on invoke's error handling
