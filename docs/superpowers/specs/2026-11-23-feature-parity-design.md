@@ -57,5 +57,6 @@ These are deliberately left out:
   fail outright when any one note is invalid.
 - The streak calculation takes `today` as a parameter so it can be tested
   deterministically.
-- Annotation presets (`READ_ONLY`, `ADDITIVE`, `EDIT`, `DESTRUCTIVE`) are
+- Annotation presets (`READ_ONLY`, `ADDITIVE`, `EDIT`, `DESTRUCTIVE`,
+  `NETWORK`) are
   defined once in `server.py`.

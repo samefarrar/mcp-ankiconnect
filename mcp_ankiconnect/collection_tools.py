@@ -16,15 +16,20 @@ from pathlib import PurePosixPath
 from typing import Any, NotRequired
 
 from mcp.server.fastmcp import Image
-from mcp.types import ToolAnnotations
 from typing_extensions import TypedDict
 
+from mcp_ankiconnect.ankiconnect_client import AnkiConnectClient
+from mcp_ankiconnect.config import MAX_BATCH_NOTES, MAX_STRUGGLING_SCAN
 from mcp_ankiconnect.server import (
     ADDITIVE,
     DESTRUCTIVE,
     EDIT,
+    NETWORK,
     READ_ONLY,
     _build_note_payload,
+    _card_header,
+    _deck_clause,
+    _ease,
     _format_note_clean,
     _front_preview,
     get_anki_client,
@@ -34,10 +39,6 @@ from mcp_ankiconnect.server import (
 
 logger = logging.getLogger(__name__)
 
-MAX_BATCH_NOTES = 100
-# Cap cardsInfo payloads when a lapse threshold matches a huge collection;
-# sorting happens in Python (findCards cannot sort), so we need all rows.
-MAX_STRUGGLING_SCAN = 500
 _IMAGE_FORMATS = {
     "png": "png",
     "jpg": "jpeg",
@@ -46,8 +47,6 @@ _IMAGE_FORMATS = {
     "webp": "webp",
     "svg": "svg+xml",
 }
-
-SYNC = ToolAnnotations(readOnlyHint=False, destructiveHint=False, openWorldHint=True)
 
 
 class NoteSpec(TypedDict):
@@ -110,25 +109,24 @@ async def add_notes(notes: list[NoteSpec]) -> str:
         for n in notes
     ]
 
+    # The pre-check ignores media, so leave pictures out of it rather than
+    # shipping (possibly base64) image data to Anki twice.
+    checkable = [{k: v for k, v in p.items() if k != "picture"} for p in payloads]
+
     async with get_anki_client() as anki:
-        checks = await anki.can_add_notes_with_error_detail(notes=payloads)
-        addable = [i for i, c in enumerate(checks) if c.get("canAdd")]
+        checks = await anki.can_add_notes_with_error_detail(notes=checkable)
+        addable = [p for p, c in zip(payloads, checks, strict=True) if c.get("canAdd")]
         # Recent AnkiConnect fails the whole addNotes call if any note is
         # invalid, so only send the ones that passed the pre-check.
-        ids = (
-            await anki.add_notes(notes=[payloads[i] for i in addable])
-            if addable
-            else []
-        )
+        ids = iter(await anki.add_notes(notes=addable) if addable else [])
 
-    added_ids = dict(zip(addable, ids, strict=False))
     results: list[dict[str, Any]] = []
     for i, check in enumerate(checks):
         if not check.get("canAdd"):
             reason = check.get("error", "rejected by Anki")
             results.append({"index": i, "status": "skipped", "reason": reason})
-        elif added_ids.get(i):
-            results.append({"index": i, "status": "added", "noteId": added_ids[i]})
+        elif note_id := next(ids, None):
+            results.append({"index": i, "status": "added", "noteId": note_id})
         else:
             results.append({"index": i, "status": "failed"})
 
@@ -163,7 +161,7 @@ async def delete_notes(note_ids: list[int], confirm: bool = False) -> str:
             f"deleting {len(note_ids)} note(s), then call again with confirm=True."
         )
     async with get_anki_client() as anki:
-        await anki.delete_notes(notes=list(note_ids))
+        await anki.delete_notes(notes=note_ids)
     return f"Deleted {len(note_ids)} note(s) and all their cards."
 
 
@@ -201,13 +199,13 @@ async def create_deck(deck: str) -> str:
     """
     name = deck.strip()
     if not name:
-        return "SYSTEM_ERROR: `deck` must not be blank."
+        return "SYSTEM_ERROR: `deck` must not be empty."
     async with get_anki_client() as anki:
         deck_id = await anki.create_deck(deck=name)
     return f"Deck '{name}' is ready (ID {deck_id})."
 
 
-@mcp.tool(annotations=SYNC)
+@mcp.tool(annotations=NETWORK)
 @handle_anki_connection_error
 async def sync() -> str:
     """Sync the collection with AnkiWeb.
@@ -287,14 +285,40 @@ async def get_review_stats(days: int = 14) -> str:
 
 def _struggling_entry(card: dict) -> dict:
     return {
-        "cardId": card.get("cardId"),
-        "noteId": card.get("note"),
-        "deck": card.get("deckName"),
+        **_card_header(card),
         "lapses": card.get("lapses", 0),
-        "ease": (card.get("factor", 0) or 0) / 1000.0,
+        "ease": _ease(card),
         "interval": card.get("interval"),
         "preview": _front_preview(card),
     }
+
+
+def _struggling_query(min_lapses: int, deck: str | None) -> str:
+    query = f"prop:lapses>={min_lapses} -is:suspended"
+    return f"{query} {_deck_clause(deck)}" if deck else query
+
+
+async def _scan_ids(
+    anki: AnkiConnectClient, min_lapses: int, deck: str | None, limit: int
+) -> tuple[int, list[int]]:
+    """Return (total matches, card IDs to rank).
+
+    The IDs are everything matching, or only the worst cards if too many.
+
+    Why escalate: findCards cannot sort, so truncating a huge match to the
+    first N IDs would rank an arbitrary subset. Raising the lapse threshold
+    instead keeps exactly the cards that could make the top of the list.
+    """
+    ids = await anki.find_cards(query=_struggling_query(min_lapses, deck))
+    total = len(ids)
+    threshold = min_lapses
+    while len(ids) > MAX_STRUGGLING_SCAN:
+        threshold += 1
+        narrower = await anki.find_cards(query=_struggling_query(threshold, deck))
+        if len(narrower) < limit:
+            break  # Pathological tie at one lapse count; keep the wider set.
+        ids = narrower
+    return total, ids[:MAX_STRUGGLING_SCAN]
 
 
 @mcp.tool(annotations=READ_ONLY)
@@ -314,21 +338,18 @@ async def find_struggling_cards(
         min_lapses: Minimum number of times forgotten (default 3).
         limit: Maximum number of cards to return (default 10).
     """
-    query = f"prop:lapses>={max(min_lapses, 0)} -is:suspended"
-    if deck:
-        query += f' "deck:{deck}"'
-
+    min_lapses, limit = max(min_lapses, 0), max(limit, 1)
     async with get_anki_client() as anki:
-        card_ids = await anki.find_cards(query=query)
-        if not card_ids:
+        total, scan = await _scan_ids(anki, min_lapses, deck, limit)
+        if not total:
             where = f" in deck '{deck}'" if deck else ""
             return f"No struggling cards with ≥{min_lapses} lapses{where}."
-        cards = await anki.cards_info(card_ids=card_ids[:MAX_STRUGGLING_SCAN])
+        cards = await anki.cards_info(card_ids=scan)
 
-    ranked = sorted(cards, key=lambda c: (-c.get("lapses", 0), c.get("factor", 0)))
+    ranked = sorted(cards, key=lambda c: (-c.get("lapses", 0), _ease(c)))
     payload = {
-        "total_matching": len(card_ids),
-        "cards": [_struggling_entry(c) for c in ranked[: max(limit, 1)]],
+        "total_matching": total,
+        "cards": [_struggling_entry(c) for c in ranked[:limit]],
     }
     return json.dumps(payload, ensure_ascii=False)
 
@@ -354,40 +375,26 @@ async def retrieve_media_file(filename: str) -> Image | str:
         return (
             f"SYSTEM_ERROR: Media file '{filename}' not found in Anki's media folder."
         )
-    try:
-        raw = base64.b64decode(encoded)
-    except (binascii.Error, TypeError) as e:
-        return f"SYSTEM_ERROR: Could not decode media file '{filename}': {e}"
 
     ext = PurePosixPath(filename).suffix.lstrip(".").lower()
     image_format = _IMAGE_FORMATS.get(ext)
     if image_format is None:
-        return f"'{filename}' exists ({len(raw)} bytes) but is not an image."
-    return Image(data=raw, format=image_format)
+        # Size from base64 length: no need to decode a file we won't return.
+        approx_bytes = len(encoded) * 3 // 4
+        return f"'{filename}' exists (~{approx_bytes} bytes) but is not an image."
+    try:
+        return Image(data=base64.b64decode(encoded), format=image_format)
+    except binascii.Error as e:
+        return f"SYSTEM_ERROR: Could not decode media file '{filename}': {e}"
 
 
 # --- GUI context ---
 
 
-async def _optional(call: Any) -> Any:
-    """Await an AnkiConnect GUI call, mapping "not available" errors to None.
-
-    Why: the GUI actions raise when the reviewer or browser is not open. That
-    is normal state, not a failure the LLM should report.
-    """
-    try:
-        return await call
-    except ValueError as e:
-        logger.debug(f"GUI call unavailable: {e}")
-        return None
-
-
 def _format_gui_card(card: dict) -> dict:
     clean = _format_note_clean(card)
     return {
-        "cardId": card.get("cardId"),
-        "noteId": card.get("note"),
-        "deck": card.get("deckName"),
+        **_card_header(card),
         "modelName": clean["modelName"],
         "fields": clean["fields"],
     }
@@ -402,9 +409,11 @@ async def get_gui_context() -> str:
     in the Browse window, if any. Use this when the user says things like
     "fix this card" or "tag the ones I've selected".
     """
+    # AnkiConnect already reports "nothing open" as None / [] rather than an
+    # error, so genuine failures still surface through the decorator.
     async with get_anki_client() as anki:
-        card = await _optional(anki.gui_current_card())
-        selected = await _optional(anki.gui_selected_notes())
+        card = await anki.gui_current_card()
+        selected = await anki.gui_selected_notes()
 
     payload: dict[str, Any] = {
         "current_review_card": _format_gui_card(card) if card else None,

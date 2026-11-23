@@ -330,11 +330,11 @@ class AnkiConnectClient:
         return await self.invoke(AnkiAction.RETRIEVE_MEDIA_FILE, filename=filename)
 
     async def gui_current_card(self) -> dict | None:
-        """Card shown in the reviewer, or None when not reviewing."""
+        """Card shown in the reviewer; AnkiConnect returns None when not reviewing."""
         return await self.invoke(AnkiAction.GUI_CURRENT_CARD)
 
     async def gui_selected_notes(self) -> list[int]:
-        """Note IDs selected in an open Browse window (empty otherwise)."""
+        """Note IDs selected in the Browse window; [] when it is not open."""
         return await self.invoke(AnkiAction.GUI_SELECTED_NOTES)
 
     async def close(self):

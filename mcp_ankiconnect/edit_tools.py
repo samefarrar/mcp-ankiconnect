@@ -15,6 +15,7 @@ from mcp_ankiconnect.server import (
     DESTRUCTIVE,
     EDIT,
     READ_ONLY,
+    _ease,
     _format_note_clean,
     _process_field_content,
     get_anki_client,
@@ -188,7 +189,7 @@ async def inspect_cards(
                 entry["type"] = card.get("type")
 
             if "scheduling" in resolved_properties:
-                entry["ease"] = (card.get("factor", 0) or 0) / 1000.0
+                entry["ease"] = _ease(card)
                 entry["interval"] = card.get("interval")
                 entry["reps"] = card.get("reps")
                 entry["lapses"] = card.get("lapses")

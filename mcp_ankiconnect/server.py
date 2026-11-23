@@ -54,6 +54,10 @@ EDIT = ToolAnnotations(
 DESTRUCTIVE = ToolAnnotations(
     readOnlyHint=False, destructiveHint=True, openWorldHint=False
 )
+# Talks to a service outside the local collection (AnkiWeb).
+NETWORK = ToolAnnotations(
+    readOnlyHint=False, destructiveHint=False, openWorldHint=True
+)
 
 
 @mcp.resource(
@@ -149,13 +153,35 @@ async def _find_due_card_ids(
 
     query = f"is:due -is:suspended {prop}"
     if deck:
-        # Add deck to query, ensuring proper quoting for spaces
-        query += f' "deck:{deck}"'
+        query += f" {_deck_clause(deck)}"
 
     logger.debug(f"Executing Anki card search query: {query}")
     card_ids = await client.find_cards(query=query)
     logger.info(f"Found {len(card_ids)} cards for query: {query}")
     return card_ids
+
+
+def _deck_clause(deck: str) -> str:
+    """Search clause for a deck (and its subdecks).
+
+    Why one helper: three query builders need it, and quoting rules for deck
+    names with spaces must stay identical across them.
+    """
+    return f'"deck:{deck}"'
+
+
+def _ease(card: dict) -> float:
+    """Ease as a multiplier (2.5), from cardsInfo's per-mille `factor`."""
+    return (card.get("factor") or 0) / 1000.0
+
+
+def _card_header(card: dict) -> dict:
+    """Identity keys every card-returning tool shares, from a cardsInfo row."""
+    return {
+        "cardId": card.get("cardId"),
+        "noteId": card.get("note"),
+        "deck": card.get("deckName"),
+    }
 
 
 def _build_example_query(deck: str | None, sample: str) -> str:
@@ -169,7 +195,7 @@ def _build_example_query(deck: str | None, sample: str) -> str:
     query_parts.extend([f"-note:*{ex}*" for ex in EXCLUDE_STRINGS])
 
     if deck:
-        query_parts.append(f'"deck:{deck}"')
+        query_parts.append(_deck_clause(deck))
 
     match sample:
         case "recent":

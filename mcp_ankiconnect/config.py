@@ -13,6 +13,9 @@ ANKI_CONNECT_VERSION: Final = 6
 # Review configuration
 DEFAULT_REVIEW_LIMIT: Final = 5
 MAX_FUTURE_DAYS: Final = 5  # Maximum number of days to look ahead for due cards
+MAX_BATCH_NOTES: Final = 100  # add_notes batch ceiling (one AnkiConnect call)
+# find_struggling_cards: most cardsInfo rows fetched to rank in Python.
+MAX_STRUGGLING_SCAN: Final = 500
 
 # Timeout configuration
 TIMEOUTS: Final = TimeoutConfig(

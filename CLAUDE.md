@@ -4,7 +4,7 @@ Python MCP server that bridges Claude with Anki via the AnkiConnect add-on (HTTP
 
 ## Architecture
 
-- `mcp_ankiconnect/server.py` — FastMCP instance, annotation presets (`READ_ONLY`/`ADDITIVE`/`EDIT`/`DESTRUCTIVE`), core tools and formatting helpers.
+- `mcp_ankiconnect/server.py` — FastMCP instance, annotation presets (`READ_ONLY`/`ADDITIVE`/`EDIT`/`DESTRUCTIVE`/`NETWORK`), core tools and formatting helpers.
 - `mcp_ankiconnect/edit_tools.py` — inspect/edit tools on existing notes and cards.
 - `mcp_ankiconnect/collection_tools.py` — batch add, delete, tags, decks, sync, review stats, media read-back, GUI context.
 - `mcp_ankiconnect/ankiconnect_client.py` — `httpx` client with retry + `AnkiConnectionError`. Wraps each AnkiConnect action as a typed method.

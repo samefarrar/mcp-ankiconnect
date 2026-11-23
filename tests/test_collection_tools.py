@@ -130,6 +130,20 @@ async def test_add_notes_rejects_note_missing_required_keys(anki):
     anki.can_add_notes_with_error_detail.assert_not_awaited()
 
 
+async def test_add_notes_precheck_omits_picture_but_add_keeps_it(anki):
+    """The pre-check ignores media; sending image data twice is pure waste."""
+    anki.can_add_notes_with_error_detail.return_value = [{"canAdd": True}]
+    anki.add_notes.return_value = [1]
+    pic = [{"filename": "a.png", "data": "AAAA", "fields": ["Back"]}]
+
+    await add_notes([{**_note("a"), "picture": pic}])
+
+    checked = anki.can_add_notes_with_error_detail.await_args.kwargs["notes"][0]
+    added = anki.add_notes.await_args.kwargs["notes"][0]
+    assert "picture" not in checked
+    assert added["picture"] == pic
+
+
 # --- delete_notes ---
 
 
@@ -267,6 +281,25 @@ async def test_find_struggling_cards_sorts_by_lapses_then_ease(anki):
     assert payload["total_matching"] == 3
 
 
+async def test_find_struggling_cards_raises_threshold_instead_of_truncating(
+    anki,
+):
+    """Above the scan cap, truncating by ID would rank an arbitrary subset."""
+    from mcp_ankiconnect.config import MAX_STRUGGLING_SCAN
+
+    huge = list(range(MAX_STRUGGLING_SCAN + 100))
+    anki.find_cards.side_effect = [huge, [7, 8, 9]]
+    anki.cards_info.return_value = [_card(7, 9, 2500), _card(8, 5, 2500)]
+
+    payload = json.loads(await find_struggling_cards(min_lapses=3, limit=2))
+
+    second_query = anki.find_cards.await_args_list[1].kwargs["query"]
+    assert "prop:lapses>=4" in second_query
+    anki.cards_info.assert_awaited_once_with(card_ids=[7, 8, 9])
+    assert payload["total_matching"] == len(huge)
+    assert [c["cardId"] for c in payload["cards"]] == [7, 8]
+
+
 async def test_find_struggling_cards_filters_by_deck(anki):
     anki.find_cards.return_value = []
     result = await find_struggling_cards(deck="Spanish")
@@ -319,7 +352,8 @@ async def test_get_gui_context_returns_current_card_and_selection(anki):
 
 
 async def test_get_gui_context_tolerates_inactive_reviewer_and_browser(anki):
-    anki.gui_current_card.side_effect = ValueError("Gui review is not active")
+    # AnkiConnect's own "nothing open" responses: null card, empty selection.
+    anki.gui_current_card.return_value = None
     anki.gui_selected_notes.return_value = []
 
     payload = json.loads(await get_gui_context())
