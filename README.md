@@ -24,12 +24,45 @@ The server implements the following tools:
   - Returns confirmation of submitted reviews
 
 - `search_notes`: Find notes by AnkiConnect query. Returns IDs + a short Front preview by default (cheap); pass `return_card_content=true` to receive cleaned field content inline.
-- `inspect_cards`: View per-card state for given card IDs or note IDs. Sparse-fieldset selection via the `properties` list: any of `identity`, `state`, `scheduling`, `timestamps`, `history`, `fields`, or `all` (default: `["identity", "state", "scheduling"]`). The legacy `include_history=true` flag is still accepted as an alias.
+- `inspect_cards`: View per-card state (including the flag colour) for given card IDs or note IDs. Sparse-fieldset selection via the `properties` list: any of `identity`, `state`, `scheduling`, `timestamps`, `history`, `fields`, or `all` (default: `["identity", "state", "scheduling"]`). The legacy `include_history=true` flag is still accepted as an alias.
 - `update_note_fields`: Modify the text content of one note's fields. Uses the same MathJax/code conversions as `add_note`.
 - `update_note_tags`: Add and/or remove tags on one or more notes.
 - `set_suspended`: Suspend or unsuspend one or more cards.
 - `change_deck`: Move cards (by card ID) into a different deck.
 - `reschedule_cards`: Set due date, forget, or relearn one or more cards.
+- `add_notes`: Add up to 100 notes in one request. Each note succeeds or fails
+  on its own, and failures such as duplicates are reported per index, so one
+  bad note never sinks the batch.
+- `delete_notes`: Permanently delete notes. Requires `confirm=true`, which the
+  assistant should set only after the user approves.
+- `list_tags`: List existing tags, with an optional substring filter, so new
+  cards reuse consistent tag names.
+- `create_deck`: Create a deck or nested deck (`Parent::Child`).
+- `sync`: Sync the collection with AnkiWeb.
+- `get_review_stats`: Today's review count, daily series, average and current
+  streak. Days follow Anki's rollover hour; set `ANKI_DAY_ROLLOVER_HOUR` if
+  yours is not the default of 4am.
+- `find_struggling_cards`: Cards with the most lapses and lowest ease, for
+  targeted rewriting.
+- `retrieve_media_file`: Return an image from Anki's media folder as image
+  content, so the assistant can see card images.
+- `get_gui_context`: The card shown in the reviewer and the notes selected in
+  the browser, for requests like "fix this card".
+- `set_card_flag`: Set or clear a card's coloured flag (red, orange, green and
+  so on). Each card is re-read afterwards and reported as set or unchanged.
+- `copy_scheduling`: Give redesigned cards the interval and ease of the
+  original card or note. It refuses targets that already have reviews unless
+  `overwrite_history=true`, and re-reads every target to confirm the copy.
+
+Every tool declares MCP annotations (`readOnlyHint`, `destructiveHint` and so
+on), so clients can auto-approve reads and gate destructive calls.
+
+### Resources and instructions
+
+- `anki://docs/search-syntax`: a cheat sheet for Anki search queries. It
+  links to the [official manual](https://docs.ankiweb.net/searching.html).
+- On connect, the server sends instructions that explain note IDs versus card
+  IDs and the recommended authoring and review flows.
 
 ## Configuration
 

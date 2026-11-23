@@ -4,7 +4,9 @@ Python MCP server that bridges Claude with Anki via the AnkiConnect add-on (HTTP
 
 ## Architecture
 
-- `mcp_ankiconnect/server.py` — FastMCP tool definitions and formatting helpers (the surface area).
+- `mcp_ankiconnect/server.py` — FastMCP instance, annotation presets (`READ_ONLY`/`ADDITIVE`/`EDIT`/`DESTRUCTIVE`/`NETWORK`), core tools and formatting helpers.
+- `mcp_ankiconnect/edit_tools.py` — inspect/edit tools on existing notes and cards, including flags and scheduling transfer. Writes via `setSpecificValueOfCard` can no-op silently, so those tools re-read cards and report per-card status.
+- `mcp_ankiconnect/collection_tools.py` — batch add, delete, tags, decks, sync, review stats, media read-back, GUI context.
 - `mcp_ankiconnect/ankiconnect_client.py` — `httpx` client with retry + `AnkiConnectionError`. Wraps each AnkiConnect action as a typed method.
 - `mcp_ankiconnect/config.py` — constants (`TIMEOUTS`, `RATING_TO_EASE`, `EXCLUDE_STRINGS`, `MAX_FUTURE_DAYS`).
 - `mcp_ankiconnect/server_prompts.py` — long-form LLM prompts (review instructions, flashcard guidelines).
@@ -14,7 +16,9 @@ Every `@mcp.tool` is wrapped in `@handle_anki_connection_error` which converts e
 
 ## Tools exposed
 
-`num_cards_due_today`, `list_decks_and_notes`, `get_examples`, `fetch_due_cards_for_review`, `submit_reviews`, `add_note`, `store_media_file`, `search_notes`.
+`num_cards_due_today`, `list_decks_and_notes`, `get_examples`, `fetch_due_cards_for_review`, `submit_reviews`, `add_note`, `add_notes`, `store_media_file`, `retrieve_media_file`, `search_notes`, `inspect_cards`, `update_note_fields`, `update_note_tags`, `set_suspended`, `change_deck`, `reschedule_cards`, `set_card_flag`, `copy_scheduling`, `delete_notes`, `list_tags`, `create_deck`, `sync`, `get_review_stats`, `find_struggling_cards`, `get_gui_context`.
+
+Every new tool MUST pass an annotation preset to `@mcp.tool(annotations=...)`; `tests/test_collection_tools.py::test_every_tool_declares_annotations` enforces it. Resource: `anki://docs/search-syntax`.
 
 ## Run / debug
 

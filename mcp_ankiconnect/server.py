@@ -8,6 +8,7 @@ from contextlib import asynccontextmanager
 from typing import Annotated, Any, Literal
 
 from mcp.server.fastmcp import FastMCP
+from mcp.types import ToolAnnotations
 from pydantic import Field
 
 # Use relative imports within the package
@@ -21,13 +22,54 @@ from .config import (  # Import necessary configs
     MAX_FUTURE_DAYS,
     RATING_TO_EASE,
 )
-from .server_prompts import claude_review_instructions, flashcard_guidelines
+from .server_prompts import (
+    claude_review_instructions,
+    flashcard_guidelines,
+    search_syntax_guide,
+    server_instructions,
+)
 
 logger = logging.getLogger(__name__)
 
 logger.info("Initializing MCP-AnkiConnect server")
-mcp = FastMCP("mcp-ankiconnect")
+mcp = FastMCP("mcp-ankiconnect", instructions=server_instructions)
 logger.debug("Created FastMCP instance")
+
+# --- Tool annotation presets ---
+# Clients use these hints to auto-approve safe calls and gate risky ones, so
+# every tool declares one. Defined once so semantics stay consistent.
+READ_ONLY = ToolAnnotations(readOnlyHint=True, openWorldHint=False)
+# Creates new data without touching existing data.
+ADDITIVE = ToolAnnotations(
+    readOnlyHint=False, destructiveHint=False, openWorldHint=False
+)
+# Reversible changes to existing data; repeating the call is harmless.
+EDIT = ToolAnnotations(
+    readOnlyHint=False,
+    destructiveHint=False,
+    idempotentHint=True,
+    openWorldHint=False,
+)
+# Overwrites or removes data that cannot be recovered from within Anki.
+DESTRUCTIVE = ToolAnnotations(
+    readOnlyHint=False, destructiveHint=True, openWorldHint=False
+)
+# Talks to a service outside the local collection (AnkiWeb).
+NETWORK = ToolAnnotations(
+    readOnlyHint=False, destructiveHint=False, openWorldHint=True
+)
+
+
+@mcp.resource(
+    "anki://docs/search-syntax",
+    name="anki-search-syntax",
+    description="Cheat sheet for Anki's search query syntax.",
+    mime_type="text/markdown",
+)
+def search_syntax_resource() -> str:
+    """Why a resource: clients can attach it on demand instead of every tool
+    description repeating the syntax."""
+    return search_syntax_guide
 
 
 # --- Context Manager for Client ---
@@ -111,13 +153,35 @@ async def _find_due_card_ids(
 
     query = f"is:due -is:suspended {prop}"
     if deck:
-        # Add deck to query, ensuring proper quoting for spaces
-        query += f' "deck:{deck}"'
+        query += f" {_deck_clause(deck)}"
 
     logger.debug(f"Executing Anki card search query: {query}")
     card_ids = await client.find_cards(query=query)
     logger.info(f"Found {len(card_ids)} cards for query: {query}")
     return card_ids
+
+
+def _deck_clause(deck: str) -> str:
+    """Search clause for a deck (and its subdecks).
+
+    Why one helper: three query builders need it, and quoting rules for deck
+    names with spaces must stay identical across them.
+    """
+    return f'"deck:{deck}"'
+
+
+def _ease(card: dict) -> float:
+    """Ease as a multiplier (2.5), from cardsInfo's per-mille `factor`."""
+    return (card.get("factor") or 0) / 1000.0
+
+
+def _card_header(card: dict) -> dict:
+    """Identity keys every card-returning tool shares, from a cardsInfo row."""
+    return {
+        "cardId": card.get("cardId"),
+        "noteId": card.get("note"),
+        "deck": card.get("deckName"),
+    }
 
 
 def _build_example_query(deck: str | None, sample: str) -> str:
@@ -131,7 +195,7 @@ def _build_example_query(deck: str | None, sample: str) -> str:
     query_parts.extend([f"-note:*{ex}*" for ex in EXCLUDE_STRINGS])
 
     if deck:
-        query_parts.append(f'"deck:{deck}"')
+        query_parts.append(_deck_clause(deck))
 
     match sample:
         case "recent":
@@ -298,39 +362,38 @@ def _format_search_previews(
     found without paying for full content. Image Occlusion notes get a
     fixed `[image-occlusion]` preview.
     """
-    results = []
-    for note in notes_info:
-        model_name = note.get("modelName", "UnknownModel")
-        if _is_image_occlusion_model(model_name):
-            preview = "[image-occlusion]"
-        else:
-            fields = note.get("fields", {})
-            front = fields.get("Front")
-            if front is None:
-                # Fall back to whichever field has order 0.
-                front = next(
-                    (
-                        f
-                        for f in fields.values()
-                        if isinstance(f, dict) and f.get("order") == 0
-                    ),
-                    None,
-                )
-            raw = front.get("value", "") if isinstance(front, dict) else ""
-            cleaned = _clean_field_html(raw)
-            if isinstance(cleaned, str) and len(cleaned) > preview_chars:
-                cleaned = cleaned[:preview_chars].rstrip() + "…"
-            preview = cleaned or ""
+    return [
+        {
+            "noteId": note.get("noteId"),
+            "modelName": note.get("modelName", "UnknownModel"),
+            "tags": note.get("tags", []),
+            "preview": _front_preview(note, preview_chars),
+        }
+        for note in notes_info
+    ]
 
-        results.append(
-            {
-                "noteId": note.get("noteId"),
-                "modelName": model_name,
-                "tags": note.get("tags", []),
-                "preview": preview,
-            }
+
+def _front_preview(item: dict, preview_chars: int = 80) -> str:
+    """Short cleaned preview of the Front field (or the order-0 field).
+
+    Accepts either a notesInfo or a cardsInfo entry: both carry `modelName`
+    and `fields` as {name: {"value", "order"}}. Shared so every tool that
+    shows "which card is this?" truncates and cleans identically.
+    """
+    if _is_image_occlusion_model(item.get("modelName", "")):
+        return "[image-occlusion]"
+    fields = item.get("fields", {})
+    front = fields.get("Front")
+    if front is None:
+        front = next(
+            (f for f in fields.values() if isinstance(f, dict) and f.get("order") == 0),
+            None,
         )
-    return results
+    raw = front.get("value", "") if isinstance(front, dict) else ""
+    cleaned = _clean_field_html(raw)
+    if isinstance(cleaned, str) and len(cleaned) > preview_chars:
+        cleaned = cleaned[:preview_chars].rstrip() + "…"
+    return cleaned or ""
 
 
 def _format_cards_for_llm(cards_info: list[dict]) -> str:
@@ -413,10 +476,34 @@ def _process_field_content(content: str) -> str:
     return processed_value
 
 
+def _build_note_payload(
+    deck_name: str,
+    model_name: str,
+    fields: dict[str, str],
+    tags: list[str] | None = None,
+    picture: list[dict] | None = None,
+) -> dict[str, Any]:
+    """Build an AnkiConnect note dict with our field conversions applied.
+
+    Why shared: `add_note` and `add_notes` must convert MathJax/code and set
+    duplicate options identically, or batch-added cards render differently.
+    """
+    payload: dict[str, Any] = {
+        "deckName": deck_name,
+        "modelName": model_name,
+        "fields": {k: _process_field_content(v) for k, v in fields.items()},
+        "tags": tags if tags is not None else [],
+        "options": {"allowDuplicate": False, "duplicateScope": "deck"},
+    }
+    if picture:
+        payload["picture"] = picture
+    return payload
+
+
 # --- Tool Definitions ---
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 @handle_anki_connection_error  # Apply decorator
 async def num_cards_due_today(deck: str | None = None) -> str:
     """Get the number of cards due exactly today, with an optional deck filter."""
@@ -428,7 +515,7 @@ async def num_cards_due_today(deck: str | None = None) -> str:
         return f"There are {count} cards due today{deck_msg}."
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 @handle_anki_connection_error  # Apply decorator
 async def list_decks_and_notes() -> str:
     """Get all decks (excluding specified patterns) and note types with their fields."""
@@ -480,7 +567,7 @@ async def list_decks_and_notes() -> str:
         return f"{deck_list_str}\n\n{note_types_str}"
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 @handle_anki_connection_error  # Apply decorator
 async def get_examples(
     deck: str | None = None,
@@ -538,7 +625,7 @@ async def get_examples(
         return result
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 @handle_anki_connection_error  # Apply decorator
 async def fetch_due_cards_for_review(
     deck: str | None = None,
@@ -585,7 +672,7 @@ async def fetch_due_cards_for_review(
         return review_prompt
 
 
-@mcp.tool()
+@mcp.tool(annotations=DESTRUCTIVE)  # rescheduling cannot be undone here
 @handle_anki_connection_error  # Apply decorator
 async def submit_reviews(
     reviews: list[
@@ -675,7 +762,7 @@ async def submit_reviews(
         return full_response
 
 
-@mcp.tool()
+@mcp.tool(annotations=ADDITIVE)
 @handle_anki_connection_error  # Apply decorator
 async def add_note(
     deckName: str,
@@ -726,24 +813,7 @@ async def add_note(
             - fields (List[str]): Card field names where the <img> tag will be inserted.
             - skipHash (str, optional): MD5 hash to skip if file matches.
     """
-    # Process fields using the helper function
-    processed_fields = {
-        name: _process_field_content(value) for name, value in fields.items()
-    }
-
-    note_payload: dict[str, Any] = {
-        "deckName": deckName,
-        "modelName": modelName,
-        "fields": processed_fields,  # Use processed fields
-        "tags": tags if tags is not None else [],
-        "options": {
-            "allowDuplicate": False,
-            "duplicateScope": "deck",
-        },
-    }
-
-    if picture:
-        note_payload["picture"] = picture
+    note_payload = _build_note_payload(deckName, modelName, fields, tags, picture)
 
     async with get_anki_client() as anki:
         logger.info(
@@ -774,7 +844,7 @@ async def add_note(
             return f"SYSTEM_ERROR: {fail_message}"
 
 
-@mcp.tool()
+@mcp.tool(annotations=DESTRUCTIVE)  # overwrites a same-named media file
 @handle_anki_connection_error
 async def store_media_file(
     filename: str,
@@ -829,7 +899,7 @@ async def store_media_file(
             return f"SYSTEM_ERROR: Failed to store media file '{filename}'."
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 @handle_anki_connection_error
 async def search_notes(
     query: str = Field(description="Anki search query string"),

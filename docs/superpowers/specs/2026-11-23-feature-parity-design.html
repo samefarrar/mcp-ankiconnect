@@ -1,0 +1,319 @@
+<title>Anki MCP Parity Plan</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+:root{
+  --bg:#F3F5F7; --surface:#FFFFFF; --ink:#16212C; --muted:#56636F; --line:#D8DEE5;
+  --accent:#0B6E8F; --accent-soft:#DDEFF5; --accent-ink:#07506A;
+  --on-accent:#FFFFFF; --amber:#8A5200; --amber-soft:#FBEED6; --good:#17724A; --bad:#B3261E; --bad-soft:#FBE4E2;
+  --serif:Charter,"Bitstream Charter","Iowan Old Style","Palatino Linotype",Georgia,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0E151C; --surface:#16202A; --ink:#E7ECF1; --muted:#9AA7B3; --line:#2A3743;
+  --accent:#5CBFE0; --accent-soft:#13313D; --accent-ink:#8ED6EE;
+  --on-accent:#04222D; --amber:#E9B15A; --amber-soft:#33260F; --good:#52C48A; --bad:#FF8A80; --bad-soft:#3A1B19;
+ color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E151C; --surface:#16202A; --ink:#E7ECF1; --muted:#9AA7B3; --line:#2A3743;
+  --accent:#5CBFE0; --accent-soft:#13313D; --accent-ink:#8ED6EE;
+  --on-accent:#04222D; --amber:#E9B15A; --amber-soft:#33260F; --good:#52C48A; --bad:#FF8A80; --bad-soft:#3A1B19;
+ color-scheme:dark}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{animation:none!important;transition:none!important}}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.62 var(--serif)}
+a{color:var(--accent)}
+h1,h2,h3{font-family:var(--sans);line-height:1.2;margin:0;letter-spacing:-.01em}
+h1{font-size:clamp(1.9rem,4.5vw,2.7rem);font-weight:700}
+h2{font-size:1.45rem;font-weight:650}
+h3{font-size:1.05rem;font-weight:650}
+p{margin:.6em 0;max-width:68ch}
+.wrap{max-width:1360px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.lede{font-size:1.15rem;color:var(--muted);max-width:60ch}
+.badge{display:inline-flex;align-items:center;gap:.4em;font:600 .78rem/1 var(--sans);padding:.38em .7em;border-radius:99px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.badge::before{content:"";width:.6em;height:.6em;border-radius:50%;background:currentColor}
+.badge.ref{color:var(--accent-ink);background:var(--accent-soft);border-color:transparent}
+.badge.part{color:var(--amber);background:var(--amber-soft);border-color:transparent}
+.badge.todo::before{background:transparent;border:1.5px solid currentColor}
+button,.btn{font:600 .9rem/1 var(--sans);padding:.65em 1em;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;min-height:40px}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+button:disabled{opacity:.45;cursor:not-allowed}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:4px}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+header.top{padding:56px 0 24px}
+header.top .lede{margin-top:14px}
+.band{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));margin:28px 0 8px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.band>div{padding:18px 20px 18px 0}
+.band>div+div{padding-left:20px;border-left:1px solid var(--line)}
+.band h3{margin-bottom:6px}
+.band p,.band li{margin:0;color:var(--muted);font-size:.97rem}
+.band ul{margin:0;padding-left:1.1em}
+
+.layout{display:grid;grid-template-columns:200px minmax(0,1fr);gap:40px;align-items:start;margin-top:32px}
+nav.rail{position:sticky;top:20px;font-family:var(--sans)}
+nav.rail h3{font-size:.8rem;font-weight:600;color:var(--muted);margin:0 0 10px}
+nav.rail ol{list-style:none;margin:0;padding:0}
+nav.rail a{display:block;position:relative;padding:8px 0 10px;text-decoration:none;color:var(--muted);font-size:.9rem;border-top:1px solid var(--line)}
+nav.rail a .nm{display:block;padding-right:3.4em;line-height:1.25}
+nav.rail a em{position:absolute;right:0;top:8px;font-style:normal;font-size:.78rem;color:var(--muted);font-variant-numeric:tabular-nums}
+nav.rail a.on{color:var(--ink);font-weight:600}
+nav.rail a.on::before{content:"";position:absolute;left:-12px;top:10px;bottom:12px;width:3px;border-radius:2px;background:var(--accent)}
+
+.stage{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px 32px;padding:34px 0 36px;border-top:1px solid var(--line);scroll-margin-top:12px}
+.stage:first-of-type{border-top:0;padding-top:0}
+.stage-head{grid-column:1/-1;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.purpose{font-size:1.1rem;margin:0 0 14px}
+pre.pc{margin:0 0 14px;padding:16px 18px;background:var(--surface);border:1px solid var(--line);border-radius:10px;font:15px/1.7 var(--mono);white-space:pre-wrap;overflow-wrap:anywhere}
+pre.pc .ln{display:block;padding-left:calc(var(--d)*1.6em);position:relative}
+pre.pc .ln::before{content:"";position:absolute;left:calc(var(--d)*1.6em - .9em);top:0;bottom:0;border-left:1px solid var(--line)}
+pre.pc .ln.d0::before{display:none}
+pre.pc b{color:var(--accent-ink);font-weight:700}
+p.you,p.guard{margin:6px 0;font-size:.98rem}
+p.you span,p.guard span{display:inline-block;min-width:5.2em;font:600 .78rem/1 var(--sans);color:var(--muted);margin-right:.6em}
+p.guard span{color:var(--good)}
+details.ev{margin-top:12px;font:.85rem/1.5 var(--sans);color:var(--muted)}
+details.ev summary{cursor:pointer}
+details.ev code{font:.82rem var(--mono)}
+
+figure.fig{margin:0;align-self:start;position:sticky;top:20px;padding:16px 18px;background:var(--surface);border:1px solid var(--line);border-radius:10px;font-family:var(--sans);font-size:.95rem;min-width:0}
+figure.fig figcaption{margin-top:10px;font-size:.8rem;color:var(--muted)}
+figure.fig table{width:100%;border-collapse:collapse;font-size:.9rem}
+figure.fig th,figure.fig td{text-align:left;vertical-align:top;padding:7px 8px;border-bottom:1px solid var(--line)}
+figure.fig th{font-weight:650}
+figure.fig .pro{color:var(--good)} figure.fig .con{color:var(--bad)}
+figure.fig svg{width:100%;height:auto;display:block}
+.controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}
+.illus{font-size:.78rem;color:var(--amber)}
+.term{display:inline-block;font:500 .7rem/1.4 var(--sans);color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:0 .35em;margin-left:.3em;vertical-align:.1em}
+.decide{margin:16px 0 0;padding:14px 16px;border:1px solid var(--line);border-radius:10px;background:var(--surface);font-family:var(--sans)}
+.decide+.decide{margin-top:10px}
+.decide .q{font:600 .92rem/1.35 var(--sans);margin:0 0 10px}
+.decide .opts{display:flex;gap:8px;flex-wrap:wrap}
+.decide .opts button{font-weight:500}
+.decide .opts button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.decide textarea{display:block;width:100%;margin-top:10px;min-height:2.8em;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:.9rem/1.45 var(--sans);resize:vertical}
+.submit-bar{position:sticky;bottom:0;z-index:5;display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:24px 0 0;padding:12px 16px;border:1px solid var(--line);border-radius:10px;background:var(--surface);box-shadow:0 -4px 16px rgba(0,0,0,.06);font:.9rem/1.4 var(--sans);color:var(--muted)}
+.submit-bar .said{color:var(--accent-ink);font-weight:600;white-space:pre-wrap}
+html[data-hub-closed] .submit-bar{position:static;box-shadow:none}
+html[data-hub-closed] [data-decide-count]{display:none}
+
+.close{margin:30px 0 80px;padding-top:26px;border-top:1px solid var(--line)}
+.close ul{margin:.6em 0;padding-left:1.2em;max-width:68ch}
+.close li{margin:.35em 0}
+
+@media (max-width:1100px){.stage{grid-template-columns:1fr}figure.fig{position:static}}
+@media (max-width:860px){
+  .layout{grid-template-columns:1fr;gap:0}
+  nav.rail{display:none}
+  .band>div,.band>div+div{padding:14px 0;border-left:0}
+  .band>div+div{border-top:1px solid var(--line)}
+}
+
+.tbl{overflow-x:auto}
+code.k{font:.88em var(--mono);background:var(--accent-soft);color:var(--accent-ink);padding:0 .3em;border-radius:4px}
+.sw{display:inline-block;width:.9em;height:.9em;border-radius:3px;vertical-align:-.1em;margin-right:.4em;border:1px solid var(--line)}
+</style>
+<div class="wrap">
+<header class="top">
+  <h1>Anki MCP parity plan</h1>
+  <p class="lede">Parity with eight other Anki servers, then the two things your own Anki skills need that none of them has: flags, and scheduling transfer with every write checked.</p>
+  <div class="band">
+    <div><h3>Outcome</h3><p>Each Anki step in your skills is one tool call, and the known AnkiConnect traps are handled by the server.</p></div>
+    <div><h3>Done means</h3><ul><li>Tests pass, including a regression test per bug found</li><li>No write can no-op silently and still report success</li><li>You confirm flags and scheduling once in real Anki</li></ul></div>
+    <div><h3>Approach</h3><p>Tools at the level of what you want done, each checking its own writes. No raw passthroughs, and none of your pipeline's tag conventions.</p></div>
+  </div>
+</header>
+<div class="layout">
+<nav class="rail" aria-label="Stages"><h3>Stages</h3><ol><li><a href="#stage-parity" data-for="parity"><span class="nm">Parity tools</span></a></li><li><a href="#stage-batch" data-for="batch"><span class="nm">Adding a batch of cards</span></a></li><li><a href="#stage-flag" data-for="flag"><span class="nm">Setting a flag</span></a></li><li><a href="#stage-see" data-for="see"><span class="nm">Seeing and finding flags</span></a></li><li><a href="#stage-sched" data-for="sched"><span class="nm">Copying scheduling onto a redesigned card</span></a></li></ol></nav>
+<main>
+<section class="stage" id="stage-parity" data-stage="parity">
+  <div class="stage-head"><h2>Parity tools</h2><span class="badge ref">Exists</span></div>
+  <div class="stage-text">
+    <p class="purpose">Close the gaps that the eight comparable servers have and this one lacked.</p>
+<pre class="pc">for each gap rated high or medium in the survey
+  add one tool that does one job
+  mark it read-only, additive, edit, destructive or network
+send instructions on connect: note IDs vs card IDs, the add and review flows
+serve a search-syntax cheat sheet that links to the Anki manual</pre>
+    <p class="you"><span>Your part</span>Nothing to decide. Check that none of these tools is one you'd rather not have.</p>
+    <p class="guard"><span>Guard</span>A test fails if any tool is registered without a safety hint, so clients can always auto-approve reads and gate deletes.</p>
+    <details class="ev"><summary>Evidence</summary><code>mcp_ankiconnect/collection_tools.py:134-405</code> tools · <code>mcp_ankiconnect/server.py:41-60</code> annotation presets · <code>tests/test_collection_tools.py</code> <code>test_every_tool_declares_annotations</code></details>
+  </div>
+  <figure class="fig"><div class="tbl"><table><tr><th>Tool</th><th>What it gives you</th></tr><tr><td><code class=k>add_notes</code></td><td>Up to 100 cards per call</td></tr><tr><td><code class=k>delete_notes</code></td><td>Delete, only with <code class=k>confirm=True</code></td></tr><tr><td><code class=k>list_tags</code> · <code class=k>create_deck</code></td><td>Reuse tag names; make nested decks</td></tr><tr><td><code class=k>sync</code></td><td>AnkiWeb sync before and after a session</td></tr><tr><td><code class=k>get_review_stats</code></td><td>Today, daily series, streak</td></tr><tr><td><code class=k>find_struggling_cards</code></td><td>Most lapses, lowest ease first</td></tr><tr><td><code class=k>retrieve_media_file</code></td><td>Card images, shown as images</td></tr><tr><td><code class=k>get_gui_context</code></td><td>The card you're looking at, the notes you've selected</td></tr></table></div><figcaption>Nine tools, each pinned to an annotation preset.</figcaption></figure>
+</section>
+<section class="stage" id="stage-batch" data-stage="batch">
+  <div class="stage-head"><h2>Adding a batch of cards</h2><span class="badge ref">Exists</span></div>
+  <div class="stage-text">
+    <p class="purpose">One bad card in a batch must not sink the rest, or hide the IDs of the cards that were saved.</p>
+<pre class="pc">turn each card into an Anki note (MathJax and code converted as add_note does)
+send every note in one request, each as its own addNote action
+for each note
+  if Anki saved it
+    report added, with its note ID
+  else
+    report failed, with Anki's reason (for example a duplicate)</pre>
+    <p class="you"><span>Your part</span>Approve the cards as you do now. Nothing changes in your approval step.</p>
+    <p class="guard"><span>Guard</span>Each note succeeds or fails alone, so the report always matches what is in Anki.</p>
+    <details class="ev"><summary>Evidence</summary><code>mcp_ankiconnect/ankiconnect_client.py:304</code> <code>add_notes_each</code> · <code>tests/test_collection_tools.py</code> <code>test_add_notes_keeps_ids_of_saved_notes_when_a_later_one_fails</code> · AnkiConnect API_LEGACY.md: <code>addNotes</code> rejects the whole batch if any note fails pre-flight.</details>
+  </div>
+  <figure class="fig"><div class="tbl"><table><tr><th>Approach</th><th>For</th><th>Against</th></tr><tr><td><code class=k>addNotes</code></td><td class=pro>One call</td><td class=con>One bad note fails the batch</td></tr><tr><td>Pre-check, then add</td><td class=pro>Skips duplicates</td><td class=con>Ignores pictures: rejects picture-only cards, misses bad image URLs</td></tr><tr><td><b><code class=k>multi</code> of <code class=k>addNote</code></b></td><td class=pro>One call, a result per card</td><td>Picked</td></tr></table></div><figcaption>Code review found both failures of the first two approaches.</figcaption></figure>
+</section>
+<section class="stage" id="stage-flag" data-stage="flag">
+  <div class="stage-head"><h2>Setting a flag</h2><span class="badge ref">Exists</span></div>
+  <div class="stage-text">
+    <p class="purpose">Your pipeline runs on flags (red = bad card, green = good, orange = maybe beyond FY1), but no tool sets them.</p>
+<pre class="pc">take card IDs and a colour name
+in one request, write the flag number onto each card
+read the cards back
+for each card
+  if the card is gone
+    report missing
+  else if this Anki doesn't report flags
+    report unverified
+  else if the flag now matches
+    report set
+  else
+    report unchanged, with the flag Anki holds</pre>
+    <p class="you"><span>Your part</span>Nothing. Colour names follow Anki's own numbering.</p>
+    <p class="guard"><span>Guard</span>The read-back catches the silent no-op that your skill warns about for <code class=k>setSpecificValueOfCard</code>.</p>
+    <details class="ev"><summary>Evidence</summary><code>anki-due-redesign/SKILL.md:23</code> flags as pipeline input · <code>anki-due-redesign/SKILL.md:81</code> silent failure with string values · API_LEGACY.md: <code>flags</code> is a valid key and cannot be combined with other keys.</details>
+  </div>
+  <figure class="fig"><div class="tbl"><table><tr><th>Name</th><th>Number</th><th>Your meaning</th></tr><tr><td><span class=sw style="background:#d9433b"></span>red</td><td>1</td><td>Bad card</td></tr><tr><td><span class=sw style="background:#e98a2c"></span>orange</td><td>2</td><td>Maybe beyond FY1 level</td></tr><tr><td><span class=sw style="background:#3aa55d"></span>green</td><td>3</td><td>Good card</td></tr><tr><td><span class=sw style="background:#3b7fd9"></span>blue</td><td>4</td><td>(unused)</td></tr><tr><td><span class=sw style="background:#d96ab8"></span>pink</td><td>5</td><td>(unused)</td></tr><tr><td><span class=sw style="background:#2bb3b3"></span>turquoise</td><td>6</td><td>Green before 20 Oct 2026</td></tr><tr><td><span class=sw style="background:#8a5cd6"></span>purple</td><td>7</td><td>(unused)</td></tr><tr><td>none</td><td>0</td><td>Clear the flag</td></tr></table></div><figcaption>Meanings come from your anki-due-redesign skill.</figcaption></figure>
+</section>
+<section class="stage" id="stage-see" data-stage="see">
+  <div class="stage-head"><h2>Seeing and finding flags</h2><span class="badge ref">Exists</span></div>
+  <div class="stage-text">
+    <p class="purpose">A flag you can set but can't see is half a feature.</p>
+<pre class="pc">when inspect_cards reports a card's state
+  include its flag as a colour name, read from Anki's card info
+  if Anki doesn't report the field
+    leave it out rather than guess
+name the colours and their flag:N searches in the server instructions</pre>
+    <p class="you"><span>Your part</span>None.</p>
+    <p class="guard"><span>Guard</span>The flag is left out rather than guessed when Anki doesn't report it.</p>
+    <details class="ev"><summary>Evidence</summary>API_LEGACY.md: <code>cardsInfo</code> returns <code>flags</code>. · <code>mcp_ankiconnect/edit_tools.py</code> <code>inspect_cards</code> state category.</details>
+  </div>
+  <figure class="fig"><div class="tbl"><table><tr><th>Ask</th><th>Call</th></tr><tr><td>Which cards did I flag red?</td><td><code class=k>search_notes("flag:1")</code></td></tr><tr><td>Is this card flagged?</td><td><code class=k>inspect_cards</code> → <code class=k>"flag": "red"</code></td></tr></table></div><figcaption>No new tool: an existing one gains a field.</figcaption></figure>
+</section>
+<section class="stage" id="stage-sched" data-stage="sched">
+  <div class="stage-head"><h2>Copying scheduling onto a redesigned card</h2><span class="badge ref">Exists</span></div>
+  <div class="stage-text">
+    <p class="purpose">A redesigned card should keep the original's progress, as your sched_transfer.py does, without the silent-failure trap.</p>
+<pre class="pc">take the target cards, and one source card or note
+if the source is a note
+  use its card with the longest interval
+if the source has never been reviewed
+  stop: there is nothing to copy
+if the source card is also a target
+  stop
+if any target already has reviews, and overwrite_history is not set
+  stop: protect real progress from a wrong ID
+set the targets due across the next week (0-6 days)
+write the source's interval and ease onto each target, as whole numbers
+  if that whole request fails, note the error against every target and carry on
+read the targets back
+for each target
+  if interval and ease match, and it is now a review card
+    report copied
+  else
+    report mismatch, with expected and actual</pre>
+    <p class="you"><span>Your part</span>Check the two calls I made: the history guard, and the 0-6 day spread (your pipeline's spread).</p>
+    <p class="guard"><span>Guard</span>No rollback after a partial failure: the report names exactly which cards to redo, and a rollback would be one more write that can fail.</p>
+    <details class="ev"><summary>Evidence</summary><code>anki-due-redesign/SKILL.md:55</code> "inherits the interval and factor of the original's longest-interval card" · <code>SKILL.md:79-83</code> setDueDate then setSpecificValueOfCard with ints, re-read to check.</details>
+  </div>
+  <figure class="fig"><div class="tbl"><table><tr><th></th><th>Interval</th><th>Ease</th><th>Reviews</th></tr><tr><td>Original (source)</td><td><span class=illus>34 days</span></td><td><span class=illus>2.30</span></td><td><span class=illus>12</span></td></tr><tr><td>Redesign, before</td><td>new</td><td>new</td><td>0</td></tr><tr><td>Redesign, after</td><td><span class=illus>34 days</span></td><td><span class=illus>2.30</span></td><td>0</td></tr></table></div><figcaption>Illustrative numbers. Under FSRS, Anki derives stability from interval and ease at the first review.</figcaption></figure>
+</section>
+<div class="close">
+  <h2>Where this stands</h2>
+  <ul>
+    <li><b>Exists:</b> nine parity tools, annotations, instructions and the search resource, with 185 passing tests, on branch <code class=k>claude/sleepy-dijkstra-90knvw</code>.</li>
+    <li><b>Built and verified:</b> <code class=k>set_card_flag</code>, flags in <code class=k>inspect_cards</code>, and <code class=k>copy_scheduling</code>. 206 tests pass. A fresh-eyes check found four gaps: an ignored due-date write could still count as copied; a failed batch write hid the per-card report; only the first key's error was read; and the self-copy guard missed note sources. Each now has a regression test and a fix.</li>
+    <li><b>Calls I made for you:</b> colour names rather than numbers; the history guard on <code class=k>copy_scheduling</code>; the 0-6 day spread; report rather than roll back; a pipeline-level <code class=k>replace_note</code> deferred, because it would bake your tag conventions into a general server.</li>
+    <li><b>Not checked here:</b> no live Anki was reachable. The first real run is yours: flag a card red, copy scheduling onto a redesigned card, and confirm both in the browser.</li>
+  </ul>
+</div>
+</main>
+</div>
+</div>
+<script>
+"use strict";
+// Pseudocode: 2-space indent = nesting; leading keywords are bolded.
+(function(){
+  var KW=/^(for each|if|else if|else|when|while|until|try each|stop|return|at the end)\b/i;
+  [].forEach.call(document.querySelectorAll("pre.pc"),function(pre){
+    var lines=pre.textContent.replace(/^\n+|\s+$/g,"").split("\n");
+    pre.textContent="";
+    lines.forEach(function(raw){
+      var d=Math.floor((raw.length-raw.replace(/^ +/,"").length)/2), t=raw.trim(), m=t.match(KW);
+      var s=document.createElement("span"); s.className="ln d"+d; s.style.setProperty("--d",d);
+      if(m){var b=document.createElement("b");b.textContent=m[0];s.appendChild(b);t=t.slice(m[0].length)}
+      s.appendChild(document.createTextNode(t)); pre.appendChild(s);
+    });
+  });
+})();
+// Rail highlights the stage in view.
+(function(){
+  var links=[].slice.call(document.querySelectorAll("nav.rail a"));
+  var secs=[].slice.call(document.querySelectorAll(".stage"));
+  if(!("IntersectionObserver" in window)||!links.length)return;
+  var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){
+    links.forEach(function(a){a.classList.toggle("on",a.getAttribute("data-for")===e.target.getAttribute("data-stage"))});
+  }})},{rootMargin:"-20% 0px -65% 0px"});
+  secs.forEach(function(s){io.observe(s)});
+})();
+// Decisions: an option button toggles (one per decision); the bar counts what will be sent.
+// On the hub, Submit becomes one drafted comment per decision. Opened anywhere else, Submit
+// shows the decisions as text to paste into the terminal.
+(function(){
+  var ds=[].slice.call(document.querySelectorAll("[data-hub-decision]"));
+  var out=document.querySelector("[data-decide-count]");
+  function answered(){return ds.filter(function(d){var t=d.querySelector("[data-hub-note]");return d.querySelector('[data-hub-option][aria-pressed="true"]')||(t&&t.value.trim())})}
+  function count(){if(!out)return;var n=answered().length;out.className="";out.textContent=n?n+(n===1?" decision":" decisions")+" ready to send":"Nothing chosen yet"}
+  ds.forEach(function(d){
+    [].forEach.call(d.querySelectorAll("[data-hub-option]"),function(b){
+      b.setAttribute("aria-pressed","false");
+      b.addEventListener("click",function(){
+        var on=b.getAttribute("aria-pressed")!=="true";
+        [].forEach.call(d.querySelectorAll("[data-hub-option]"),function(o){o.setAttribute("aria-pressed","false")});
+        if(on)b.setAttribute("aria-pressed","true");
+        count();
+      });
+    });
+    var t=d.querySelector("[data-hub-note]"); if(t)t.addEventListener("input",count);
+  });
+  count();
+  if(window.parent!==window)return;
+  [].forEach.call(document.querySelectorAll("[data-hub-submit]"),function(b){
+    b.addEventListener("click",function(){
+      if(!out)return;
+      var lines=answered().map(function(d){
+        var o=d.querySelector('[data-hub-option][aria-pressed="true"]'),t=d.querySelector("[data-hub-note]");
+        return d.getAttribute("data-hub-decision")+": "+(o?o.getAttribute("data-hub-option"):"(no pick)")+(t&&t.value.trim()?" — "+t.value.trim():"");
+      });
+      out.className="said";
+      out.textContent=lines.length?"Not on the hub. Paste this into the terminal:\n"+lines.join("\n"):"Nothing chosen yet";
+    });
+  });
+})();
+// For a playable figure, put these controls in the figure:
+//   <div class="controls"><button class="primary" id="x-play">Play</button><button id="x-step">Step</button>
+//   <button id="x-skip">Skip</button><button id="x-reset">Reset</button><input id="x-speed" type="range" min="1" max="4" value="1"><span id="x-speed-out"></span></div>
+// then call stepper(playBtn, stepBtn, skipBtn, resetBtn, speedInput, speedLabel, tick, resetFn, isDone).
+function stepper(playBtn,stepBtn,skipBtn,resetBtn,speedIn,speedOut,tick,reset,isDone){
+  var timer=null;
+  function ms(){return 1100/Number(speedIn.value)}
+  function stop(){if(timer){clearTimeout(timer);timer=null}playBtn.textContent="Play";playBtn.classList.add("primary")}
+  function loop(){if(isDone()){stop();return}tick();timer=setTimeout(loop,ms());if(isDone()){stop()}}
+  playBtn.onclick=function(){if(timer){stop();return}if(isDone())reset();playBtn.textContent="Pause";loop()};
+  stepBtn.onclick=function(){stop();if(!isDone())tick()};
+  skipBtn.onclick=function(){stop();var g=0;while(!isDone()&&g++<5000)tick()};
+  resetBtn.onclick=function(){stop();reset()};
+  speedIn.oninput=function(){speedOut.textContent=speedIn.value+"x"};
+  speedOut.textContent=speedIn.value+"x";
+  return {stop:stop};
+}
+</script>

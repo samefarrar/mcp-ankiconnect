@@ -49,3 +49,55 @@ IMPORTANT: The flashcards format like markdown, so when using numbered lists, en
 
 Here are some examples:
 """
+
+# Sent to the client on connect (MCP `instructions`). Kept short: it is paid
+# for on every conversation, so it carries only what prevents common mistakes.
+server_instructions = """\
+Anki tools via AnkiConnect. Anki must be running with the AnkiConnect add-on.
+
+IDs: a note ID identifies one note (its fields and tags); a card ID identifies
+one card generated from a note (its scheduling). Field and tag edits and
+delete_notes take note IDs. Suspend, change_deck, reschedule_cards and
+submit_reviews take card IDs. inspect_cards(note_ids=...) maps notes to cards.
+
+Authoring flow: list_decks_and_notes -> get_examples -> draft cards -> get
+user approval -> add_notes (batch; duplicates are skipped and reported).
+Use list_tags to reuse existing tag names rather than inventing new ones.
+
+Review flow: optionally sync -> fetch_due_cards_for_review -> quiz ->
+submit_reviews -> sync. find_struggling_cards and get_review_stats help
+target weak material. get_gui_context sees the card or notes the user has
+open in Anki, for requests like "fix this card".
+
+Flags are per card: set_card_flag (none, red, orange, green, blue, pink,
+turquoise, purple); find them with search `flag:1` (red) to `flag:7`.
+After replacing a card with redesigned ones, copy_scheduling gives the new
+cards the original's interval and ease. Write tools that can be silently
+ignored by Anki re-read the cards: trust their per-card status, not success.
+
+Search queries use Anki syntax; read resource anki://docs/search-syntax.
+Never call delete_notes without the user's explicit go-ahead.
+"""
+
+# Served as resource `anki://docs/search-syntax`. A curated cheat sheet, not
+# a copy of the manual; the manual stays online (see link).
+search_syntax_guide = """\
+# Anki search syntax (cheat sheet)
+
+Full reference: https://docs.ankiweb.net/searching.html
+
+- Terms are ANDed: `dog cat`. OR: `dog or cat`. Negate: `-cat`. Group: `(a or b)`.
+- Exact phrase: `"a dog"`. Wildcards: `d*g` (any chars), `d_g` (one char).
+- Field: `front:dog`, `front:*dog*`. Regex: `re:colou?r` (case-insensitive).
+- Deck: `deck:Spanish` (includes subdecks), `"deck:My Deck"`, `-deck:Spanish::Old`.
+- Note type: `note:Basic`, `"note:Basic (and reversed card)"`. Card: `card:1`.
+- Tags: `tag:verb`, `tag:spanish::*`, `-tag:leech`, `tag:none`.
+- State: `is:due`, `is:new`, `is:learn`, `is:review`, `is:suspended`, `is:buried`.
+- Added/edited/rated (days): `added:7`, `edited:3`, `rated:1`, `rated:7:1` (Again).
+- Properties: `prop:ivl>=21`, `prop:due=0`, `prop:due<=3`, `prop:lapses>3`,
+  `prop:reps>10`, `prop:ease<2.0`.
+- IDs: `nid:123,456` (notes), `cid:789` (cards).
+- Flags: `flag:1` (red) ... `flag:7`.
+
+AnkiConnect's findNotes/findCards ignore browser `sort:` directives.
+"""

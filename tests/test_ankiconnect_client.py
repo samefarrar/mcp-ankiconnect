@@ -400,3 +400,97 @@ async def test_get_reviews_of_cards_wrapper(client_with_mocked_invoke):
         AnkiAction.GET_REVIEWS_OF_CARDS, cards=[10]
     )
     assert result == {"10": []}
+
+
+# --- Feature-parity wrappers (batch add, delete, tags, sync, stats, media, GUI) ---
+
+
+@pytest.mark.parametrize(
+    ("method", "kwargs", "action", "params"),
+    [
+        ("delete_notes", {"notes": [1, 2]}, AnkiAction.DELETE_NOTES, {"notes": [1, 2]}),
+        ("get_tags", {}, AnkiAction.GET_TAGS, {}),
+        ("create_deck", {"deck": "A::B"}, AnkiAction.CREATE_DECK, {"deck": "A::B"}),
+        ("sync", {}, AnkiAction.SYNC, {}),
+        (
+            "get_num_cards_reviewed_by_day",
+            {},
+            AnkiAction.GET_NUM_CARDS_REVIEWED_BY_DAY,
+            {},
+        ),
+        (
+            "retrieve_media_file",
+            {"filename": "x.png"},
+            AnkiAction.RETRIEVE_MEDIA_FILE,
+            {"filename": "x.png"},
+        ),
+        ("gui_current_card", {}, AnkiAction.GUI_CURRENT_CARD, {}),
+        ("gui_selected_notes", {}, AnkiAction.GUI_SELECTED_NOTES, {}),
+    ],
+)
+async def test_feature_parity_wrappers_forward_to_invoke(
+    client_with_mocked_invoke, method, kwargs, action, params
+):
+    client_with_mocked_invoke.invoke.return_value = "sentinel"
+    result = await getattr(client_with_mocked_invoke, method)(**kwargs)
+    client_with_mocked_invoke.invoke.assert_awaited_once_with(action, **params)
+    assert result == "sentinel"
+
+
+async def test_add_notes_each_batches_addnote_via_multi(client_with_mocked_invoke):
+    """One HTTP call, but each note succeeds or fails on its own."""
+    client_with_mocked_invoke.invoke.return_value = [
+        {"result": 11, "error": None},
+        {"result": None, "error": "duplicate"},
+    ]
+
+    out = await client_with_mocked_invoke.add_notes_each(notes=[{"n": 1}, {"n": 2}])
+
+    client_with_mocked_invoke.invoke.assert_awaited_once_with(
+        AnkiAction.MULTI,
+        actions=[
+            {"action": "addNote", "version": 6, "params": {"note": {"n": 1}}},
+            {"action": "addNote", "version": 6, "params": {"note": {"n": 2}}},
+        ],
+    )
+    assert out == [(11, None), (None, "duplicate")]
+
+
+async def test_set_card_values_sends_ints_and_maps_errors(client_with_mocked_invoke):
+    """Ints always: the user's AnkiConnect fork silently ignores string values."""
+    client_with_mocked_invoke.invoke.return_value = [
+        {"result": [True], "error": None},
+        {"result": [[False, "card was not found"]], "error": None},
+        {"result": None, "error": "boom"},
+    ]
+
+    out = await client_with_mocked_invoke.set_card_values(
+        {1: {"ivl": "34", "factor": 2300}, 2: {"flags": 1}, 3: {"flags": 1}},
+        warning_check=True,
+    )
+
+    actions = client_with_mocked_invoke.invoke.await_args.kwargs["actions"]
+    assert actions[0] == {
+        "action": "setSpecificValueOfCard",
+        "version": 6,
+        "params": {
+            "card": 1,
+            "keys": ["ivl", "factor"],
+            "newValues": [34, 2300],
+            "warning_check": True,
+        },
+    }
+    assert out == {1: None, 2: "card was not found", 3: "boom"}
+
+
+async def test_set_card_values_reports_failure_on_any_key(client_with_mocked_invoke):
+    """Regression: a failure on the second key (factor) was dropped."""
+    client_with_mocked_invoke.invoke.return_value = [
+        {"result": [True, [False, "factor out of range"]], "error": None},
+    ]
+
+    out = await client_with_mocked_invoke.set_card_values(
+        {1: {"ivl": 34, "factor": 99999}}
+    )
+
+    assert out == {1: "factor out of range"}
