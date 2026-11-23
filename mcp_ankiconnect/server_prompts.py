@@ -69,6 +69,12 @@ submit_reviews -> sync. find_struggling_cards and get_review_stats help
 target weak material. get_gui_context sees the card or notes the user has
 open in Anki, for requests like "fix this card".
 
+Flags are per card: set_card_flag (none, red, orange, green, blue, pink,
+turquoise, purple); find them with search `flag:1` (red) to `flag:7`.
+After replacing a card with redesigned ones, copy_scheduling gives the new
+cards the original's interval and ease. Write tools that can be silently
+ignored by Anki re-read the cards: trust their per-card status, not success.
+
 Search queries use Anki syntax; read resource anki://docs/search-syntax.
 Never call delete_notes without the user's explicit go-ahead.
 """

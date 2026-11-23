@@ -65,6 +65,7 @@ class AnkiAction(str, Enum):
     GET_REVIEWS_OF_CARDS = "getReviewsOfCards"
     # --- feature-parity additions ---
     MULTI = "multi"
+    SET_SPECIFIC_VALUE_OF_CARD = "setSpecificValueOfCard"
     DELETE_NOTES = "deleteNotes"
     GET_TAGS = "getTags"
     CREATE_DECK = "createDeck"
@@ -73,6 +74,18 @@ class AnkiAction(str, Enum):
     RETRIEVE_MEDIA_FILE = "retrieveMediaFile"
     GUI_CURRENT_CARD = "guiCurrentCard"
     GUI_SELECTED_NOTES = "guiSelectedNotes"
+
+def _card_value_error(result: Any, error: str | None) -> str | None:
+    """Read setSpecificValueOfCard's reply: `[true]`, or `[[false, msg]]`."""
+    if error is not None:
+        return error
+    if isinstance(result, list) and result and result[0] is not True:
+        first = result[0]
+        return str(first[1]) if isinstance(first, list) and len(first) > 1 else str(first)
+    if result is False:
+        return "invalid request"
+    return None
+
 
 class AnkiConnectResponse(BaseModel):
     result: Any
@@ -301,24 +314,56 @@ class AnkiConnectClient:
         return await self.invoke(AnkiAction.GET_REVIEWS_OF_CARDS, cards=cards)
 
     # --- Feature-parity wrappers ---
+    async def _multi(
+        self, action: AnkiAction, params_list: list[dict]
+    ) -> list[tuple[Any, str | None]]:
+        """Run one action per params dict in a single `multi` request.
+
+        Returns one (result, error) pair per call, in order. Why: a batch
+        action such as `addNotes` fails as a whole, while `multi` keeps each
+        call's own outcome, so callers can report per item.
+        """
+        actions = [
+            {"action": action.value, "version": 6, "params": params}
+            for params in params_list
+        ]
+        replies = await self.invoke(AnkiAction.MULTI, actions=actions)
+        return [(r.get("result"), r.get("error")) for r in replies]
+
     async def add_notes_each(
         self, notes: list[dict]
     ) -> list[tuple[int | None, str | None]]:
         """Add notes in one HTTP request, each succeeding or failing alone.
 
-        Returns one (note_id, error) pair per note, in order.
-
-        Why `multi` + `addNote` rather than `addNotes`: `addNotes` saves what
-        it can and then raises one error for the whole batch, which loses the
-        IDs of the notes it did save. A pre-check (`canAddNotes...`) can't
-        fill the gap either, because it ignores pictures and URL failures.
+        Returns one (note_id, error) pair per note, in order. `addNotes` is
+        avoided because one bad note rejects the whole batch. A
+        `canAddNotes...` pre-check is avoided because it ignores pictures.
         """
-        actions = [
-            {"action": AnkiAction.ADD_NOTE.value, "version": 6, "params": {"note": n}}
-            for n in notes
+        return await self._multi(AnkiAction.ADD_NOTE, [{"note": n} for n in notes])
+
+    async def set_card_values(
+        self, values: dict[int, dict[str, int]], warning_check: bool = False
+    ) -> dict[int, str | None]:
+        """Write per-card values (flags, ivl, factor) and return errors by card.
+
+        Values are coerced to int. Why: some AnkiConnect builds accept string
+        values, report success, and change nothing. Callers should still
+        re-read the cards, because success here is not proof of a change.
+        """
+        params = [
+            {
+                "card": cid,
+                "keys": list(kv),
+                "newValues": [int(v) for v in kv.values()],
+                "warning_check": warning_check,
+            }
+            for cid, kv in values.items()
         ]
-        replies = await self.invoke(AnkiAction.MULTI, actions=actions)
-        return [(r.get("result"), r.get("error")) for r in replies]
+        replies = await self._multi(AnkiAction.SET_SPECIFIC_VALUE_OF_CARD, params)
+        return {
+            cid: _card_value_error(result, error)
+            for cid, (result, error) in zip(values, replies, strict=True)
+        }
 
     async def delete_notes(self, notes: list[int]) -> None:
         return await self.invoke(AnkiAction.DELETE_NOTES, notes=notes)

@@ -454,3 +454,30 @@ async def test_add_notes_each_batches_addnote_via_multi(client_with_mocked_invok
         ],
     )
     assert out == [(11, None), (None, "duplicate")]
+
+
+async def test_set_card_values_sends_ints_and_maps_errors(client_with_mocked_invoke):
+    """Ints always: the user's AnkiConnect fork silently ignores string values."""
+    client_with_mocked_invoke.invoke.return_value = [
+        {"result": [True], "error": None},
+        {"result": [[False, "card was not found"]], "error": None},
+        {"result": None, "error": "boom"},
+    ]
+
+    out = await client_with_mocked_invoke.set_card_values(
+        {1: {"ivl": "34", "factor": 2300}, 2: {"flags": 1}, 3: {"flags": 1}},
+        warning_check=True,
+    )
+
+    actions = client_with_mocked_invoke.invoke.await_args.kwargs["actions"]
+    assert actions[0] == {
+        "action": "setSpecificValueOfCard",
+        "version": 6,
+        "params": {
+            "card": 1,
+            "keys": ["ivl", "factor"],
+            "newValues": [34, 2300],
+            "warning_check": True,
+        },
+    }
+    assert out == {1: None, 2: "card was not found", 3: "boom"}

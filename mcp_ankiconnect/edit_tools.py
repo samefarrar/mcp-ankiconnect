@@ -11,6 +11,7 @@ import logging
 from datetime import UTC, datetime
 from typing import Any, Literal
 
+from mcp_ankiconnect.ankiconnect_client import AnkiConnectClient
 from mcp_ankiconnect.server import (
     DESTRUCTIVE,
     EDIT,
@@ -39,6 +40,23 @@ _QUEUE_LABELS = {
 }
 
 _EASE_LABELS = {1: "again", 2: "hard", 3: "good", 4: "easy"}
+
+# Anki's own flag numbering. Names, because people (and Sam's skills) think in
+# colours; the `flag:N` search uses the numbers.
+FlagName = Literal[
+    "none", "red", "orange", "green", "blue", "pink", "turquoise", "purple"
+]
+_FLAG_NUMBERS: dict[str, int] = {
+    "none": 0,
+    "red": 1,
+    "orange": 2,
+    "green": 3,
+    "blue": 4,
+    "pink": 5,
+    "turquoise": 6,
+    "purple": 7,
+}
+_FLAG_NAMES = {n: name for name, n in _FLAG_NUMBERS.items()}
 
 # Property categories for `inspect_cards`. The default omits anything that
 # would force an extra round trip (`fields`, `history`) or whose
@@ -187,6 +205,8 @@ async def inspect_cards(
                 entry["queue"] = card.get("queue")
                 entry["queue_label"] = _queue_label(card.get("queue", 0))
                 entry["type"] = card.get("type")
+                if "flags" in card:  # absent on older AnkiConnect: don't guess
+                    entry["flag"] = _FLAG_NAMES.get(card["flags"], "unknown")
 
             if "scheduling" in resolved_properties:
                 entry["ease"] = _ease(card)
@@ -384,3 +404,192 @@ async def reschedule_cards(
         f"SYSTEM_ERROR: Unknown mode '{mode}'. "
         "Expected one of: set_due, forget, relearn."
     )
+
+
+# --- Flags and scheduling transfer ---
+# Both write through setSpecificValueOfCard, which can report success and
+# change nothing. So each tool re-reads the cards and reports per card what
+# Anki now holds; a write counts only once it is seen.
+
+
+def _by_id(cards_info: list[dict]) -> dict[int, dict]:
+    """Index cardsInfo rows by cardId; AnkiConnect returns {} for missing cards."""
+    return {c["cardId"]: c for c in cards_info if c.get("cardId") is not None}
+
+
+def _flag_result(cid: int, card: dict | None, want: int, error: str | None) -> dict:
+    if not card:
+        result: dict[str, Any] = {"cardId": cid, "status": "missing"}
+    elif "flags" not in card:
+        result = {"cardId": cid, "status": "unverified"}
+    elif card["flags"] == want:
+        result = {"cardId": cid, "status": "set"}
+    else:
+        current = _FLAG_NAMES.get(card["flags"], "unknown")
+        result = {"cardId": cid, "status": "unchanged", "current_flag": current}
+    if error is not None:
+        result["error"] = error
+    return result
+
+
+@mcp.tool(annotations=EDIT)
+@handle_anki_connection_error
+async def set_card_flag(card_ids: list[int], flag: FlagName) -> str:
+    """Set (or clear, with "none") the coloured flag on one or more cards.
+
+    Flags belong to cards, not notes: use `inspect_cards(note_ids=...)` to get
+    card IDs. Find flagged cards with `search_notes("flag:1")` (1 red, 2 orange,
+    3 green, 4 blue, 5 pink, 6 turquoise, 7 purple).
+
+    Each card is re-read after the write and reported as "set", "unchanged"
+    (with the flag Anki still holds), "unverified" (this AnkiConnect does not
+    report flags) or "missing".
+
+    Args:
+        card_ids: Card IDs to flag.
+        flag: none, red, orange, green, blue, pink, turquoise or purple.
+    """
+    if not card_ids:
+        return "SYSTEM_ERROR: `card_ids` must not be empty."
+    want = _FLAG_NUMBERS.get(flag)
+    if want is None:
+        return f"SYSTEM_ERROR: Unknown flag '{flag}'. Use one of {list(_FLAG_NUMBERS)}."
+
+    async with get_anki_client() as anki:
+        errors = await anki.set_card_values({cid: {"flags": want} for cid in card_ids})
+        after = _by_id(await anki.cards_info(card_ids=list(card_ids)))
+
+    results = [_flag_result(c, after.get(c), want, errors.get(c)) for c in card_ids]
+    done = sum(r["status"] == "set" for r in results)
+    return json.dumps({"flag": flag, "set": done, "results": results})
+
+
+async def _resolve_source(
+    anki: AnkiConnectClient,
+    source_card_id: int | None,
+    source_note_id: int | None,
+) -> dict | None:
+    """The card to copy from; for a note, its longest-interval card.
+
+    Why longest interval: it is the note's most mature card, which is the rule
+    Sam's sched_transfer.py uses for redesigned notes.
+    """
+    if source_note_id is not None:
+        cids = await anki.find_cards(query=f"nid:{source_note_id}")
+        cards = await anki.cards_info(card_ids=cids) if cids else []
+    elif source_card_id is not None:
+        cards = await anki.cards_info(card_ids=[source_card_id])
+    else:
+        return None
+    cards = [c for c in cards if c]
+    return max(cards, key=lambda c: c.get("interval", 0)) if cards else None
+
+
+def _sched_result(
+    cid: int, card: dict | None, ivl: int, factor: int, error: str | None
+) -> dict:
+    actual = {
+        "interval": (card or {}).get("interval"),
+        "factor": (card or {}).get("factor"),
+    }
+    expected = {"interval": ivl, "factor": factor}
+    if actual == expected:
+        result: dict[str, Any] = {"cardId": cid, "status": "copied"}
+    else:
+        result = {
+            "cardId": cid,
+            "status": "mismatch",
+            "expected": expected,
+            "actual": actual,
+        }
+    if error is not None:
+        result["error"] = error
+    return result
+
+
+def _copy_scheduling_arg_error(
+    targets: list[int], source_card_id: int | None, source_note_id: int | None
+) -> str | None:
+    if (source_card_id is None) == (source_note_id is None):
+        return "Provide exactly one of `source_card_id` or `source_note_id`."
+    if not targets:
+        return "`target_card_ids` must not be empty."
+    if source_card_id is not None and source_card_id in targets:
+        return "The source card cannot also be a target."
+    return None
+
+
+@mcp.tool(annotations=DESTRUCTIVE)
+@handle_anki_connection_error
+async def copy_scheduling(
+    target_card_ids: list[int],
+    source_card_id: int | None = None,
+    source_note_id: int | None = None,
+    due: str = "0-6",
+    overwrite_history: bool = False,
+) -> str:
+    """Give redesigned cards the scheduling (interval and ease) of the original.
+
+    Use after replacing a card with new ones, so they keep the original's
+    progress instead of starting as new. Give the original as exactly one of
+    `source_card_id` or `source_note_id` (a note uses its card with the longest
+    interval). Targets are made due within `due` days (AnkiConnect `setDueDate`
+    syntax; the default "0-6" spreads them over a week), then given the
+    source's interval and ease.
+
+    Safeguards: refuses a source that has never been reviewed, and refuses
+    targets that already have reviews unless `overwrite_history=True`, so a
+    wrong ID cannot wipe a mature card's progress. Every target is re-read and
+    reported "copied" or "mismatch" (with expected and actual values). There is
+    no rollback: redo any mismatched cards.
+
+    Args:
+        target_card_ids: Cards that receive the scheduling (usually new cards).
+        source_card_id: The original card to copy from.
+        source_note_id: Or the original note; its longest-interval card is used.
+        due: Due-date spec for the targets, e.g. "0", "3", "0-6".
+        overwrite_history: Allow targets that already have reviews.
+    """
+    targets = list(target_card_ids)
+    arg_error = _copy_scheduling_arg_error(targets, source_card_id, source_note_id)
+    if arg_error is not None:
+        return f"SYSTEM_ERROR: {arg_error}"
+
+    async with get_anki_client() as anki:
+        source = await _resolve_source(anki, source_card_id, source_note_id)
+        if source is None:
+            return "SYSTEM_ERROR: Source card or note not found."
+        ivl, factor = int(source.get("interval", 0)), int(source.get("factor", 0))
+        if ivl <= 0:
+            return (
+                f"SYSTEM_ERROR: Source card {source.get('cardId')} has never been "
+                "reviewed, so it has no scheduling to copy."
+            )
+
+        before = _by_id(await anki.cards_info(card_ids=targets))
+        missing = [c for c in targets if c not in before]
+        if missing:
+            return f"SYSTEM_ERROR: Target cards not found: {missing}."
+        reviewed = [c for c in targets if before[c].get("reps", 0) > 0]
+        if reviewed and not overwrite_history:
+            return (
+                f"SYSTEM_ERROR: Target cards {reviewed} already have reviews. "
+                "Check the IDs; pass overwrite_history=True to replace them."
+            )
+
+        await anki.set_due_date(cards=targets, days=due)
+        errors = await anki.set_card_values(
+            {c: {"ivl": ivl, "factor": factor} for c in targets}, warning_check=True
+        )
+        after = _by_id(await anki.cards_info(card_ids=targets))
+
+    results = [
+        _sched_result(c, after.get(c), ivl, factor, errors.get(c)) for c in targets
+    ]
+    payload = {
+        "source": {"cardId": source.get("cardId"), "interval": ivl, "factor": factor},
+        "copied": sum(r["status"] == "copied" for r in results),
+        "mismatch": sum(r["status"] == "mismatch" for r in results),
+        "results": results,
+    }
+    return json.dumps(payload)
