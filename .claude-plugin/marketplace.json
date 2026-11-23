@@ -1,0 +1,14 @@
+{
+  "name": "mcp-ankiconnect",
+  "owner": { "name": "samefarrar" },
+  "metadata": {
+    "description": "The ankiconnect plugin: an Anki MCP server with card-writing, card-judgement and redesign skills"
+  },
+  "plugins": [
+    {
+      "name": "ankiconnect",
+      "source": "./",
+      "description": "Anki MCP server plus card-writing, card-judgement and due-card-redesign skills"
+    }
+  ]
+}

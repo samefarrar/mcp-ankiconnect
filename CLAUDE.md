@@ -11,6 +11,8 @@ Python MCP server that bridges Claude with Anki via the AnkiConnect add-on (HTTP
 - `mcp_ankiconnect/config.py` — constants (`TIMEOUTS`, `RATING_TO_EASE`, `EXCLUDE_STRINGS`, `MAX_FUTURE_DAYS`).
 - `mcp_ankiconnect/server_prompts.py` — long-form LLM prompts (review instructions, flashcard guidelines).
 - `mcp_ankiconnect/main.py` — `mcp.run()` entry point.
+- `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, `.mcp.json` — the repo is also the Claude Code plugin `ankiconnect` and its own marketplace. `.mcp.json` runs this checkout via `uv run --directory ${CLAUDE_PLUGIN_ROOT}`; the AnkiConnect URL comes from `userConfig`.
+- `skills/` — generic plugin skills: `card-writing`, `card-judgement`, `due-card-redesign`. Keep them free of personal data (names, note IDs, local paths); personal rules live in a user's own overlay plugin. `tests/test_plugin_packaging.py` fails if a skill names a tool that does not exist, so rename tools and skills together. Keep `plugin.json` `version` equal to `pyproject.toml`'s.
 
 Every `@mcp.tool` is wrapped in `@handle_anki_connection_error` which converts exceptions into `SYSTEM_ERROR: ...` strings the LLM can act on — do NOT raise from tools; return strings.
 

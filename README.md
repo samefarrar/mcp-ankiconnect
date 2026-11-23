@@ -78,6 +78,36 @@ on), so clients can auto-approve reads and gate destructive calls.
 
 ### Installation
 
+## Claude Code plugin
+
+This repository is also a Claude Code plugin, `ankiconnect`, and its own
+marketplace. Installing it gives you the MCP server (run from the plugin's own
+copy with `uv`, so tools and skills always match) plus three skills:
+
+- `card-writing`: note types, cloze engineering, the approve-then-add workflow
+  and the review cycle.
+- `card-judgement`: the quality bar every card must clear, with a pre-flight
+  checklist and triage calibration distilled from thousands of real
+  approve/reject verdicts.
+- `due-card-redesign`: triage a batch of due, red-flagged or leech cards with
+  parallel subagents, agree verdicts and redesigns in chat, apply them, carry
+  scheduling over with `copy_scheduling`, and log verdicts so the rules improve.
+
+```
+/plugin marketplace add samefarrar/mcp-ankiconnect
+/plugin install ankiconnect@mcp-ankiconnect
+```
+
+You need [uv](https://docs.astral.sh/uv/) on your `PATH`, and Anki running with
+AnkiConnect. The plugin asks for the AnkiConnect URL (default
+`http://localhost:8765`).
+
+**Personal overlays.** The skills are generic on purpose. To teach them your own
+conventions (default deck, note types, tags, flag meanings) and your own
+verdicts, write a small plugin of your own that depends on `ankiconnect` and
+adds skills such as `my-card-judgement`. The generic skills defer to a loaded
+personal skill wherever the two conflict.
+
 ## Quickstart
 
 1. Install the AnkiConnect plugin in Anki:

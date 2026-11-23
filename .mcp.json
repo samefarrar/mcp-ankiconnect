@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "ankiconnect": {
+      "command": "uv",
+      "args": [
+        "run", "--directory", "${CLAUDE_PLUGIN_ROOT}",
+        "--no-dev", "--frozen", "--quiet", "mcp-ankiconnect"
+      ],
+      "env": {
+        "ANKI_CONNECT_URL": "${user_config.ankiconnect_url}"
+      }
+    }
+  }
+}
