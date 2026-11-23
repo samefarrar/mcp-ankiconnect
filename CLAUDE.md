@@ -10,6 +10,7 @@ Python MCP server that bridges Claude with Anki via the AnkiConnect add-on (HTTP
 - `mcp_ankiconnect/ankiconnect_client.py` — `httpx` client with retry + `AnkiConnectionError`. Wraps each AnkiConnect action as a typed method.
 - `mcp_ankiconnect/config.py` — constants (`TIMEOUTS`, `RATING_TO_EASE`, `EXCLUDE_STRINGS`, `MAX_FUTURE_DAYS`).
 - `mcp_ankiconnect/server_prompts.py` — long-form LLM prompts (review instructions, flashcard guidelines).
+- `mcp_ankiconnect/app_tools.py` + `ui/card_review.html` — MCP Apps spike: `open_card_review` links a `ui://` page that hosts supporting MCP Apps (Claude Desktop, claude.ai; not the Claude Code CLI) render; its buttons call the app-only `record_card_decisions`, which appends to a JSONL log (`ANKI_DECISIONS_FILE`) and never writes to Anki. Card text is rendered with `textContent` only.
 - `mcp_ankiconnect/main.py` — `mcp.run()` entry point.
 - `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, `.mcp.json` — the repo is also the Claude Code plugin `ankiconnect` and its own marketplace. `.mcp.json` runs this checkout via `uv run --directory ${CLAUDE_PLUGIN_ROOT}`; the AnkiConnect URL comes from `userConfig`.
 - `skills/` — generic plugin skills: `card-writing`, `card-judgement`, `due-card-redesign`. Keep them free of personal data (names, note IDs, local paths); personal rules live in a user's own overlay plugin. `tests/test_plugin_packaging.py` fails if a skill names a tool that does not exist, so rename tools and skills together. Keep `plugin.json` `version` equal to `pyproject.toml`'s.
@@ -18,7 +19,7 @@ Every `@mcp.tool` is wrapped in `@handle_anki_connection_error` which converts e
 
 ## Tools exposed
 
-`num_cards_due_today`, `list_decks_and_notes`, `get_examples`, `fetch_due_cards_for_review`, `submit_reviews`, `add_note`, `add_notes`, `store_media_file`, `retrieve_media_file`, `search_notes`, `inspect_cards`, `update_note_fields`, `update_note_tags`, `set_suspended`, `change_deck`, `reschedule_cards`, `set_card_flag`, `copy_scheduling`, `delete_notes`, `list_tags`, `create_deck`, `sync`, `get_review_stats`, `find_struggling_cards`, `get_gui_context`.
+`num_cards_due_today`, `list_decks_and_notes`, `get_examples`, `fetch_due_cards_for_review`, `submit_reviews`, `add_note`, `add_notes`, `store_media_file`, `retrieve_media_file`, `search_notes`, `inspect_cards`, `update_note_fields`, `update_note_tags`, `set_suspended`, `change_deck`, `reschedule_cards`, `set_card_flag`, `copy_scheduling`, `delete_notes`, `list_tags`, `create_deck`, `sync`, `get_review_stats`, `find_struggling_cards`, `get_gui_context`, `open_card_review`, `record_card_decisions` (app-only).
 
 Every new tool MUST pass an annotation preset to `@mcp.tool(annotations=...)`; `tests/test_collection_tools.py::test_every_tool_declares_annotations` enforces it. Resource: `anki://docs/search-syntax`.
 

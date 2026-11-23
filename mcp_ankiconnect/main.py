@@ -1,5 +1,6 @@
 import logging
 
+import mcp_ankiconnect.app_tools  # registers the MCP Apps review page
 import mcp_ankiconnect.collection_tools  # registers parity tools
 import mcp_ankiconnect.edit_tools  # noqa: F401  # registers edit/inspect tools
 from mcp_ankiconnect.server import mcp

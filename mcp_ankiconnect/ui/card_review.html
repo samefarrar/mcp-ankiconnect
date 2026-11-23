@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Card review</title>
+<style>
+  :root {
+    --bg: #ffffff; --fg: #1f1f1d; --muted: #6b6a66; --line: #e4e2dc;
+    --card: #faf9f6; --ok: #2f7d4f; --bad: #b4412f; --accent: #3a5fa8;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1c1c1b; --fg: #ecebe7; --muted: #a3a19b; --line: #3a3936;
+      --card: #252524; --ok: #6cc08b; --bad: #e98a78; --accent: #8fb0ef;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #1c1c1b; --fg: #ecebe7; --muted: #a3a19b; --line: #3a3936;
+    --card: #252524; --ok: #6cc08b; --bad: #e98a78; --accent: #8fb0ef;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 12px; background: var(--bg); color: var(--fg);
+         font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { display: flex; justify-content: space-between; align-items: baseline;
+           gap: 8px; margin-bottom: 10px; }
+  h1 { font-size: 15px; margin: 0; }
+  #status { color: var(--muted); font-size: 13px; }
+  .note { background: var(--card); border: 1px solid var(--line); border-radius: 8px;
+          padding: 10px 12px; margin-bottom: 10px; }
+  .note[data-decision="approve"] { border-left: 4px solid var(--ok); }
+  .note[data-decision="reject"] { border-left: 4px solid var(--bad); }
+  .meta { color: var(--muted); font-size: 12px; margin-bottom: 6px; }
+  .field { margin: 4px 0; overflow-wrap: anywhere; white-space: pre-line; }
+  .field b { font-weight: 600; }
+  .context { margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--line);
+             color: var(--muted); font-size: 13px; white-space: pre-wrap; }
+  .actions { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+  button { font: inherit; border: 1px solid var(--line); background: var(--bg);
+           color: var(--fg); border-radius: 6px; padding: 4px 10px; cursor: pointer; }
+  button[aria-pressed="true"][data-v="approve"] { background: var(--ok); color: var(--bg); }
+  button[aria-pressed="true"][data-v="reject"] { background: var(--bad); color: var(--bg); }
+  button.primary { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+  button:disabled { opacity: .5; cursor: default; }
+  textarea { width: 100%; margin-top: 6px; font: inherit; color: var(--fg);
+             background: var(--bg); border: 1px solid var(--line); border-radius: 6px;
+             padding: 6px; resize: vertical; min-height: 2.4em; }
+  footer { display: flex; justify-content: flex-end; gap: 8px; align-items: center; }
+</style>
+</head>
+<body>
+<header><h1>Card review</h1><span id="status">Waiting for cards…</span></header>
+<main id="notes"></main>
+<footer><button id="submit" class="primary" disabled>Submit decisions</button></footer>
+<script>
+"use strict";
+// Minimal MCP Apps view (spec 2026-01-26), written without the SDK so the
+// page needs no external scripts. JSON-RPC over postMessage to the host.
+const PROTOCOL_VERSION = "2026-01-26";
+const pending = new Map();
+let nextId = 1;
+let notes = [];
+let missing = 0;
+const decisions = new Map(); // noteId -> {decision, comment}
+
+function send(msg) { window.parent.postMessage({ jsonrpc: "2.0", ...msg }, "*"); }
+function request(method, params) {
+  const id = nextId++;
+  send({ id, method, params });
+  return new Promise((resolve, reject) => pending.set(id, { resolve, reject }));
+}
+function notify(method, params) { send({ method, params }); }
+
+window.addEventListener("message", (event) => {
+  if (event.source !== window.parent) return;
+  const msg = event.data;
+  if (!msg || msg.jsonrpc !== "2.0") return;
+  if (msg.id !== undefined && pending.has(msg.id)) {
+    const { resolve, reject } = pending.get(msg.id);
+    pending.delete(msg.id);
+    msg.error ? reject(new Error(msg.error.message)) : resolve(msg.result);
+  } else if (msg.method === "ui/notifications/tool-result") {
+    render(payloadOf(msg.params));
+  } else if (msg.id !== undefined && msg.method) {
+    // Requests we don't implement (e.g. ui/resource-teardown): answer politely.
+    send({ id: msg.id, result: {} });
+  }
+});
+
+function payloadOf(result) {
+  if (result && result.structuredContent) return result.structuredContent;
+  const text = (result && result.content || []).find((c) => c.type === "text");
+  try { return JSON.parse(text.text); } catch { return { notes: [], missing: [] }; }
+}
+
+function el(tag, attrs = {}, text) {
+  const node = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v);
+  if (text !== undefined) node.textContent = text; // never innerHTML: card text is data
+  return node;
+}
+
+function render(payload) {
+  if (payload.error) return setStatus(payload.error);
+  notes = payload.notes || [];
+  const root = document.getElementById("notes");
+  root.replaceChildren();
+  notes.forEach((note, i) => root.appendChild(noteCard(note, i + 1)));
+  missing = (payload.missing || []).length;
+  refresh();
+}
+
+// Fields keep light HTML (<b>, <br>). Parse into an inert document (no
+// scripts run, no images load) and keep only the text.
+function plainText(html) {
+  const doc = new DOMParser().parseFromString(
+    String(html).replace(/<br\s*\/?>/gi, "\n"), "text/html");
+  return doc.body.textContent;
+}
+
+function noteCard(note, n) {
+  const card = el("section", { class: "note", "data-nid": note.noteId });
+  card.appendChild(el("div", { class: "meta" },
+    `${n} · ${note.modelName} · nid ${note.noteId}` +
+    (note.tags && note.tags.length ? ` · ${note.tags.join(" ")}` : "")));
+  for (const [name, value] of Object.entries(note.fields || {})) {
+    const row = el("div", { class: "field" });
+    row.appendChild(el("b", {}, `${name}: `));
+    row.appendChild(document.createTextNode(plainText(value)));
+    card.appendChild(row);
+  }
+  if (note.context) card.appendChild(el("div", { class: "context" }, note.context));
+
+  const actions = el("div", { class: "actions" });
+  for (const v of ["approve", "reject", "skip"]) {
+    const b = el("button", { "data-v": v, "aria-pressed": "false" },
+                 v[0].toUpperCase() + v.slice(1));
+    b.addEventListener("click", () => choose(note.noteId, v, card));
+    actions.appendChild(b);
+  }
+  card.appendChild(actions);
+  const comment = el("textarea", { placeholder: "Comment (optional)", rows: "1" });
+  comment.addEventListener("input", () => {
+    const d = decisions.get(note.noteId);
+    if (d) d.comment = comment.value;
+  });
+  card.appendChild(comment);
+  return card;
+}
+
+function choose(nid, decision, card) {
+  const comment = card.querySelector("textarea").value;
+  decisions.set(nid, { decision, comment });
+  card.dataset.decision = decision;
+  card.querySelectorAll("button[data-v]").forEach((b) =>
+    b.setAttribute("aria-pressed", String(b.dataset.v === decision)));
+  refresh();
+}
+
+function refresh() {
+  const done = decisions.size;
+  document.getElementById("submit").disabled = done === 0;
+  const gone = missing ? ` · ${missing} not found` : "";
+  setStatus(`${done} of ${notes.length} decided${gone}`);
+}
+function setStatus(text) { document.getElementById("status").textContent = text; }
+
+async function submit() {
+  const button = document.getElementById("submit");
+  button.disabled = true;
+  const list = [...decisions].map(([note_id, d]) =>
+    d.comment ? { note_id, decision: d.decision, comment: d.comment }
+              : { note_id, decision: d.decision });
+  try {
+    const result = await request("tools/call",
+      { name: "record_card_decisions", arguments: { decisions: list } });
+    const text = (result.content || []).map((c) => c.text || "").join(" ");
+    setStatus(text || "Recorded.");
+    const lines = list.map((d) =>
+      `${d.note_id}: ${d.decision}${d.comment ? ` (${d.comment})` : ""}`);
+    await request("ui/message", { role: "user", content: { type: "text",
+      text: `I reviewed ${list.length} cards on the review page:\n${lines.join("\n")}` } });
+  } catch (err) {
+    setStatus(`Could not record decisions: ${err.message}`);
+    button.disabled = false;
+  }
+}
+document.getElementById("submit").addEventListener("click", submit);
+
+new ResizeObserver(() => notify("ui/notifications/size-changed",
+  { height: document.documentElement.scrollHeight })).observe(document.body);
+
+(async () => {
+  const init = await request("ui/initialize", {
+    appCapabilities: { availableDisplayModes: ["inline", "fullscreen"] },
+    appInfo: { name: "ankiconnect-card-review", version: "0.1.0" },
+    protocolVersion: PROTOCOL_VERSION,
+  });
+  const theme = init && init.hostContext && init.hostContext.theme;
+  if (theme === "light" || theme === "dark") document.documentElement.dataset.theme = theme;
+  notify("ui/notifications/initialized", {});
+})();
+</script>
+</body>
+</html>
