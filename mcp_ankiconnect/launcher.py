@@ -40,8 +40,8 @@ POLL_INTERVAL = 0.5
 PROBE_TIMEOUT = 2.0
 FAILURE_BACKOFF = 60.0
 ENABLE_HINT = (
-    "To let me open Anki for you, turn on the plugin option "
-    "'Open Anki automatically' or set ANKI_AUTO_LAUNCH=true for the server."
+    "To let me open Anki for you, remove ANKI_AUTO_LAUNCH=false from the "
+    "server's environment (auto-launch is on by default)."
 )
 
 
@@ -61,9 +61,9 @@ Probe = Callable[[str], Awaitable[bool]]
 
 
 def parse_bool(raw: str | None, default: bool) -> bool:
-    """Read an on/off env var. Plugin `userConfig` booleans expand to
-    "true"/"false"; an unset, empty or unexpanded `${...}` value keeps the
-    default, so a host that cannot substitute does not disable the feature."""
+    """Read an on/off env var ("true"/"false", "1"/"0", "yes"/"no", "on"/"off").
+    An unset, empty or unexpanded `${...}` value keeps the default, so a client
+    config that passes a placeholder through does not disable the feature."""
     if raw is None:
         return default
     value = raw.strip().lower()

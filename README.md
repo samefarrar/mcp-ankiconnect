@@ -119,10 +119,10 @@ copy with `uv`, so tools and skills always match) plus three skills:
 ```
 
 You need [uv](https://docs.astral.sh/uv/) on your `PATH`, and Anki running with
-AnkiConnect. The plugin's AnkiConnect URL option can stay blank (the server
-reads the port from AnkiConnect's own settings), and it offers **Open Anki automatically** (default on),
-which opens Anki in the background when a tool needs it; turn it off to get an
-error instead.
+AnkiConnect. The plugin asks for no settings: the server reads AnkiConnect's
+port from the add-on's own settings, and opens Anki in the background when a
+tool needs it. To override either, set `ANKI_CONNECT_URL` or
+`ANKI_AUTO_LAUNCH=false` in the environment Claude runs in.
 
 **Personal overlays.** The skills are generic on purpose. To teach them your own
 conventions (default deck, note types, tags, flag meanings) and your own

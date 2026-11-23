@@ -1,6 +1,6 @@
 {
   "name": "ankiconnect",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "Anki for Claude: the mcp-ankiconnect server (review, add, search, edit, flag, reschedule) plus skills for writing cards, judging card quality and redesigning bad cards in bulk.",
   "author": {
     "name": "samefarrar"
@@ -13,19 +13,5 @@
     "flashcards",
     "spaced-repetition",
     "mcp"
-  ],
-  "userConfig": {
-    "ankiconnect_url": {
-      "type": "string",
-      "title": "AnkiConnect URL",
-      "description": "Leave blank to read the port from the AnkiConnect add-on's own settings. Set it only if AnkiConnect runs somewhere unusual, e.g. http://localhost:8999.",
-      "default": ""
-    },
-    "auto_launch_anki": {
-      "type": "boolean",
-      "title": "Open Anki automatically",
-      "description": "When a tool needs Anki and it is closed, open Anki in the background and carry on. Turn off to get an error instead.",
-      "default": true
-    }
-  }
+  ]
 }

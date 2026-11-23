@@ -173,7 +173,6 @@ async def test_recover_disabled_says_how_to_enable():
     message = str(excinfo.value)
     assert "closed" in message
     assert "ANKI_AUTO_LAUNCH" in message
-    assert "Open Anki automatically" in message
 
 
 async def test_recover_skips_remote_hosts():

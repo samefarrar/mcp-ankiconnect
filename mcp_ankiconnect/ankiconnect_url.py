@@ -1,7 +1,8 @@
 """Work out where AnkiConnect listens, from the add-on's own settings.
 
-Why: some hosts (Cowork, for one) never prompt for plugin options, so a user
-who moved AnkiConnect off port 8765 would get no connection at all. Anki
+Why: the plugin can't ask for settings (the Claude desktop app refuses to
+start a plugin server that needs them), so a user who moved AnkiConnect off
+port 8765 would get no connection at all. Anki
 keeps every add-on's settings on disk, readable even while Anki is closed:
 defaults in `addons21/<addon>/config.json`, the user's changes merged over
 them from `meta.json` under "config". An explicit ANKI_CONNECT_URL still

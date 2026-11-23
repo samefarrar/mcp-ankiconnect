@@ -1,7 +1,8 @@
 """Tests for finding AnkiConnect's URL from the add-on's own settings.
 
-Why: hosts such as Cowork never prompt for plugin options, so a user who
-moved AnkiConnect off port 8765 would otherwise get no connection at all.
+Why: the plugin can't ask for settings (the Claude desktop app refuses to
+start a plugin server that needs them), so a user who moved AnkiConnect off
+port 8765 would otherwise get no connection at all.
 These use real files in a temporary Anki folder rather than mocks.
 """
 

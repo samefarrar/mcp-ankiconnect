@@ -49,18 +49,6 @@ def test_mcp_json_launches_the_package_entry_point():
     server = json.loads((ROOT / ".mcp.json").read_text())["mcpServers"]["ankiconnect"]
     assert server["args"][-1] in scripts
     assert "${CLAUDE_PLUGIN_ROOT}" in server["args"]
-    # config.py reads this variable; a rename would silently fall back to 8765.
-    assert "ANKI_CONNECT_URL" in server["env"]
-
-
-def test_auto_launch_option_reaches_the_server():
-    """launcher.py reads ANKI_AUTO_LAUNCH; the plugin option must feed it."""
-    server = json.loads((ROOT / ".mcp.json").read_text())["mcpServers"]["ankiconnect"]
-    plugin = json.loads((ROOT / ".claude-plugin/plugin.json").read_text())
-    option = plugin["userConfig"]["auto_launch_anki"]
-    assert option["type"] == "boolean"
-    assert option["default"] is True
-    assert server["env"]["ANKI_AUTO_LAUNCH"] == "${user_config.auto_launch_anki}"
 
 
 def test_plugin_version_matches_package():
@@ -69,7 +57,11 @@ def test_plugin_version_matches_package():
     assert plugin["version"] == package["version"]
 
 
-def test_ankiconnect_url_option_defaults_to_detection():
-    """Cowork never prompts for options, so the default must mean "detect"."""
+def test_plugin_declares_no_user_settings():
+    """Regression: the Claude desktop app (Cowork) refuses to start a plugin
+    server that needs user settings, reporting `user_config_unsupported`.
+    The server detects the AnkiConnect port and defaults auto-launch on, so
+    the plugin must ask for nothing; overrides go through the environment."""
     plugin = json.loads((ROOT / ".claude-plugin/plugin.json").read_text())
-    assert plugin["userConfig"]["ankiconnect_url"]["default"] == ""
+    assert "userConfig" not in plugin
+    assert "user_config" not in (ROOT / ".mcp.json").read_text()
