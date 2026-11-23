@@ -35,19 +35,36 @@ For each flashcard:
    - "good" if the user got it right. (DEFAULT)
    - "easy" if the user got it immediately and confidently right, and said it was easy."""
 
+# Returned by get_examples. Condensed from the card-judgement skill (rules
+# distilled from real approve/reject verdicts) so that users who add the server
+# without the plugin still get the core quality bar. Keep it short.
 flashcard_guidelines = """
-1. Ensure each flashcard focuses on a single, important concept or fact from the excerpt.
-2. Use a variety of question types, including Cloze format when appropriate.
-3. Make questions clear, concise, and specific.
-4. Avoid yes/no questions and overly complex formulations.
-5. Include questions about important terminology, concepts, and their applications.
-6. When possible, relate the information to real-life contexts or existing knowledge.
-7. Consider potential misunderstandings and address them in your questions.
-8. Make sure they are tagged appropriately so they can easily be found later. Tag by topic and resource.
+Card quality rules (almost every rejected card fails rule 1):
+1. Nothing visible may give the answer away. Read each cloze from the
+   hidden side: with cN hidden, could the other clozes, brackets, clauses,
+   "not X" asides or stem labels answer it? If so, merge or rewrite.
+2. Hints name the answer type only ("drug", "number", "timeframe"), never a
+   paraphrase of the answer. Naming a class often narrows it to one item.
+3. No solving by elimination: don't put every item of a set on one note, or
+   make the hidden answer "the other one" of a pair. Use separate notes, one
+   cloze number for a set that is one concept, or "name the N..." cards.
+4. Retrieve the reasoning: a visible "because / so X is unsuitable" hands it
+   over. Cloze it, make it the Back of a Basic card, or cut it.
+5. Extra is not storage: anything that must be known gets its own card. Detail
+   that makes a cloze easier belongs in Extra, not on the front.
+6. Test the knowledge directly. Skip vignettes unless their features are the
+   cue being learned; the learner memorises the story, not the fact.
+7. One question per card, answerable in under 10 seconds. No MCQs, yes/no or
+   option letters. Cloze the specifics (numbers, thresholds, colours, days).
+8. Merge co-dependent facts into one cloze number; keep both sides of a
+   contrast together.
+9. Card only what is needed: cut legacy, arithmetic and trivially obvious cards.
+10. Verify every number, dose, threshold and first-line choice against a current
+   authoritative source, and name it in a Source field.
+Tag by topic and source with `::` hierarchy, reusing existing tags.
 
-IMPORTANT: The flashcards format like markdown, so when using numbered lists, ensure you add two line breaks before and after the list to avoid formatting issues.
-
-Here are some examples:
+IMPORTANT: fields render like markdown, so put two line breaks before and after
+a numbered list.
 """
 
 # Sent to the client on connect (MCP `instructions`). Kept short: it is paid
@@ -62,6 +79,8 @@ submit_reviews take card IDs. inspect_cards(note_ids=...) maps notes to cards.
 
 Authoring flow: list_decks_and_notes -> get_examples -> draft cards -> get
 user approval -> add_notes (batch; duplicates are skipped and reported).
+Before showing any draft, read each cloze from the hidden side: nothing
+visible (other clozes, brackets, hints) may give the answer away.
 Use list_tags to reuse existing tag names rather than inventing new ones.
 
 Review flow: optionally sync -> fetch_due_cards_for_review -> quiz ->
