@@ -8,6 +8,7 @@ Python MCP server that bridges Claude with Anki via the AnkiConnect add-on (HTTP
 - `mcp_ankiconnect/edit_tools.py` — inspect/edit tools on existing notes and cards, including flags and scheduling transfer. Writes via `setSpecificValueOfCard` can no-op silently, so those tools re-read cards and report per-card status.
 - `mcp_ankiconnect/collection_tools.py` — batch add, delete, tags, decks, sync, review stats, media read-back, GUI context.
 - `mcp_ankiconnect/ankiconnect_client.py` — `httpx` client with retry + `AnkiConnectionError`. Wraps each AnkiConnect action as a typed method.
+- `mcp_ankiconnect/launcher.py` — opens Anki in the background when AnkiConnect refuses the connection. Its one entry point, `AnkiLauncher.recover`, is called by `AnkiConnectClient.invoke` on `httpx.ConnectError` only (never on timeouts); it holds the per-platform command, polling of `version`, an `asyncio.Lock` and a 60 s backoff after a failed launch. A launch records a NOTE line that `handle_anki_connection_error` prepends to the tool result (a `note` key for dicts; images unchanged). Env: `ANKI_AUTO_LAUNCH`, `ANKI_APP_PATH`, `ANKI_LAUNCH_TIMEOUT`.
 - `mcp_ankiconnect/config.py` — constants (`TIMEOUTS`, `RATING_TO_EASE`, `EXCLUDE_STRINGS`, `MAX_FUTURE_DAYS`).
 - `mcp_ankiconnect/server_prompts.py` — long-form LLM prompts (review instructions, flashcard guidelines).
 - `mcp_ankiconnect/app_tools.py` + `ui/card_review.html` — MCP Apps spike: `open_card_review` links a `ui://` page that hosts supporting MCP Apps (Claude Desktop, claude.ai; not the Claude Code CLI) render; its buttons call the app-only `record_card_decisions`, which appends to a JSONL log (`ANKI_DECISIONS_FILE`) and never writes to Anki. Card text is rendered with `textContent` only.
@@ -35,6 +36,7 @@ Anki must be running with the AnkiConnect add-on (id `2055492159`) listening on 
 
 - **AnkiConnect `findNotes` does NOT support `sort:` directives** — they are a browser-UI feature only. Do ordering/sampling in Python after the result returns. See `_build_example_query` in `server.py`.
 - **Image attachments**: prefer the `path` parameter (absolute file path) over `data` (base64) when the user shares a local file — AnkiConnect reads from disk faster and avoids large payloads. Source priority in AnkiConnect: `data > path > url`.
+- **Auto-launch is on by default.** A refused connection to a local AnkiConnect makes the server open Anki (`open -g -a Anki` on macOS, a detached `anki` on Linux). Tests that let a real client hit a closed port must swap `mcp_ankiconnect.launcher.LAUNCHER` for a fake (see `tests/test_launcher.py`), or they will try to start Anki. A launch that times out is usually Anki's profile picker or a missing add-on.
 - **macOS AppSleep** can slow AnkiConnect dramatically; the workaround is in `README.md`.
 - **Reference docs stay online.** Do not commit standalone Anki-Connect API or MCP spec dumps to the repo — link out instead.
 - **If `.venv` looks broken** (e.g. `uv run` complains about a missing Python executable), delete it and let `uv` recreate it on the next command rather than reinstalling piecemeal.

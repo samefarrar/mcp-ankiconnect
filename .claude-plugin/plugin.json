@@ -13,6 +13,12 @@
       "title": "AnkiConnect URL",
       "description": "Where the AnkiConnect add-on listens. Change it only if you moved AnkiConnect off the default port.",
       "default": "http://localhost:8765"
+    },
+    "auto_launch_anki": {
+      "type": "boolean",
+      "title": "Open Anki automatically",
+      "description": "When a tool needs Anki and it is closed, open Anki in the background and carry on. Turn off to get an error instead.",
+      "default": true
     }
   }
 }

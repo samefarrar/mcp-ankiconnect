@@ -53,6 +53,16 @@ def test_mcp_json_launches_the_package_entry_point():
     assert "ANKI_CONNECT_URL" in server["env"]
 
 
+def test_auto_launch_option_reaches_the_server():
+    """launcher.py reads ANKI_AUTO_LAUNCH; the plugin option must feed it."""
+    server = json.loads((ROOT / ".mcp.json").read_text())["mcpServers"]["ankiconnect"]
+    plugin = json.loads((ROOT / ".claude-plugin/plugin.json").read_text())
+    option = plugin["userConfig"]["auto_launch_anki"]
+    assert option["type"] == "boolean"
+    assert option["default"] is True
+    assert server["env"]["ANKI_AUTO_LAUNCH"] == "${user_config.auto_launch_anki}"
+
+
 def test_plugin_version_matches_package():
     package = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]
     plugin = json.loads((ROOT / ".claude-plugin/plugin.json").read_text())
