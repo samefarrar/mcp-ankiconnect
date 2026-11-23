@@ -53,6 +53,30 @@ def test_mcp_json_launches_the_package_entry_point():
     assert "ANKI_CONNECT_URL" in server["env"]
 
 
+def test_mcp_json_installs_the_direct_backend():
+    """Without the extra, closing Anki would quietly bring back the old errors."""
+    package = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]
+    server = json.loads((ROOT / ".mcp.json").read_text())["mcpServers"]["ankiconnect"]
+    args = server["args"]
+    extra = args[args.index("--extra") + 1]
+    assert extra in package["optional-dependencies"]
+    assert any(d.startswith("anki") for d in package["optional-dependencies"][extra])
+
+
+def test_collection_options_reach_the_server():
+    """Each env var collection_locator reads is wired to a userConfig option."""
+    plugin = json.loads((ROOT / ".claude-plugin/plugin.json").read_text())
+    env = json.loads((ROOT / ".mcp.json").read_text())["mcpServers"]["ankiconnect"][
+        "env"
+    ]
+    for var, option in (
+        ("ANKI_PROFILE", "anki_profile"),
+        ("ANKI_COLLECTION_PATH", "anki_collection_path"),
+    ):
+        assert env[var] == f"${{user_config.{option}}}"
+        assert plugin["userConfig"][option]["default"] == ""
+
+
 def test_plugin_version_matches_package():
     package = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]
     plugin = json.loads((ROOT / ".claude-plugin/plugin.json").read_text())

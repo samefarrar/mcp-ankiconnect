@@ -194,6 +194,20 @@ async def create_deck(deck: str) -> str:
     return f"Deck '{name}' is ready (ID {deck_id})."
 
 
+# The direct backend never contacts AnkiWeb: Anki's own sync, the next time it
+# runs, uploads the changes with conflict handling we cannot reproduce.
+_CLOSED_SYNC_MESSAGE = (
+    "Anki is closed, so nothing was synced. The changes are saved in the "
+    "collection file and reach AnkiWeb the next time Anki syncs (open Anki and "
+    "sync, or let it sync on open if automatic sync is on)."
+)
+_CLOSED_GUI_MESSAGE = (
+    "Anki is closed, so no card is showing in the reviewer and nothing is "
+    "selected in the Browse window. Ask the user which card they mean, or "
+    "find it with search_notes."
+)
+
+
 @mcp.tool(annotations=NETWORK)
 @handle_anki_connection_error
 async def sync() -> str:
@@ -204,6 +218,8 @@ async def sync() -> str:
     Anki.
     """
     async with get_anki_client() as anki:
+        if anki.backend_mode == "direct":
+            return _CLOSED_SYNC_MESSAGE
         await anki.sync()
     return "Sync with AnkiWeb complete."
 
@@ -412,6 +428,8 @@ async def get_gui_context() -> str:
     # AnkiConnect already reports "nothing open" as None / [] rather than an
     # error, so genuine failures still surface through the decorator.
     async with get_anki_client() as anki:
+        if anki.backend_mode == "direct":
+            return _CLOSED_GUI_MESSAGE
         card = await anki.gui_current_card()
         selected = await anki.gui_selected_notes()
         if card:

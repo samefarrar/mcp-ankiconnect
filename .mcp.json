@@ -4,10 +4,13 @@
       "command": "uv",
       "args": [
         "run", "--directory", "${CLAUDE_PLUGIN_ROOT}",
-        "--no-dev", "--frozen", "--quiet", "mcp-ankiconnect"
+        "--no-dev", "--frozen", "--quiet", "--extra", "direct",
+        "mcp-ankiconnect"
       ],
       "env": {
-        "ANKI_CONNECT_URL": "${user_config.ankiconnect_url}"
+        "ANKI_CONNECT_URL": "${user_config.ankiconnect_url}",
+        "ANKI_PROFILE": "${user_config.anki_profile}",
+        "ANKI_COLLECTION_PATH": "${user_config.anki_collection_path}"
       }
     }
   }

@@ -13,6 +13,18 @@
       "title": "AnkiConnect URL",
       "description": "Where the AnkiConnect add-on listens. Change it only if you moved AnkiConnect off the default port.",
       "default": "http://localhost:8765"
+    },
+    "anki_profile": {
+      "type": "string",
+      "title": "Anki profile (when Anki is closed)",
+      "description": "Profile whose collection is used directly while Anki is closed. Leave empty to use the last profile Anki opened (or the only one).",
+      "default": ""
+    },
+    "anki_collection_path": {
+      "type": "string",
+      "title": "Collection file (when Anki is closed)",
+      "description": "Full path to a collection.anki2 to use directly while Anki is closed. Leave empty to find it from the profile.",
+      "default": ""
     }
   }
 }

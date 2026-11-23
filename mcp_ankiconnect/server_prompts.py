@@ -53,7 +53,10 @@ Here are some examples:
 # Sent to the client on connect (MCP `instructions`). Kept short: it is paid
 # for on every conversation, so it carries only what prevents common mistakes.
 server_instructions = """\
-Anki tools via AnkiConnect. Anki must be running with the AnkiConnect add-on.
+Anki tools via AnkiConnect. When Anki is closed (and the direct backend is
+installed) they work on the collection file instead; a result starting with
+"NOTE:" says so, and passing it on to the user once is enough. A "collection
+is in use" error means Anki is still starting: wait and retry.
 
 IDs: a note ID identifies one note (its fields and tags); a card ID identifies
 one card generated from a note (its scheduling). Field and tag edits and

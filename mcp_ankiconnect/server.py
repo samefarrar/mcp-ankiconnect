@@ -15,7 +15,18 @@ from pydantic import Field
 from .ankiconnect_client import (  # Import custom exception
     AnkiConnectClient,
     AnkiConnectionError,
+    DirectBackendError,
 )
+from .backend_mode import (
+    Mode,
+    ankiconnect_listening,
+    annotate,
+    begin_call,
+    direct_backend_enabled,
+    end_call,
+    record_mode,
+)
+from .collection_locator import locate_collection
 from .config import (  # Import necessary configs
     ANKI_CONNECT_URL,
     EXCLUDE_STRINGS,
@@ -74,59 +85,83 @@ def search_syntax_resource() -> str:
 
 # --- Context Manager for Client ---
 @asynccontextmanager
-async def get_anki_client() -> AsyncGenerator[
-    AnkiConnectClient, None
-]:  # Added type hint
-    # Pass the configured URL to the client constructor
-    client = AnkiConnectClient(base_url=ANKI_CONNECT_URL)
+async def get_anki_client() -> AsyncGenerator[AnkiConnectClient, None]:
+    """Yield the client for this tool call: AnkiConnect, or the file if closed.
+
+    The choice is made per call, so opening or closing Anki mid-conversation
+    just works; `backend_mode.annotate` tells the user when it flips.
+    """
+    client = await _choose_client()
     try:
         yield client
-    except Exception:  # Log exceptions during client usage if needed
-        logger.exception("Error occurred while using AnkiConnect client")
-        raise  # Re-raise the exception
+    except Exception:
+        logger.exception("Error occurred while using the Anki client")
+        raise
     finally:
-        logger.debug("Closing AnkiConnect client")
         await client.close()
+
+
+async def _choose_client() -> AnkiConnectClient:
+    if direct_backend_enabled() and not await ankiconnect_listening(
+        ANKI_CONNECT_URL
+    ):
+        from .direct_client import DirectAnkiClient
+
+        path = locate_collection()
+        record_mode(Mode.DIRECT)
+        logger.info(f"AnkiConnect not listening; using {path} directly")
+        return DirectAnkiClient(path)
+    record_mode(Mode.ANKICONNECT)
+    return AnkiConnectClient(base_url=ANKI_CONNECT_URL)
 
 
 # --- Decorator for Connection Error Handling ---
 def handle_anki_connection_error(func):
-    """Decorator to catch AnkiConnectionError and return a user-friendly message."""
+    """Turn exceptions into SYSTEM_ERROR strings and add mode-change notes.
+
+    Why here: every tool already passes through this wrapper, so the
+    backend switch notice needs no per-tool code.
+    """
 
     @functools.wraps(func)
     async def wrapper(*args, **kwargs):
+        token = begin_call()
         try:
-            # Call the original async tool function
-            return await func(*args, **kwargs)
-        except AnkiConnectionError as e:
-            logger.error(f"Caught Anki connection error in tool '{func.__name__}': {e}")
-            # Return the specific message intended for the LLM
-            # Ensure the message clearly indicates it's an error for the LLM to handle
-            return (
-                "SYSTEM_ERROR: Cannot connect to Anki. "
-                "Please inform the user that they need to start their Anki application "
-                "and ensure the AnkiConnect add-on is installed and enabled before proceeding. "
-                f"Details: {e}"  # Include the error detail from the exception
-            )
-        except ValueError as e:
-            # Catch Anki API errors (raised as ValueError from invoke)
-            logger.error(f"Caught Anki API error in tool '{func.__name__}': {e}")
-            return (
-                f"SYSTEM_ERROR: An error occurred communicating with Anki: {e}. "
-                "Please inform the user about the error."
-            )
-        except Exception as e:
-            # Catch any other unexpected errors within the tool
-            logger.exception(
-                f"An unexpected error occurred in tool '{func.__name__}': {e}"
-            )
-            # Provide a generic error message for the LLM
-            return (
-                f"SYSTEM_ERROR: An unexpected error occurred while executing the Anki tool '{func.__name__}'. "
-                f"Details: {e}"
-            )
+            return annotate(await _run_tool(func, args, kwargs))
+        finally:
+            end_call(token)
 
     return wrapper
+
+
+async def _run_tool(func, args, kwargs):
+    try:
+        return await func(*args, **kwargs)
+    except AnkiConnectionError as e:
+        logger.error(f"Caught Anki connection error in tool '{func.__name__}': {e}")
+        return (
+            "SYSTEM_ERROR: Cannot connect to Anki. "
+            "Please inform the user that they need to start their Anki application "
+            "and ensure the AnkiConnect add-on is installed and enabled before "
+            f"proceeding. Details: {e}"
+        )
+    except DirectBackendError as e:
+        # Anki is closed and the collection file cannot be used safely.
+        logger.error(f"Direct backend refused in tool '{func.__name__}': {e}")
+        return f"SYSTEM_ERROR: {e} Please inform the user."
+    except ValueError as e:
+        # Anki API errors (raised as ValueError from invoke)
+        logger.error(f"Caught Anki API error in tool '{func.__name__}': {e}")
+        return (
+            f"SYSTEM_ERROR: An error occurred communicating with Anki: {e}. "
+            "Please inform the user about the error."
+        )
+    except Exception as e:
+        logger.exception(f"An unexpected error occurred in tool '{func.__name__}'")
+        return (
+            "SYSTEM_ERROR: An unexpected error occurred while executing the Anki "
+            f"tool '{func.__name__}'. Details: {e}"
+        )
 
 
 # --- End Decorator ---

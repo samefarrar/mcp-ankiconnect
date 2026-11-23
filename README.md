@@ -76,6 +76,44 @@ on), so clients can auto-approve reads and gate destructive calls.
   defaults write org.qt-project.Qt.QtWebEngineCore NSAppSleepDisabled -bool true
   ```
 
+### When Anki is closed (direct mode)
+
+With the optional `direct` extra installed (the Claude Code plugin installs
+it), the server keeps working while Anki is closed. Each tool call first
+checks whether AnkiConnect answers. If nothing is listening, the call works on
+your collection file directly, through the official
+[`anki`](https://pypi.org/project/anki/) package: Anki's own engine, so
+scheduling (including FSRS) is the same as in the app. The first result after
+a switch starts with a note such as `NOTE: Anki is closed, so I'm working on
+your collection file directly.`
+
+- **Back up first.** Before trying it on your real collection, make a backup
+  (File > Export > "Anki Collection Package" with scheduling, or copy the
+  profile folder while Anki is closed).
+- The file is opened for a single action and closed straight away, so you can
+  start Anki at any time. If Anki has the file open but AnkiConnect is not
+  answering (for example while Anki is still starting), the tool returns an
+  error and leaves the file alone.
+- The server only opens a collection whose schema version is exactly the one
+  its `anki` package writes, so it never upgrades or downgrades your file.
+  If they differ, it tells you to open Anki once, or to update the package.
+- Nothing is sent to AnkiWeb in this mode. `sync` says so; your changes reach
+  AnkiWeb and your other devices the next time Anki syncs.
+- `get_gui_context` reports that nothing is open.
+
+Settings (environment variables, or the plugin's options):
+
+| Variable | Plugin option | Meaning |
+| --- | --- | --- |
+| `ANKI_CONNECT_URL` | `ankiconnect_url` | AnkiConnect address (default `http://localhost:8765`) |
+| `ANKI_PROFILE` | `anki_profile` | Profile to use when Anki is closed. Default: the profile Anki last opened, or the only one |
+| `ANKI_COLLECTION_PATH` | `anki_collection_path` | Full path to a `collection.anki2`, overriding the profile lookup |
+| `ANKI_BASE` | | Anki's data folder, if you moved it (default `~/Library/Application Support/Anki2`, `~/.local/share/Anki2` or `%APPDATA%\Anki2`) |
+| `ANKI_DIRECT_FALLBACK` | | Set to `0` to turn direct mode off |
+
+Outside the plugin, install the extra with
+`uv run --with "mcp-ankiconnect[direct]" mcp-ankiconnect`.
+
 ### Installation
 
 ## Claude Code plugin
@@ -98,9 +136,10 @@ copy with `uv`, so tools and skills always match) plus three skills:
 /plugin install ankiconnect@mcp-ankiconnect
 ```
 
-You need [uv](https://docs.astral.sh/uv/) on your `PATH`, and Anki running with
-AnkiConnect. The plugin asks for the AnkiConnect URL (default
-`http://localhost:8765`).
+You need [uv](https://docs.astral.sh/uv/) on your `PATH`. With Anki running, it talks to
+AnkiConnect; with Anki closed, it uses your collection file directly (see
+"When Anki is closed" above). The plugin asks for the AnkiConnect URL (default
+`http://localhost:8765`) and, optionally, the Anki profile or collection path.
 
 **Personal overlays.** The skills are generic on purpose. To teach them your own
 conventions (default deck, note types, tags, flag meanings) and your own

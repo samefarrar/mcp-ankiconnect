@@ -105,3 +105,7 @@ Judgements log record (append-only; never rewrite earlier lines):
 - **Undo** an in-place edit with `update_note_fields` and the original in `applied.json`.
 - **Guideline sites.** Some (nice.org.uk, for one) block automated fetches; fall back to mirrors or
   formularies and name the source used.
+- **Anki closed.** Tools then work on the collection file and say so in a leading `NOTE:` line;
+  tell the user once. A "collection is in use" error means Anki is starting: wait and retry, and
+  never ask the user to close Anki mid-batch. `sync` and `get_gui_context` do nothing until Anki
+  is open again.
