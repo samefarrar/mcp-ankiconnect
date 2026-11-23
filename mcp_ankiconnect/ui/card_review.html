@@ -26,6 +26,8 @@
            gap: 8px; margin-bottom: 10px; }
   h1 { font-size: 15px; margin: 0; }
   #status { color: var(--muted); font-size: 13px; }
+  #note { margin: 0 0 10px; padding: 6px 10px; border-radius: 6px; font-size: 13px;
+          background: var(--card); border: 1px solid var(--line); color: var(--muted); }
   .note { background: var(--card); border: 1px solid var(--line); border-radius: 8px;
           padding: 10px 12px; margin-bottom: 10px; }
   .note[data-decision="approve"] { border-left: 4px solid var(--ok); }
@@ -50,6 +52,7 @@
 </head>
 <body>
 <header><h1>Card review</h1><span id="status">Waiting for cards…</span></header>
+<p id="note" hidden></p>
 <main id="notes"></main>
 <footer><button id="submit" class="primary" disabled>Submit decisions</button></footer>
 <script>
@@ -107,6 +110,10 @@ function render(payload) {
   root.replaceChildren();
   notes.forEach((note, i) => root.appendChild(noteCard(note, i + 1)));
   missing = (payload.missing || []).length;
+  // e.g. "Anki was closed, so I opened it in the background" from the server.
+  const banner = document.getElementById("note");
+  banner.textContent = payload.note || "";
+  banner.hidden = !payload.note;
   refresh();
 }
 
