@@ -67,3 +67,9 @@ def test_plugin_version_matches_package():
     package = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]
     plugin = json.loads((ROOT / ".claude-plugin/plugin.json").read_text())
     assert plugin["version"] == package["version"]
+
+
+def test_ankiconnect_url_option_defaults_to_detection():
+    """Cowork never prompts for options, so the default must mean "detect"."""
+    plugin = json.loads((ROOT / ".claude-plugin/plugin.json").read_text())
+    assert plugin["userConfig"]["ankiconnect_url"]["default"] == ""

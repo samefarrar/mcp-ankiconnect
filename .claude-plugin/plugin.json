@@ -1,18 +1,25 @@
 {
   "name": "ankiconnect",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Anki for Claude: the mcp-ankiconnect server (review, add, search, edit, flag, reschedule) plus skills for writing cards, judging card quality and redesigning bad cards in bulk.",
-  "author": { "name": "samefarrar" },
+  "author": {
+    "name": "samefarrar"
+  },
   "homepage": "https://github.com/samefarrar/mcp-ankiconnect",
   "repository": "https://github.com/samefarrar/mcp-ankiconnect",
   "license": "MIT",
-  "keywords": ["anki", "flashcards", "spaced-repetition", "mcp"],
+  "keywords": [
+    "anki",
+    "flashcards",
+    "spaced-repetition",
+    "mcp"
+  ],
   "userConfig": {
     "ankiconnect_url": {
       "type": "string",
       "title": "AnkiConnect URL",
-      "description": "Where the AnkiConnect add-on listens. Change it only if you moved AnkiConnect off the default port.",
-      "default": "http://localhost:8765"
+      "description": "Leave blank to read the port from the AnkiConnect add-on's own settings. Set it only if AnkiConnect runs somewhere unusual, e.g. http://localhost:8999.",
+      "default": ""
     },
     "auto_launch_anki": {
       "type": "boolean",

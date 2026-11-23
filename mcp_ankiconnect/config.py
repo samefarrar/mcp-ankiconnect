@@ -1,13 +1,17 @@
 import os
 from typing import Final, NamedTuple
 
+from mcp_ankiconnect.ankiconnect_url import resolve_ankiconnect_url
+
 class TimeoutConfig(NamedTuple):
     connect: float  # Connection establishment timeout
     read: float    # Read operation timeout
     write: float   # Write operation timeout
 
 # AnkiConnect configuration
-ANKI_CONNECT_URL: Final = os.getenv("ANKI_CONNECT_URL", "http://localhost:8765")
+# Explicit ANKI_CONNECT_URL, else read from the AnkiConnect add-on's settings
+# on disk, else http://localhost:8765. See ankiconnect_url.py.
+ANKI_CONNECT_URL: Final = resolve_ankiconnect_url()
 ANKI_CONNECT_VERSION: Final = 6
 
 # Review configuration

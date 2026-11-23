@@ -80,7 +80,7 @@ on), so clients can auto-approve reads and gate destructive calls.
 
 | Variable | Default | What it does |
 | --- | --- | --- |
-| `ANKI_CONNECT_URL` | `http://localhost:8765` | Where AnkiConnect listens. |
+| `ANKI_CONNECT_URL` | detected | Where AnkiConnect listens. Leave unset to read the port from the AnkiConnect add-on's own settings (`addons21/2055492159`, falling back to `http://localhost:8765`). |
 | `ANKI_AUTO_LAUNCH` | `true` | Open Anki in the background when a tool needs it and nothing is listening. `0`, `false`, `no` or `off` turn it off. |
 | `ANKI_APP_PATH` | `Anki` (macOS), `anki` (Linux) | App name, `.app` path or executable used to open Anki. |
 | `ANKI_LAUNCH_TIMEOUT` | `30` | Seconds to wait for AnkiConnect to answer after opening Anki. |
@@ -119,8 +119,8 @@ copy with `uv`, so tools and skills always match) plus three skills:
 ```
 
 You need [uv](https://docs.astral.sh/uv/) on your `PATH`, and Anki running with
-AnkiConnect. The plugin asks for the AnkiConnect URL (default
-`http://localhost:8765`) and offers **Open Anki automatically** (default on),
+AnkiConnect. The plugin's AnkiConnect URL option can stay blank (the server
+reads the port from AnkiConnect's own settings), and it offers **Open Anki automatically** (default on),
 which opens Anki in the background when a tool needs it; turn it off to get an
 error instead.
 
