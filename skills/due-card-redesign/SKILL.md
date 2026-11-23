@@ -53,8 +53,14 @@ Judgements log record (append-only; never rewrite earlier lines):
    enough). Prompt: "Load the card-judgement skill and follow `${CLAUDE_SKILL_DIR}/rubric.md`.
    Classify `WORK/chunk{i}.json` and write `WORK/class{i}.json`." Merge and check that every nid
    has exactly one row. Red-flagged notes count as the user's own "bad" verdict.
-4. **Verdicts, in chat.** Show only the notes judged bad, in batches of about ten: number, the
-   cleaned card text, the issue codes and the one-line reason. Ask for replies such as
+4. **Verdicts, on the review page or in chat.** Show only the notes judged bad, in batches of
+   about ten. **Review page** (preferred where the app displays it): call
+   `open_card_review(note_ids, context)` with, per note, `"<issue codes>: <reason>. Approve =
+   redesign it; Reject = leave it as it is."` The user's submit posts a message listing each
+   decision and comment; read approve as "bad", reject as "ok", skip as undecided, and a comment of
+   "suspend" or "delete" as that action. If the tool returns plain JSON instead of a page, the app
+   cannot display it: say so once and use chat. **Chat:** number, the cleaned card text, the issue
+   codes and the one-line reason, with replies such as
    `1 ok · 2 bad · 3 suspend · 4 bad: also cut the dose`. A bare "go" accepts the batch as judged.
    Write `verdicts.json`, append every note to `ledger.jsonl`, and append each verdict to the
    judgements log. If the user says "you decide", record `"user": {"verdict": "delegated"}` so the
@@ -66,10 +72,14 @@ Judgements log record (append-only; never rewrite earlier lines):
    every proposal yourself: field names match the model (from `list_decks_and_notes`), the in-place
    piece's model equals the original's, no image was lost without a reason, and no cloze number is
    dropped on an in-place edit. Re-run the pre-flight checklist on anything that looks borderline.
-6. **Approval, in chat.** For each note show the original, then every proposed piece labelled
-   `2a`, `2b`… with its cloze hidden-side view when it is a cloze. Accept replies such as
-   `2 ok · 3 reject: hint gives it away · 4b exclude · 5a edit: <text>`. Write `decisions.json`
-   and append each decision to the judgements log.
+6. **Approval, on the review page or in chat.** For each note show the original, then every
+   proposed piece labelled `2a`, `2b`… with its cloze hidden-side view when it is a cloze.
+   **Review page:** `open_card_review(note_ids, context)` shows the original card; put the
+   proposed pieces in its `context` as plain text (`2a [Cloze] …`, `2b [Basic] Front … / Back …`).
+   Approve = apply the whole proposal, reject = rework it (the comment says why), skip = leave for
+   later. A comment such as "exclude 2b" or "edit 2a: <text>" applies to that piece. **Chat:**
+   replies such as `2 ok · 3 reject: hint gives it away · 4b exclude · 5a edit: <text>`. Write
+   `decisions.json` and append each decision to the judgements log.
 7. **Apply, approved items only.** Record each original's fields in `applied.json` first.
    - In-place piece: `update_note_fields(note_id, fields)`, keeping the note's history.
    - New pieces: `add_notes([…])`, tagged with the original's tags plus `redesigned::<date>`; store
