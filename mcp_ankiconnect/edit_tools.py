@@ -488,11 +488,15 @@ async def _resolve_source(
 def _sched_result(
     cid: int, card: dict | None, ivl: int, factor: int, error: str | None
 ) -> dict:
+    card = card or {}
+    # setDueDate is what turns a new card into a review card (type 2); if it
+    # was silently ignored the copied numbers sit on a card that is still new.
     actual = {
-        "interval": (card or {}).get("interval"),
-        "factor": (card or {}).get("factor"),
+        "interval": card.get("interval"),
+        "factor": card.get("factor"),
+        "review_card": card.get("type") == 2,
     }
-    expected = {"interval": ivl, "factor": factor}
+    expected = {"interval": ivl, "factor": factor, "review_card": True}
     if actual == expected:
         result: dict[str, Any] = {"cardId": cid, "status": "copied"}
     else:
@@ -565,6 +569,8 @@ async def copy_scheduling(
                 f"SYSTEM_ERROR: Source card {source.get('cardId')} has never been "
                 "reviewed, so it has no scheduling to copy."
             )
+        if source.get("cardId") in targets:
+            return "SYSTEM_ERROR: The source card cannot also be a target."
 
         before = _by_id(await anki.cards_info(card_ids=targets))
         missing = [c for c in targets if c not in before]
@@ -578,9 +584,15 @@ async def copy_scheduling(
             )
 
         await anki.set_due_date(cards=targets, days=due)
-        errors = await anki.set_card_values(
-            {c: {"ivl": ivl, "factor": factor} for c in targets}, warning_check=True
-        )
+        try:
+            errors = await anki.set_card_values(
+                {c: {"ivl": ivl, "factor": factor} for c in targets},
+                warning_check=True,
+            )
+        except (ValueError, RuntimeError) as e:
+            # The due dates are already written, so a bare error would hide
+            # which cards changed. Fall through to the per-card re-read.
+            errors = dict.fromkeys(targets, f"interval/ease write failed: {e}")
         after = _by_id(await anki.cards_info(card_ids=targets))
 
     results = [

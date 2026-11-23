@@ -76,15 +76,23 @@ class AnkiAction(str, Enum):
     GUI_SELECTED_NOTES = "guiSelectedNotes"
 
 def _card_value_error(result: Any, error: str | None) -> str | None:
-    """Read setSpecificValueOfCard's reply: `[true]`, or `[[false, msg]]`."""
+    """Read setSpecificValueOfCard's reply: one `true` or `[false, msg]` per key.
+
+    Every key is checked, so a failure on a later key (factor after ivl) is
+    not lost.
+    """
     if error is not None:
         return error
-    if isinstance(result, list) and result and result[0] is not True:
-        first = result[0]
-        return str(first[1]) if isinstance(first, list) and len(first) > 1 else str(first)
     if result is False:
         return "invalid request"
-    return None
+    if not isinstance(result, list):
+        return None
+    failures = [
+        str(r[1]) if isinstance(r, list) and len(r) > 1 else str(r)
+        for r in result
+        if r is not True
+    ]
+    return "; ".join(failures) or None
 
 
 class AnkiConnectResponse(BaseModel):

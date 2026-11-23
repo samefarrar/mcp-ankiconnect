@@ -137,7 +137,10 @@ async def test_copy_scheduling_sets_due_then_ivl_and_factor_as_ints(anki):
     anki.cards_info.side_effect = [
         [SOURCE],  # source
         [_card(1), _card(2)],  # targets before
-        [_card(1, interval=34, factor=2300), _card(2, interval=34, factor=2300)],
+        [
+            _card(1, interval=34, factor=2300, type=2),
+            _card(2, interval=34, factor=2300, type=2),
+        ],
     ]
 
     payload = json.loads(await copy_scheduling([1, 2], source_card_id=100))
@@ -168,8 +171,12 @@ async def test_copy_scheduling_reports_mismatch_on_silent_no_op(anki):
 
     result = payload["results"][0]
     assert result["status"] == "mismatch"
-    assert result["expected"] == {"interval": 34, "factor": 2300}
-    assert result["actual"] == {"interval": 3, "factor": 2500}
+    assert result["expected"] == {
+        "interval": 34,
+        "factor": 2300,
+        "review_card": True,
+    }
+    assert result["actual"] == {"interval": 3, "factor": 2500, "review_card": False}
     assert payload["copied"] == 0
 
 
@@ -178,7 +185,7 @@ async def test_copy_scheduling_from_note_uses_longest_interval_card(anki):
     anki.cards_info.side_effect = [
         [_card(101, interval=5, factor=2500, reps=3), SOURCE],
         [_card(1)],
-        [_card(1, interval=34, factor=2300)],
+        [_card(1, interval=34, factor=2300, type=2)],
     ]
 
     payload = json.loads(await copy_scheduling([1], source_note_id=1000))
@@ -212,7 +219,7 @@ async def test_copy_scheduling_overwrites_history_when_asked(anki):
     anki.cards_info.side_effect = [
         [SOURCE],
         [_card(2, reps=8)],
-        [_card(2, interval=34, factor=2300)],
+        [_card(2, interval=34, factor=2300, type=2)],
     ]
 
     payload = json.loads(
@@ -239,4 +246,53 @@ async def test_copy_scheduling_reports_missing_targets(anki):
 
     assert result.startswith("SYSTEM_ERROR:")
     assert "999" in result
+    anki.set_due_date.assert_not_awaited()
+
+
+# --- fresh-eyes regressions ---
+
+
+async def test_copy_scheduling_flags_targets_that_stayed_new(anki):
+    """Regression: if setDueDate is silently ignored the target stays a new
+    card holding the copied numbers; that must not count as copied."""
+    anki.cards_info.side_effect = [
+        [SOURCE],
+        [_card(1, type=0)],
+        [_card(1, interval=34, factor=2300, type=0)],
+    ]
+
+    payload = json.loads(await copy_scheduling([1], source_card_id=100))
+
+    result = payload["results"][0]
+    assert result["status"] == "mismatch"
+    assert result["actual"]["review_card"] is False
+
+
+async def test_copy_scheduling_reports_per_card_when_value_write_fails_whole(anki):
+    """Regression: setDueDate already changed the cards, so a failed value
+    write must still produce the per-card report, not a bare error."""
+    anki.set_card_values.side_effect = RuntimeError("multi failed")
+    anki.cards_info.side_effect = [
+        [SOURCE],
+        [_card(1)],
+        [_card(1, interval=2, factor=2500, type=2)],
+    ]
+
+    payload = json.loads(await copy_scheduling([1], source_card_id=100))
+
+    result = payload["results"][0]
+    assert result["status"] == "mismatch"
+    assert "multi failed" in result["error"]
+
+
+async def test_copy_scheduling_rejects_note_source_that_is_also_a_target(anki):
+    """Regression: the self-copy guard must hold for source_note_id too."""
+    anki.find_cards.return_value = [100]
+    # Enough data for the whole write path, so only the guard can stop it.
+    anki.cards_info.side_effect = [[SOURCE], [SOURCE], [SOURCE]]
+
+    result = await copy_scheduling([100], source_note_id=1000, overwrite_history=True)
+
+    assert result.startswith("SYSTEM_ERROR:")
+    assert "target" in result
     anki.set_due_date.assert_not_awaited()

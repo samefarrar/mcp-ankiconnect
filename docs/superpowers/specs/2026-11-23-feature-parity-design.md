@@ -139,9 +139,15 @@ Climb (ambition), assessed:
   `setSpecificValueOfCard(card, ["flags"], [int])` per card. The value is
   sent as an int, since the documentation doesn't settle the type and
   Sam's evidence says ints.
-- **Verify:** re-read the cards with `cardsInfo`. Each card is reported as
-  `set`, or as `unchanged` with the flag Anki now holds. Cards that don't
-  exist are reported as missing.
+- **Verify:** re-read the cards with `cardsInfo`. Each card is reported with
+  one of four statuses:
+  - `set`: the card now holds the flag. A card that already held it also
+    reads as `set`.
+  - `unchanged`: the card did not take the flag; the report includes the
+    flag Anki now holds.
+  - `unverified`: this AnkiConnect build doesn't report flags, so the write
+    can't be checked.
+  - `missing`: no such card.
 - **Scope:** takes card IDs only. Flags belong to cards, and `change_deck`
   makes the same choice.
 - **Annotation:** `EDIT` (reversible and idempotent).
@@ -166,8 +172,12 @@ Climb (ambition), assessed:
      **[my call]**
   2. In one `multi`, a `setSpecificValueOfCard(card, ["ivl", "factor"],
      [int, int], warning_check=True)` per target.
-- **Verify:** re-read the targets with `cardsInfo`. Each card is reported
-  `copied`, or `mismatch` with the expected and actual interval and factor.
+- **Verify:** re-read the targets with `cardsInfo`. A target counts as
+  `copied` only if it has the source's interval and factor and has also
+  become a review card (`type` 2). The type check catches a `setDueDate`
+  that was silently ignored, which would leave a new card holding the
+  copied numbers. Anything else is reported as `mismatch`, with expected
+  and actual values.
 - **Annotation:** `DESTRUCTIVE`. It overwrites the targets' scheduling.
 - **What gets copied:** interval and factor only, nothing else. Sam's skill
   states the rule: "Each new card inherits the interval and factor of the
@@ -184,9 +194,13 @@ Climb (ambition), assessed:
   `confirm=True`, and this follows the same idea. **[my call]**
 - **Partial failure:** the tool reports and does not roll back. If
   `setDueDate` succeeds but the interval/factor write fails for a card,
-  that card is reported as `mismatch` with its actual values. A rollback
-  would be another write that can fail, and the report tells the caller
-  exactly which cards to redo. **[my call]**
+  that card is reported as `mismatch` with its actual values. This holds
+  even when the whole interval/factor request fails: the tool catches that
+  error, records it against every target, and still runs the re-read. A
+  rollback would be another write that can fail, and the report tells the
+  caller exactly which cards to redo. **[my call]**
+- **Self-copy guard:** the tool refuses when the source card is also a
+  target, however the source was given (card ID or note ID).
 
 ## Left to the builder
 

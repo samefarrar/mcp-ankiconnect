@@ -481,3 +481,16 @@ async def test_set_card_values_sends_ints_and_maps_errors(client_with_mocked_inv
         },
     }
     assert out == {1: None, 2: "card was not found", 3: "boom"}
+
+
+async def test_set_card_values_reports_failure_on_any_key(client_with_mocked_invoke):
+    """Regression: a failure on the second key (factor) was dropped."""
+    client_with_mocked_invoke.invoke.return_value = [
+        {"result": [True, [False, "factor out of range"]], "error": None},
+    ]
+
+    out = await client_with_mocked_invoke.set_card_values(
+        {1: {"ivl": 34, "factor": 99999}}
+    )
+
+    assert out == {1: "factor out of range"}
