@@ -64,8 +64,7 @@ class AnkiAction(str, Enum):
     RELEARN_CARDS = "relearnCards"
     GET_REVIEWS_OF_CARDS = "getReviewsOfCards"
     # --- feature-parity additions ---
-    CAN_ADD_NOTES_WITH_ERROR_DETAIL = "canAddNotesWithErrorDetail"
-    ADD_NOTES = "addNotes"
+    MULTI = "multi"
     DELETE_NOTES = "deleteNotes"
     GET_TAGS = "getTags"
     CREATE_DECK = "createDeck"
@@ -302,12 +301,24 @@ class AnkiConnectClient:
         return await self.invoke(AnkiAction.GET_REVIEWS_OF_CARDS, cards=cards)
 
     # --- Feature-parity wrappers ---
-    async def can_add_notes_with_error_detail(self, notes: list[dict]) -> list[dict]:
-        """Returns one {"canAdd": bool, "error"?: str} per note, in order."""
-        return await self.invoke(AnkiAction.CAN_ADD_NOTES_WITH_ERROR_DETAIL, notes=notes)
+    async def add_notes_each(
+        self, notes: list[dict]
+    ) -> list[tuple[int | None, str | None]]:
+        """Add notes in one HTTP request, each succeeding or failing alone.
 
-    async def add_notes(self, notes: list[dict]) -> list[int | None]:
-        return await self.invoke(AnkiAction.ADD_NOTES, notes=notes)
+        Returns one (note_id, error) pair per note, in order.
+
+        Why `multi` + `addNote` rather than `addNotes`: `addNotes` saves what
+        it can and then raises one error for the whole batch, which loses the
+        IDs of the notes it did save. A pre-check (`canAddNotes...`) can't
+        fill the gap either, because it ignores pictures and URL failures.
+        """
+        actions = [
+            {"action": AnkiAction.ADD_NOTE.value, "version": 6, "params": {"note": n}}
+            for n in notes
+        ]
+        replies = await self.invoke(AnkiAction.MULTI, actions=actions)
+        return [(r.get("result"), r.get("error")) for r in replies]
 
     async def delete_notes(self, notes: list[int]) -> None:
         return await self.invoke(AnkiAction.DELETE_NOTES, notes=notes)

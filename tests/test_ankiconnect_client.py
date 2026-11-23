@@ -408,13 +408,6 @@ async def test_get_reviews_of_cards_wrapper(client_with_mocked_invoke):
 @pytest.mark.parametrize(
     ("method", "kwargs", "action", "params"),
     [
-        (
-            "can_add_notes_with_error_detail",
-            {"notes": [{"a": 1}]},
-            AnkiAction.CAN_ADD_NOTES_WITH_ERROR_DETAIL,
-            {"notes": [{"a": 1}]},
-        ),
-        ("add_notes", {"notes": [{"a": 1}]}, AnkiAction.ADD_NOTES, {"notes": [{"a": 1}]}),
         ("delete_notes", {"notes": [1, 2]}, AnkiAction.DELETE_NOTES, {"notes": [1, 2]}),
         ("get_tags", {}, AnkiAction.GET_TAGS, {}),
         ("create_deck", {"deck": "A::B"}, AnkiAction.CREATE_DECK, {"deck": "A::B"}),
@@ -442,3 +435,22 @@ async def test_feature_parity_wrappers_forward_to_invoke(
     result = await getattr(client_with_mocked_invoke, method)(**kwargs)
     client_with_mocked_invoke.invoke.assert_awaited_once_with(action, **params)
     assert result == "sentinel"
+
+
+async def test_add_notes_each_batches_addnote_via_multi(client_with_mocked_invoke):
+    """One HTTP call, but each note succeeds or fails on its own."""
+    client_with_mocked_invoke.invoke.return_value = [
+        {"result": 11, "error": None},
+        {"result": None, "error": "duplicate"},
+    ]
+
+    out = await client_with_mocked_invoke.add_notes_each(notes=[{"n": 1}, {"n": 2}])
+
+    client_with_mocked_invoke.invoke.assert_awaited_once_with(
+        AnkiAction.MULTI,
+        actions=[
+            {"action": "addNote", "version": 6, "params": {"note": {"n": 1}}},
+            {"action": "addNote", "version": 6, "params": {"note": {"n": 2}}},
+        ],
+    )
+    assert out == [(11, None), (None, "duplicate")]

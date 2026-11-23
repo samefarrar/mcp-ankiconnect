@@ -19,7 +19,11 @@ from mcp.server.fastmcp import Image
 from typing_extensions import TypedDict
 
 from mcp_ankiconnect.ankiconnect_client import AnkiConnectClient
-from mcp_ankiconnect.config import MAX_BATCH_NOTES, MAX_STRUGGLING_SCAN
+from mcp_ankiconnect.config import (
+    ANKI_DAY_ROLLOVER_HOUR,
+    MAX_BATCH_NOTES,
+    MAX_STRUGGLING_SCAN,
+)
 from mcp_ankiconnect.server import (
     ADDITIVE,
     DESTRUCTIVE,
@@ -45,8 +49,7 @@ _IMAGE_FORMATS = {
     "jpeg": "jpeg",
     "gif": "gif",
     "webp": "webp",
-    "svg": "svg+xml",
-}
+}  # No SVG: model APIs reject image/svg+xml image blocks.
 
 
 class NoteSpec(TypedDict):
@@ -80,16 +83,15 @@ async def add_notes(notes: list[NoteSpec]) -> str:
     the new cards match their style. Field content gets the same conversions
     as `add_note`: `<math>` becomes MathJax, and backticks become `<code>`.
 
-    Each note is pre-checked. Duplicates and invalid notes are skipped and
-    reported, and the rest are still added, so one bad card never sinks the
-    batch.
+    Every note is added or rejected on its own, for example as a duplicate,
+    so one bad card never sinks the batch.
 
     Args:
         notes: List of {deckName, modelName, fields, tags?, picture?}.
 
     Returns:
         JSON with counts and per-index results. Each result has status
-        "added" with a noteId, "skipped" with a reason, or "failed".
+        "added" with a noteId, or "failed" with a reason.
     """
     if not notes:
         return "SYSTEM_ERROR: `notes` must contain at least one note."
@@ -109,31 +111,18 @@ async def add_notes(notes: list[NoteSpec]) -> str:
         for n in notes
     ]
 
-    # The pre-check ignores media, so leave pictures out of it rather than
-    # shipping (possibly base64) image data to Anki twice.
-    checkable = [{k: v for k, v in p.items() if k != "picture"} for p in payloads]
-
     async with get_anki_client() as anki:
-        checks = await anki.can_add_notes_with_error_detail(notes=checkable)
-        addable = [p for p, c in zip(payloads, checks, strict=True) if c.get("canAdd")]
-        # Recent AnkiConnect fails the whole addNotes call if any note is
-        # invalid, so only send the ones that passed the pre-check.
-        ids = iter(await anki.add_notes(notes=addable) if addable else [])
+        outcomes = await anki.add_notes_each(notes=payloads)
 
     results: list[dict[str, Any]] = []
-    for i, check in enumerate(checks):
-        if not check.get("canAdd"):
-            reason = check.get("error", "rejected by Anki")
-            results.append({"index": i, "status": "skipped", "reason": reason})
-        elif note_id := next(ids, None):
+    for i, (note_id, error) in enumerate(outcomes):
+        if note_id:
             results.append({"index": i, "status": "added", "noteId": note_id})
         else:
-            results.append({"index": i, "status": "failed"})
+            reason = error or "rejected by Anki"
+            results.append({"index": i, "status": "failed", "reason": reason})
 
-    counts = {
-        s: sum(r["status"] == s for r in results)
-        for s in ("added", "skipped", "failed")
-    }
+    counts = {s: sum(r["status"] == s for r in results) for s in ("added", "failed")}
     return json.dumps({**counts, "results": results}, ensure_ascii=False)
 
 
@@ -236,10 +225,13 @@ def _streak(active: set[date], today: date) -> int:
     return streak
 
 
-def _local_today() -> date:
-    """Today in the machine's local timezone, which is the one Anki uses
-    when it buckets reviews by day."""
-    return datetime.now().astimezone().date()
+def _anki_today(now: datetime, rollover_hour: int) -> date:
+    """Anki's notion of today: the local date, shifted back by the rollover.
+
+    Why: getNumCardsReviewedByDay buckets by Anki day, so at 1am with a 4am
+    rollover the reviews just done belong to yesterday's calendar date.
+    """
+    return (now - timedelta(hours=rollover_hour)).date()
 
 
 def _summarise_review_days(rows: list[list], today: date, days: int) -> dict:
@@ -279,7 +271,11 @@ async def get_review_stats(days: int = 14) -> str:
         return "SYSTEM_ERROR: `days` must be at least 1."
     async with get_anki_client() as anki:
         rows = await anki.get_num_cards_reviewed_by_day()
-    summary = _summarise_review_days(rows, today=_local_today(), days=days)
+    summary = _summarise_review_days(
+        rows,
+        today=_anki_today(datetime.now().astimezone(), ANKI_DAY_ROLLOVER_HOUR),
+        days=days,
+    )
     return json.dumps(summary)
 
 
@@ -316,7 +312,11 @@ async def _scan_ids(
         threshold += 1
         narrower = await anki.find_cards(query=_struggling_query(threshold, deck))
         if len(narrower) < limit:
-            break  # Pathological tie at one lapse count; keep the wider set.
+            # Too few at the next lapse count: keep those worst cards first,
+            # then fill with ties at the current count (equal lapses).
+            worst = set(narrower)
+            ids = narrower + [i for i in ids if i not in worst]
+            break
         ids = narrower
     return total, ids[:MAX_STRUGGLING_SCAN]
 
@@ -414,6 +414,10 @@ async def get_gui_context() -> str:
     async with get_anki_client() as anki:
         card = await anki.gui_current_card()
         selected = await anki.gui_selected_notes()
+        if card:
+            # guiCurrentCard omits the note ID, which edit tools need.
+            [info] = await anki.cards_info(card_ids=[card["cardId"]])
+            card = {**card, "note": info.get("note")}
 
     payload: dict[str, Any] = {
         "current_review_card": _format_gui_card(card) if card else None,

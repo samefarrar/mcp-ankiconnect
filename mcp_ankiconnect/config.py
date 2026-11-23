@@ -16,6 +16,9 @@ MAX_FUTURE_DAYS: Final = 5  # Maximum number of days to look ahead for due cards
 MAX_BATCH_NOTES: Final = 100  # add_notes batch ceiling (one AnkiConnect call)
 # find_struggling_cards: most cardsInfo rows fetched to rank in Python.
 MAX_STRUGGLING_SCAN: Final = 500
+# Hour at which Anki starts a new day (Preferences > Review > "Next day
+# starts at"). Reviews are bucketed by this day, not the calendar date.
+ANKI_DAY_ROLLOVER_HOUR: Final = int(os.getenv("ANKI_DAY_ROLLOVER_HOUR", "4"))
 
 # Timeout configuration
 TIMEOUTS: Final = TimeoutConfig(

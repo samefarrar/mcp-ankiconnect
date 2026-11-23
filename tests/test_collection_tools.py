@@ -14,6 +14,7 @@ from mcp.server.fastmcp import Image
 
 from mcp_ankiconnect.ankiconnect_client import AnkiConnectClient
 from mcp_ankiconnect.collection_tools import (
+    _anki_today,
     _summarise_review_days,
     add_notes,
     create_deck,
@@ -31,8 +32,7 @@ from mcp_ankiconnect.collection_tools import (
 def anki():
     mock = MagicMock(spec=AnkiConnectClient)
     for name in (
-        "can_add_notes_with_error_detail",
-        "add_notes",
+        "add_notes_each",
         "delete_notes",
         "get_tags",
         "create_deck",
@@ -63,85 +63,72 @@ def _note(front: str, deck: str = "Default") -> dict:
 # --- add_notes ---
 
 
-async def test_add_notes_adds_valid_and_reports_skipped_duplicates(anki):
-    anki.can_add_notes_with_error_detail.return_value = [
-        {"canAdd": True},
-        {"canAdd": False, "error": "cannot create note because it is a duplicate"},
-        {"canAdd": True},
+async def test_add_notes_reports_each_note_independently(anki):
+    anki.add_notes_each.return_value = [
+        (111, None),
+        (None, "cannot create note because it is a duplicate"),
+        (333, None),
     ]
-    anki.add_notes.return_value = [111, 333]
 
     result = json.loads(await add_notes([_note("a"), _note("b"), _note("c")]))
 
-    sent = anki.add_notes.await_args.kwargs["notes"]
-    assert [n["fields"]["Front"] for n in sent] == ["a", "c"]
+    sent = anki.add_notes_each.await_args.kwargs["notes"]
+    assert [n["fields"]["Front"] for n in sent] == ["a", "b", "c"]
     assert result["added"] == 2
-    assert result["skipped"] == 1
+    assert result["failed"] == 1
     assert result["results"][0] == {"index": 0, "status": "added", "noteId": 111}
-    assert result["results"][1]["status"] == "skipped"
+    assert result["results"][1]["status"] == "failed"
     assert "duplicate" in result["results"][1]["reason"]
     assert result["results"][2] == {"index": 2, "status": "added", "noteId": 333}
 
 
 async def test_add_notes_applies_same_field_processing_as_add_note(anki):
-    anki.can_add_notes_with_error_detail.return_value = [{"canAdd": True}]
-    anki.add_notes.return_value = [1]
+    anki.add_notes_each.return_value = [(1, None)]
 
     await add_notes([_note("<math>x^2</math> and `code`")])
 
-    payload = anki.can_add_notes_with_error_detail.await_args.kwargs["notes"][0]
+    payload = anki.add_notes_each.await_args.kwargs["notes"][0]
     assert payload["fields"]["Front"] == "\\(x^2\\) and <code>code</code>"
     assert payload["options"]["allowDuplicate"] is False
     assert payload["tags"] == []
 
 
-async def test_add_notes_skips_addnotes_call_when_nothing_is_addable(anki):
-    anki.can_add_notes_with_error_detail.return_value = [
-        {"canAdd": False, "error": "duplicate"}
-    ]
+async def test_add_notes_keeps_ids_of_saved_notes_when_a_later_one_fails(anki):
+    """Regression: a bad picture URL on one note must not hide the IDs of the
+    notes Anki did save (batch addNotes raised and lost them all)."""
+    anki.add_notes_each.return_value = [(1, None), (None, "could not fetch URL")]
 
-    result = json.loads(await add_notes([_note("a")]))
+    result = json.loads(await add_notes([_note("a"), _note("b")]))
 
-    anki.add_notes.assert_not_awaited()
-    assert result["added"] == 0
+    assert result["results"][0]["noteId"] == 1
+    assert result["results"][1]["reason"] == "could not fetch URL"
 
 
-async def test_add_notes_marks_null_ids_as_failed(anki):
-    anki.can_add_notes_with_error_detail.return_value = [{"canAdd": True}]
-    anki.add_notes.return_value = [None]
+async def test_add_notes_sends_picture_only_notes_with_their_picture(anki):
+    """Regression: a note whose Front is filled only by a picture was rejected
+    as empty by a picture-less pre-check."""
+    anki.add_notes_each.return_value = [(7, None)]
+    pic = [{"filename": "a.png", "path": "/a.png", "fields": ["Front"]}]
+    note = {"deckName": "D", "modelName": "Basic", "fields": {"Front": ""}}
 
-    result = json.loads(await add_notes([_note("a")]))
+    result = json.loads(await add_notes([{**note, "picture": pic}]))
 
-    assert result["results"][0]["status"] == "failed"
-    assert result["failed"] == 1
+    assert anki.add_notes_each.await_args.kwargs["notes"][0]["picture"] == pic
+    assert result["added"] == 1
 
 
 async def test_add_notes_rejects_empty_and_oversized_batches(anki):
     assert (await add_notes([])).startswith("SYSTEM_ERROR:")
     too_many = [_note(str(i)) for i in range(101)]
     assert (await add_notes(too_many)).startswith("SYSTEM_ERROR:")
-    anki.can_add_notes_with_error_detail.assert_not_awaited()
+    anki.add_notes_each.assert_not_awaited()
 
 
 async def test_add_notes_rejects_note_missing_required_keys(anki):
     result = await add_notes([_note("a"), {"deckName": "D", "fields": {}}])
     assert result.startswith("SYSTEM_ERROR:")
     assert "index 1" in result
-    anki.can_add_notes_with_error_detail.assert_not_awaited()
-
-
-async def test_add_notes_precheck_omits_picture_but_add_keeps_it(anki):
-    """The pre-check ignores media; sending image data twice is pure waste."""
-    anki.can_add_notes_with_error_detail.return_value = [{"canAdd": True}]
-    anki.add_notes.return_value = [1]
-    pic = [{"filename": "a.png", "data": "AAAA", "fields": ["Back"]}]
-
-    await add_notes([{**_note("a"), "picture": pic}])
-
-    checked = anki.can_add_notes_with_error_detail.await_args.kwargs["notes"][0]
-    added = anki.add_notes.await_args.kwargs["notes"][0]
-    assert "picture" not in checked
-    assert added["picture"] == pic
+    anki.add_notes_each.assert_not_awaited()
 
 
 # --- delete_notes ---
@@ -231,6 +218,19 @@ def test_summarise_review_days_broken_streak_is_zero():
     assert out["current_streak_days"] == 0
 
 
+def test_anki_today_respects_day_rollover():
+    """Regression: Anki buckets reviews by a day that starts at the rollover
+    hour (default 4am); at 1am "today" is still the previous calendar day."""
+    from datetime import UTC, datetime
+
+    assert _anki_today(datetime(2026, 11, 23, 1, 0, tzinfo=UTC), 4) == date(
+        2026, 11, 22
+    )
+    assert _anki_today(datetime(2026, 11, 23, 4, 0, tzinfo=UTC), 4) == date(
+        2026, 11, 23
+    )
+
+
 async def test_get_review_stats_returns_json_summary(anki):
     anki.get_num_cards_reviewed_by_day.return_value = []
     payload = json.loads(await get_review_stats(days=7))
@@ -300,6 +300,25 @@ async def test_find_struggling_cards_raises_threshold_instead_of_truncating(
     assert [c["cardId"] for c in payload["cards"]] == [7, 8]
 
 
+async def test_find_struggling_cards_keeps_worst_cards_when_narrowing_overshoots(
+    anki,
+):
+    """Regression: when one more lapse leaves too few cards, the worst cards
+    must still be in the scanned set, not lost to an arbitrary ID cut."""
+    from mcp_ankiconnect.config import MAX_STRUGGLING_SCAN
+
+    wide = list(range(1, MAX_STRUGGLING_SCAN + 50))
+    worst = [MAX_STRUGGLING_SCAN + 40]  # last by ID, so a naive cut drops it
+    anki.find_cards.side_effect = [wide, worst]
+    anki.cards_info.return_value = []
+
+    await find_struggling_cards(min_lapses=3, limit=10)
+
+    scanned = anki.cards_info.await_args.kwargs["card_ids"]
+    assert len(scanned) == MAX_STRUGGLING_SCAN
+    assert scanned[0] == worst[0]
+
+
 async def test_find_struggling_cards_filters_by_deck(anki):
     anki.find_cards.return_value = []
     result = await find_struggling_cards(deck="Spanish")
@@ -336,15 +355,29 @@ async def test_retrieve_media_file_describes_non_image_files(anki):
     assert "not an image" in result
 
 
+async def test_retrieve_media_file_does_not_return_svg_as_image(anki):
+    """Regression: model APIs reject image/svg+xml image blocks."""
+    anki.retrieve_media_file.return_value = base64.b64encode(b"<svg/>").decode()
+    result = await retrieve_media_file("diagram.svg")
+    assert isinstance(result, str)
+    assert "not an image" in result
+
+
 # --- get_gui_context ---
 
 
 async def test_get_gui_context_returns_current_card_and_selection(anki):
-    anki.gui_current_card.return_value = _card(5, lapses=0, factor=2500)
+    """Regression: guiCurrentCard has no "note" key, so the note ID must come
+    from cardsInfo or the LLM cannot edit the card it is looking at."""
+    gui_card = _card(5, lapses=0, factor=2500)
+    del gui_card["note"]
+    anki.gui_current_card.return_value = gui_card
+    anki.cards_info.return_value = [_card(5, lapses=0, factor=2500)]
     anki.gui_selected_notes.return_value = [10, 20]
 
     payload = json.loads(await get_gui_context())
 
+    anki.cards_info.assert_awaited_once_with(card_ids=[5])
     assert payload["current_review_card"]["cardId"] == 5
     assert payload["current_review_card"]["noteId"] == 50
     assert payload["current_review_card"]["fields"] == {"Front": "Q", "Back": "A"}
@@ -378,6 +411,9 @@ async def test_every_tool_declares_annotations():
     assert tools["delete_notes"].annotations.destructiveHint is True
     assert tools["add_notes"].annotations.readOnlyHint is False
     assert tools["add_notes"].annotations.destructiveHint is False
+    # Regression: answering cards and overwriting media cannot be undone here.
+    assert tools["submit_reviews"].annotations.destructiveHint is True
+    assert tools["store_media_file"].annotations.destructiveHint is True
 
 
 def test_server_exposes_instructions():

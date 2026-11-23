@@ -20,7 +20,7 @@ resource).
 
 | Tool / feature | AnkiConnect | Annotation | Rationale |
 |---|---|---|---|
-| `add_notes` (batch, ≤100) | `canAddNotesWithErrorDetail`, `addNotes` | additive | An LLM usually makes 5–30 cards at a time. The pre-check means one duplicate no longer fails the whole batch. |
+| `add_notes` (batch, ≤100) | `multi` of `addNote` | additive | An LLM usually makes 5–30 cards at a time. Each note succeeds or fails on its own, so one duplicate cannot fail the whole batch. |
 | `delete_notes` | `deleteNotes` | destructive | Clean-up and merging duplicates. Requires `confirm=True`. |
 | `list_tags` | `getTags` | read-only | Keeps tag names consistent with the user's existing tags. |
 | `create_deck` | `createDeck` | additive, idempotent | Creates a deck explicitly before batch adds. |
@@ -51,12 +51,21 @@ These are deliberately left out:
 - `add_note` and `add_notes` share one `_build_note_payload` helper. That
   way MathJax and code conversion, and the duplicate options, cannot drift
   apart.
-- `add_notes` sends only the notes that pass the pre-check. It then reports
-  per-index results: `added` with its id, or `skipped` with a reason. The
-  pre-check is needed because recent AnkiConnect versions make `addNotes`
-  fail outright when any one note is invalid.
+- `add_notes` sends a single `multi` request made of `addNote` actions, and
+  reports per-index results: `added` with its id, or `failed` with a reason.
+  We rejected two alternatives:
+  - `addNotes` saves what it can, then raises one error for the whole batch,
+    which loses the IDs of the notes it did save.
+  - A `canAddNotesWithErrorDetail` pre-check ignores pictures. It wrongly
+    rejects notes filled only by a picture, and misses picture URLs that
+    fail to download.
 - The streak calculation takes `today` as a parameter so it can be tested
-  deterministically.
+  deterministically. "Today" means Anki's day: the local time minus
+  `ANKI_DAY_ROLLOVER_HOUR` (default 4).
+- `get_gui_context` looks up the note ID with `cardsInfo`, because
+  `guiCurrentCard` does not include it.
+- `retrieve_media_file` does not return SVG as image content, because model
+  APIs accept only png, jpeg, gif and webp.
 - Annotation presets (`READ_ONLY`, `ADDITIVE`, `EDIT`, `DESTRUCTIVE`,
   `NETWORK`) are
   defined once in `server.py`.

@@ -672,7 +672,7 @@ async def fetch_due_cards_for_review(
         return review_prompt
 
 
-@mcp.tool(annotations=ADDITIVE)
+@mcp.tool(annotations=DESTRUCTIVE)  # rescheduling cannot be undone here
 @handle_anki_connection_error  # Apply decorator
 async def submit_reviews(
     reviews: list[
@@ -844,7 +844,7 @@ async def add_note(
             return f"SYSTEM_ERROR: {fail_message}"
 
 
-@mcp.tool(annotations=ADDITIVE)
+@mcp.tool(annotations=DESTRUCTIVE)  # overwrites a same-named media file
 @handle_anki_connection_error
 async def store_media_file(
     filename: str,

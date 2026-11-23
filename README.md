@@ -30,8 +30,9 @@ The server implements the following tools:
 - `set_suspended`: Suspend or unsuspend one or more cards.
 - `change_deck`: Move cards (by card ID) into a different deck.
 - `reschedule_cards`: Set due date, forget, or relearn one or more cards.
-- `add_notes`: Add up to 100 notes in one call. Each note is pre-checked, so
-  duplicates are skipped and reported per index instead of failing the batch.
+- `add_notes`: Add up to 100 notes in one request. Each note succeeds or fails
+  on its own, and failures such as duplicates are reported per index, so one
+  bad note never sinks the batch.
 - `delete_notes`: Permanently delete notes. Requires `confirm=true`, which the
   assistant should set only after the user approves.
 - `list_tags`: List existing tags, with an optional substring filter, so new
@@ -39,7 +40,8 @@ The server implements the following tools:
 - `create_deck`: Create a deck or nested deck (`Parent::Child`).
 - `sync`: Sync the collection with AnkiWeb.
 - `get_review_stats`: Today's review count, daily series, average and current
-  streak.
+  streak. Days follow Anki's rollover hour; set `ANKI_DAY_ROLLOVER_HOUR` if
+  yours is not the default of 4am.
 - `find_struggling_cards`: Cards with the most lapses and lowest ease, for
   targeted rewriting.
 - `retrieve_media_file`: Return an image from Anki's media folder as image
