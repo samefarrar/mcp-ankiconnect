@@ -400,3 +400,45 @@ async def test_get_reviews_of_cards_wrapper(client_with_mocked_invoke):
         AnkiAction.GET_REVIEWS_OF_CARDS, cards=[10]
     )
     assert result == {"10": []}
+
+
+# --- Feature-parity wrappers (batch add, delete, tags, sync, stats, media, GUI) ---
+
+
+@pytest.mark.parametrize(
+    ("method", "kwargs", "action", "params"),
+    [
+        (
+            "can_add_notes_with_error_detail",
+            {"notes": [{"a": 1}]},
+            AnkiAction.CAN_ADD_NOTES_WITH_ERROR_DETAIL,
+            {"notes": [{"a": 1}]},
+        ),
+        ("add_notes", {"notes": [{"a": 1}]}, AnkiAction.ADD_NOTES, {"notes": [{"a": 1}]}),
+        ("delete_notes", {"notes": [1, 2]}, AnkiAction.DELETE_NOTES, {"notes": [1, 2]}),
+        ("get_tags", {}, AnkiAction.GET_TAGS, {}),
+        ("create_deck", {"deck": "A::B"}, AnkiAction.CREATE_DECK, {"deck": "A::B"}),
+        ("sync", {}, AnkiAction.SYNC, {}),
+        (
+            "get_num_cards_reviewed_by_day",
+            {},
+            AnkiAction.GET_NUM_CARDS_REVIEWED_BY_DAY,
+            {},
+        ),
+        (
+            "retrieve_media_file",
+            {"filename": "x.png"},
+            AnkiAction.RETRIEVE_MEDIA_FILE,
+            {"filename": "x.png"},
+        ),
+        ("gui_current_card", {}, AnkiAction.GUI_CURRENT_CARD, {}),
+        ("gui_selected_notes", {}, AnkiAction.GUI_SELECTED_NOTES, {}),
+    ],
+)
+async def test_feature_parity_wrappers_forward_to_invoke(
+    client_with_mocked_invoke, method, kwargs, action, params
+):
+    client_with_mocked_invoke.invoke.return_value = "sentinel"
+    result = await getattr(client_with_mocked_invoke, method)(**kwargs)
+    client_with_mocked_invoke.invoke.assert_awaited_once_with(action, **params)
+    assert result == "sentinel"

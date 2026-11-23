@@ -30,6 +30,32 @@ The server implements the following tools:
 - `set_suspended`: Suspend or unsuspend one or more cards.
 - `change_deck`: Move cards (by card ID) into a different deck.
 - `reschedule_cards`: Set due date, forget, or relearn one or more cards.
+- `add_notes`: Add up to 100 notes in one call. Each note is pre-checked, so
+  duplicates are skipped and reported per index instead of failing the batch.
+- `delete_notes`: Permanently delete notes. Requires `confirm=true`, which the
+  assistant should set only after the user approves.
+- `list_tags`: List existing tags, with an optional substring filter, so new
+  cards reuse consistent tag names.
+- `create_deck`: Create a deck or nested deck (`Parent::Child`).
+- `sync`: Sync the collection with AnkiWeb.
+- `get_review_stats`: Today's review count, daily series, average and current
+  streak.
+- `find_struggling_cards`: Cards with the most lapses and lowest ease, for
+  targeted rewriting.
+- `retrieve_media_file`: Return an image from Anki's media folder as image
+  content, so the assistant can see card images.
+- `get_gui_context`: The card shown in the reviewer and the notes selected in
+  the browser, for requests like "fix this card".
+
+Every tool declares MCP annotations (`readOnlyHint`, `destructiveHint` and so
+on), so clients can auto-approve reads and gate destructive calls.
+
+### Resources and instructions
+
+- `anki://docs/search-syntax`: a cheat sheet for Anki search queries. It
+  links to the [official manual](https://docs.ankiweb.net/searching.html).
+- On connect, the server sends instructions that explain note IDs versus card
+  IDs and the recommended authoring and review flows.
 
 ## Configuration
 

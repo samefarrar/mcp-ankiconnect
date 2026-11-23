@@ -12,6 +12,9 @@ from datetime import UTC, datetime
 from typing import Any, Literal
 
 from mcp_ankiconnect.server import (
+    DESTRUCTIVE,
+    EDIT,
+    READ_ONLY,
     _format_note_clean,
     _process_field_content,
     get_anki_client,
@@ -70,7 +73,7 @@ def _format_review_entry(entry: dict) -> dict:
 # --- Tools ---
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 @handle_anki_connection_error
 async def inspect_cards(
     card_ids: list[int] | None = None,
@@ -215,7 +218,7 @@ async def inspect_cards(
         return json.dumps({"cards": out_cards}, ensure_ascii=False)
 
 
-@mcp.tool()
+@mcp.tool(annotations=DESTRUCTIVE)
 @handle_anki_connection_error
 async def update_note_fields(
     note_id: int,
@@ -243,7 +246,7 @@ async def update_note_fields(
         return f"Updated note {note_id}. Fields modified: {field_list}."
 
 
-@mcp.tool()
+@mcp.tool(annotations=EDIT)
 @handle_anki_connection_error
 async def update_note_tags(
     note_ids: list[int],
@@ -287,7 +290,7 @@ async def update_note_tags(
     return parts[0] + " — " + "; ".join(parts[1:]) + "."
 
 
-@mcp.tool()
+@mcp.tool(annotations=EDIT)
 @handle_anki_connection_error
 async def set_suspended(card_ids: list[int], suspended: bool) -> str:
     """Suspend or unsuspend one or more cards.
@@ -309,7 +312,7 @@ async def set_suspended(card_ids: list[int], suspended: bool) -> str:
     return f"{verb} {len(card_ids)} card(s)."
 
 
-@mcp.tool()
+@mcp.tool(annotations=EDIT)
 @handle_anki_connection_error
 async def change_deck(card_ids: list[int], deck: str) -> str:
     """Move cards into a different deck.
@@ -333,7 +336,7 @@ async def change_deck(card_ids: list[int], deck: str) -> str:
     return f"Moved {len(card_ids)} card(s) to deck '{deck}'."
 
 
-@mcp.tool()
+@mcp.tool(annotations=DESTRUCTIVE)
 @handle_anki_connection_error
 async def reschedule_cards(
     card_ids: list[int],

@@ -63,6 +63,17 @@ class AnkiAction(str, Enum):
     FORGET_CARDS = "forgetCards"
     RELEARN_CARDS = "relearnCards"
     GET_REVIEWS_OF_CARDS = "getReviewsOfCards"
+    # --- feature-parity additions ---
+    CAN_ADD_NOTES_WITH_ERROR_DETAIL = "canAddNotesWithErrorDetail"
+    ADD_NOTES = "addNotes"
+    DELETE_NOTES = "deleteNotes"
+    GET_TAGS = "getTags"
+    CREATE_DECK = "createDeck"
+    SYNC = "sync"
+    GET_NUM_CARDS_REVIEWED_BY_DAY = "getNumCardsReviewedByDay"
+    RETRIEVE_MEDIA_FILE = "retrieveMediaFile"
+    GUI_CURRENT_CARD = "guiCurrentCard"
+    GUI_SELECTED_NOTES = "guiSelectedNotes"
 
 class AnkiConnectResponse(BaseModel):
     result: Any
@@ -289,6 +300,42 @@ class AnkiConnectClient:
     async def get_reviews_of_cards(self, cards: list[int]) -> dict:
         """Returns {card_id_str: [review_entry_dict, ...]}."""
         return await self.invoke(AnkiAction.GET_REVIEWS_OF_CARDS, cards=cards)
+
+    # --- Feature-parity wrappers ---
+    async def can_add_notes_with_error_detail(self, notes: list[dict]) -> list[dict]:
+        """Returns one {"canAdd": bool, "error"?: str} per note, in order."""
+        return await self.invoke(AnkiAction.CAN_ADD_NOTES_WITH_ERROR_DETAIL, notes=notes)
+
+    async def add_notes(self, notes: list[dict]) -> list[int | None]:
+        return await self.invoke(AnkiAction.ADD_NOTES, notes=notes)
+
+    async def delete_notes(self, notes: list[int]) -> None:
+        return await self.invoke(AnkiAction.DELETE_NOTES, notes=notes)
+
+    async def get_tags(self) -> list[str]:
+        return await self.invoke(AnkiAction.GET_TAGS)
+
+    async def create_deck(self, deck: str) -> int:
+        return await self.invoke(AnkiAction.CREATE_DECK, deck=deck)
+
+    async def sync(self) -> None:
+        return await self.invoke(AnkiAction.SYNC)
+
+    async def get_num_cards_reviewed_by_day(self) -> list[list]:
+        """Returns [["YYYY-MM-DD", count], ...] for days with reviews."""
+        return await self.invoke(AnkiAction.GET_NUM_CARDS_REVIEWED_BY_DAY)
+
+    async def retrieve_media_file(self, filename: str) -> str | bool:
+        """Returns base64 content, or False when the file does not exist."""
+        return await self.invoke(AnkiAction.RETRIEVE_MEDIA_FILE, filename=filename)
+
+    async def gui_current_card(self) -> dict | None:
+        """Card shown in the reviewer, or None when not reviewing."""
+        return await self.invoke(AnkiAction.GUI_CURRENT_CARD)
+
+    async def gui_selected_notes(self) -> list[int]:
+        """Note IDs selected in an open Browse window (empty otherwise)."""
+        return await self.invoke(AnkiAction.GUI_SELECTED_NOTES)
 
     async def close(self):
         await self.client.aclose()
