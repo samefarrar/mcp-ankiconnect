@@ -38,6 +38,14 @@ logger = logging.getLogger(__name__)
 # --- Custom Exception ---
 class AnkiConnectionError(Exception):
     """Raised when the client cannot connect to the AnkiConnect server after retries."""
+
+
+class DirectBackendError(Exception):
+    """Raised when the collection file cannot be used safely while Anki is closed.
+
+    The message is written for the user (locked file, schema mismatch,
+    ambiguous profile), so tools pass it on verbatim as a SYSTEM_ERROR.
+    """
 # --- End Custom Exception ---
 
 class AnkiAction(str, Enum):
@@ -110,6 +118,10 @@ class AnkiConnectRequest(BaseModel):
 
 
 class AnkiConnectClient:
+    # Which backend answers; the direct (Anki closed) client overrides it.
+    # Tools read it only where the two genuinely differ: sync and GUI state.
+    backend_mode = "ankiconnect"
+
     def __init__(self, base_url: str = ANKI_CONNECT_URL):
         self.base_url = base_url
         # Ensure TIMEOUTS is correctly passed or use httpx.Timeout object
