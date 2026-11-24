@@ -118,3 +118,52 @@ async def test_record_decisions_refuses_unknown_verdicts(decisions_file):
     out = await record_card_decisions(decisions=[{"note_id": 1, "decision": "maybe"}])
     assert out.startswith("SYSTEM_ERROR")
     assert not decisions_file.exists()
+
+
+# --- Does the connected app say it can display the page? ---
+
+from mcp.types import ClientCapabilities, Implementation, InitializeRequestParams  # noqa: E402
+
+from mcp_ankiconnect.app_tools import host_page_support  # noqa: E402
+
+
+def _params(capabilities: dict, name: str = "claude-desktop") -> InitializeRequestParams:
+    return InitializeRequestParams(
+        protocolVersion="2025-06-18",
+        capabilities=ClientCapabilities.model_validate(capabilities),
+        clientInfo=Implementation(name=name, version="1"),
+    )
+
+
+def test_host_that_advertises_mcp_apps_is_supported():
+    caps = {"extensions": {"io.modelcontextprotocol/ui": {"mimeTypes": [APP_MIME_TYPE]}}}
+    assert host_page_support(_params(caps)) == (True, "claude-desktop")
+
+
+@pytest.mark.parametrize(
+    "caps",
+    [
+        {},
+        {"extensions": {}},
+        {"extensions": {"io.modelcontextprotocol/ui": {"mimeTypes": ["text/plain"]}}},
+        {"extensions": {"io.modelcontextprotocol/ui": "yes"}},
+    ],
+)
+def test_host_without_the_extension_is_not_supported(caps):
+    assert host_page_support(_params(caps, "cowork"))[0] is False
+
+
+def test_unknown_host_is_not_supported():
+    # Called outside a client session (e.g. directly in tests).
+    assert host_page_support(None) == (False, "unknown")
+
+
+async def test_open_card_review_reports_page_support(anki):
+    # Regression: the skill guessed "no page" from getting JSON back, but the
+    # model always gets JSON; only the host's capabilities say if it rendered.
+    anki.notes_info.return_value = [
+        {"noteId": 1, "modelName": "Basic", "tags": [], "fields": {"Front": {"value": "Q"}}}
+    ]
+    result = await open_card_review(note_ids=[1])
+    assert result["page_supported"] is False
+    assert result["host"] == "unknown"

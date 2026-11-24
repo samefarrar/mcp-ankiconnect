@@ -1,6 +1,6 @@
 {
   "name": "ankiconnect",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "description": "Anki for Claude: the mcp-ankiconnect server (review, add, search, edit, flag, reschedule) plus skills for writing cards, judging card quality and redesigning bad cards in bulk.",
   "author": {
     "name": "samefarrar"

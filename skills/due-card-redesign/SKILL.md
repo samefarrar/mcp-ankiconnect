@@ -58,8 +58,10 @@ Judgements log record (append-only; never rewrite earlier lines):
    `open_card_review(note_ids, context)` with, per note, `"<issue codes>: <reason>. Approve =
    redesign it; Reject = leave it as it is."` The user's submit posts a message listing each
    decision and comment; read approve as "bad", reject as "ok", skip as undecided, and a comment of
-   "suspend" or "delete" as that action. If the tool returns plain JSON instead of a page, the app
-   cannot display it: say so once and use chat. **Chat:** number, the cleaned card text, the issue
+   "suspend" or "delete" as that action. You always get the notes back as data, page or not, so
+   read the result's `page_supported`: if false, this app did not announce MCP Apps support and no
+   page was shown, so say so once (naming `host`) and use chat for the rest of the session. If true,
+   wait for the submit message; if the user says no page appeared, use chat. **Chat:** number, the cleaned card text, the issue
    codes and the one-line reason, with replies such as
    `1 ok · 2 bad · 3 suspend · 4 bad: also cut the dose`. A bare "go" accepts the batch as judged.
    Write `verdicts.json`, append every note to `ledger.jsonl`, and append each verdict to the

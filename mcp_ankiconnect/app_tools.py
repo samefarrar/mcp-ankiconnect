@@ -25,6 +25,7 @@ from importlib.resources import files
 from pathlib import Path
 from typing import Any, Literal, NotRequired
 
+from mcp.types import InitializeRequestParams
 from typing_extensions import TypedDict
 
 from mcp_ankiconnect.server import (
@@ -38,6 +39,7 @@ from mcp_ankiconnect.server import (
 
 APP_MIME_TYPE = "text/html;profile=mcp-app"
 CARD_REVIEW_URI = "ui://ankiconnect/card-review.html"
+UI_EXTENSION = "io.modelcontextprotocol/ui"
 DEFAULT_DECISIONS_FILE = Path.home() / ".mcp-ankiconnect" / "decisions.jsonl"
 MAX_REVIEW_NOTES = 50
 
@@ -82,8 +84,10 @@ async def open_card_review(
     """Show notes on an approve/reject page, in hosts that render MCP Apps.
 
     The user's verdicts are written to the decisions log (not to Anki), and the
-    page posts a summary message into the conversation when they submit. In a
-    host without MCP Apps support, present the notes in chat instead.
+    page posts a summary message into the conversation when they submit. The
+    result's `page_supported` says whether the connected app announced MCP Apps
+    support: if false, no page was shown, so present the notes in chat instead.
+    You always receive the notes as data, page or not.
 
     Args:
         note_ids: Notes to review, in display order (at most 50).
@@ -102,7 +106,38 @@ async def open_card_review(
         for nid in note_ids
         if nid in found
     ]
-    return {"notes": notes, "missing": [n for n in note_ids if n not in found]}
+    supported, host = host_page_support(_client_params())
+    return {
+        "page_supported": supported,
+        "host": host,
+        "notes": notes,
+        "missing": [n for n in note_ids if n not in found],
+    }
+
+
+def host_page_support(params: InitializeRequestParams | None) -> tuple[bool, str]:
+    """Whether the connected app announced MCP Apps support, and its name.
+
+    Why: the model gets the tool's data whether or not a page rendered, so it
+    cannot tell by looking. Hosts that render pages advertise the
+    `io.modelcontextprotocol/ui` extension, with our MIME type, in the
+    capabilities they send when connecting (SEP-1724 / MCP Apps spec).
+    """
+    if params is None:
+        return False, "unknown"
+    extensions = (params.capabilities.model_extra or {}).get("extensions")
+    ui = extensions.get(UI_EXTENSION) if isinstance(extensions, dict) else None
+    mime_types = ui.get("mimeTypes") if isinstance(ui, dict) else None
+    supported = isinstance(mime_types, list) and APP_MIME_TYPE in mime_types
+    return supported, params.clientInfo.name
+
+
+def _client_params() -> InitializeRequestParams | None:
+    """The current client's initialize parameters, or None outside a session."""
+    try:
+        return mcp.get_context().session.client_params
+    except (ValueError, LookupError, AttributeError):
+        return None
 
 
 @mcp.tool(annotations=ADDITIVE, meta={"ui": {"visibility": ["app"]}})
